@@ -4,6 +4,7 @@
 	"main": "dist/index.js",
 	"module": "dist/index.mjs",
 	"types": "dist/index.d.ts",
+	"private": false,
 	"license": "MIT",
 	"scripts": {
 		"build": "tsup index.ts --format cjs,esm --dts",
