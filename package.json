@@ -1,6 +1,6 @@
 {
 	"name": "@felinto-dev/felinto-connect-bot",
-	"version": "0.0.3",
+	"version": "1.0.0",
 	"main": "dist/index.js",
 	"module": "dist/index.mjs",
 	"types": "dist/index.d.ts",
@@ -13,7 +13,13 @@
 	},
 	"devDependencies": {
 		"@changesets/cli": "^2.26.2",
+		"@types/node": "^20.7.1",
 		"tsup": "^7.2.0",
 		"typescript": "^5.2.2"
+	},
+	"dependencies": {
+		"puppeteer-extra": "^3.3.6",
+		"puppeteer-extra-plugin-recaptcha": "^3.6.8",
+		"puppeteer-extra-plugin-stealth": "^2.11.2"
 	}
 }
