@@ -9,6 +9,9 @@ export const newPage = async () => {
 	});
 	const page = await browser.newPage();
 	await page.setDefaultNavigationTimeout(10 * 1000); // 10 seconds
-	await page.authenticate({ username: process.env.PROXY_USERNAME, password: process.env.PROXY_PASSWORD });
+	await page.authenticate({
+		username: process.env.PROXY_USERNAME,
+		password: process.env.PROXY_PASSWORD
+	});
 	return page;
 }
