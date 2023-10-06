@@ -3,6 +3,12 @@ import puppeteerExtra from 'puppeteer-extra';
 import stealthPlugin from 'puppeteer-extra-plugin-stealth';
 import RecaptchaPlugin from 'puppeteer-extra-plugin-recaptcha';
 
+interface ExtendedPage extends Page {
+	takeScreenshot: () => Promise<void>;
+}
+
+export const screenshots: string[] = [];
+
 export const newPage = async () => {
 	puppeteerExtra.use(stealthPlugin());
 	puppeteerExtra.use(
@@ -17,13 +23,23 @@ export const newPage = async () => {
 		defaultViewport: { width: 1920, height: 1080 },
 	});
 
-	const page: Page = await browser.newPage();
+	const page: ExtendedPage = await browser.newPage();
 	page.setDefaultNavigationTimeout(10 * 1000); // 10 seconds
 
 	await page.authenticate({
 		username: process.env.PROXY_USERNAME,
-		password: process.env.PROXY_PASSWORD
+		password: process.env.PROXY_PASSWORD,
 	});
 
+	page.takeScreenshot = async () => {
+		const screenshot = await page.screenshot({ encoding: 'base64' });
+		screenshots.push(screenshot);
+	}
+
 	return page;
+}
+
+export const takeScreenshot = async (page: Page) => {
+	const screenshot = await page.screenshot({ encoding: 'base64' });
+	screenshots.push(screenshot);
 }

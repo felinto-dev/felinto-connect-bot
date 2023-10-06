@@ -1,4 +1,4 @@
-import { newPage } from './index';
+import { newPage, screenshots, takeScreenshot } from './index';
 import { jest, expect, test } from '@jest/globals';
 
 jest.setTimeout(30 * 1000);
@@ -7,11 +7,10 @@ test('check', () => {
 	expect(typeof newPage).toBe('function');
 })
 
-test('check if puppeteer  is detected', async () => {
+test('add support to take screenshot and save in array', async () => {
 	const page = await newPage();
-	await page.goto("https://arh.antoinevastel.com/bots/areyouheadless/");
-	const browserStatus = await page.$('#res p');
-	console.log(await browserStatus?.contentFrame());
+	await page.goto("https://www.google.com/recaptcha/api2/demo");
+	await page.takeScreenshot();
 	await page.close();
-	expect(1).toBe(1);
+	expect(screenshots.length).toBe(1);
 })
