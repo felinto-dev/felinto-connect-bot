@@ -16,7 +16,7 @@ export const newPage = async () => {
 			provider: { id: '2captcha', token: process.env.TWO_CAPTCHA_KEY },
 			visualFeedback: true,
 		})
-	)
+	);
 
 	const browser = await puppeteerExtra.connect({
 		browserWSEndpoint: process.env.CHROME_HEADLESS_WS_URL,
@@ -37,9 +37,4 @@ export const newPage = async () => {
 	}
 
 	return page;
-}
-
-export const takeScreenshot = async (page: Page) => {
-	const screenshot = await page.screenshot({ encoding: 'base64' });
-	screenshots.push(screenshot);
 }

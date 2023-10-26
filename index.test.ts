@@ -1,9 +1,10 @@
-import { newPage, screenshots, takeScreenshot } from './index';
+import { newPage, screenshots } from './index';
 import { jest, expect, test } from '@jest/globals';
 
 jest.setTimeout(30 * 1000);
 
 test('check', () => {
+	console.log(`You're acessing the browserless instance from this address: ${process.env.CHROME_HEADLESS_WS_URL}`)
 	expect(typeof newPage).toBe('function');
 })
 
