@@ -40,7 +40,7 @@ export const newPage = async (): Promise<ExtendedPage> => {
 	});
 
 	const page = await browser.newPage() as ExtendedPage;
-	page.setDefaultNavigationTimeout(30 * 1000); // 30 seconds
+	page.setDefaultNavigationTimeout(60 * 1000); // 60 seconds
 
 	await page.authenticate({
 		username: process.env.PROXY_USERNAME!,
