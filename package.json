@@ -23,7 +23,7 @@
 	"dependencies": {
 		"puppeteer-core": "^21.3.5",
 		"puppeteer-extra": "^3.3.6",
-		"puppeteer-extra-plugin-devtools": "^2.4.6",
-		"puppeteer-extra-plugin-recaptcha": "^3.6.8"
+		"puppeteer-extra-plugin-recaptcha": "^3.6.8",
+		"puppeteer-extra-plugin-stealth": "^2.11.2"
 	}
 }
