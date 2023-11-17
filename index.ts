@@ -1,7 +1,8 @@
-import { Browser, Page } from 'puppeteer-core';
+import { Browser, Page, Protocol } from 'puppeteer-core';
 import puppeteerExtra from 'puppeteer-extra';
 import stealthPlugin from 'puppeteer-extra-plugin-stealth';
 import RecaptchaPlugin from 'puppeteer-extra-plugin-recaptcha';
+import { Cookie } from 'tough-cookie';
 
 interface ExtendedPage extends Page {
 	takeScreenshot: () => Promise<void>;
@@ -54,3 +55,38 @@ export const newPage = async (): Promise<ExtendedPage> => {
 
 	return page;
 };
+
+export const puppeteerToHeaderSetCookie = (
+	cookies: Protocol.Network.CookieParam[]
+) => {
+	let formattedCookies = '';
+	for (const cookie of cookies) {
+		if (cookie.name) {
+			formattedCookies += `${cookie.name}=${cookie.value}; `;
+		}
+	}
+	return formattedCookies;
+}
+
+export const headerSetCookieToPuppeteer = (setCookieHeader: string) => {
+	const cookies: any[] = [];
+	const cookieStrings = setCookieHeader.split('; ');
+	
+	cookieStrings.forEach(cookieString => {
+			const cookie = Cookie.parse(cookieString);
+			if (cookie) {
+					cookies.push({
+							name: cookie.key,
+							value: cookie.value,
+							domain: cookie.domain,
+							path: cookie.path,
+							expires: cookie.expires instanceof Date ? cookie.expires.getTime() / 1000 : -1,
+							httpOnly: cookie.httpOnly,
+							secure: cookie.secure,
+							sameSite: cookie.sameSite
+					});
+			}
+	});
+
+	return cookies;
+}
