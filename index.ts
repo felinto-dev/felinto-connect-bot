@@ -51,7 +51,7 @@ export const newPage = async (): Promise<ExtendedPage> => {
 	const commonPuppeteerExtraArgs: Partial<ConnectOptions> = {
 		defaultViewport: {
 			width: Number(process.env.DEFAULT_CHROME_HEADLESS_WIDTH_SCREEN) || 1920,
-			height: Number(process.env.DEFAULT_CHROME_HEADLESS_WIDTH_SCREEN) || 1080,
+			height: Number(process.env.DEFAULT_CHROME_HEADLESS_HEIGHT_SCREEN) || 1080,
 		},
 	};
 
