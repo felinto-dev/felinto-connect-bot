@@ -43,7 +43,7 @@ const validateEnvironmentVariables = () => {
 	}
 };
 
-export const newPage = async (): Promise<ExtendedPage> => {
+export const newPage = async () => {
 	validateEnvironmentVariables();
 
 	let browser: Browser;
