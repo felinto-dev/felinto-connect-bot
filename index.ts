@@ -63,6 +63,7 @@ export const newPage = async () => {
 	} else {
 		browser = await puppeteerExtra.launch({
 			headless: false,
+			args: process.env.CHROME_HEADLESS_ARGS ? process.env.CHROME_HEADLESS_ARGS.split(',') : [],
 			...commonPuppeteerExtraArgs,
 		});
 	}
