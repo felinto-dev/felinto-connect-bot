@@ -1,4 +1,4 @@
-import { Browser, Page, Protocol } from 'puppeteer-core';
+import { Browser, ConnectOptions, Page, Protocol } from 'puppeteer-core';
 import puppeteerExtra from 'puppeteer-extra';
 import stealthPlugin from 'puppeteer-extra-plugin-stealth';
 import RecaptchaPlugin from 'puppeteer-extra-plugin-recaptcha';
@@ -19,15 +19,26 @@ puppeteerExtra.use(
 );
 
 const validateEnvironmentVariables = () => {
-	const requiredVars = [
+	const productionRequiredVars = [
 		'TWO_CAPTCHA_KEY',
 		'CHROME_HEADLESS_WS_URL',
 		'PROXY_USERNAME',
 		'PROXY_PASSWORD'
 	];
+
+	const developmentRequiredVars = [
+		'TWO_CAPTCHA_KEY',
+	];
+
+	if (!process.env.NODE_ENV || !['production', 'development'].includes(process.env.NODE_ENV)) {
+		throw new Error('You MUST define NODE_ENV environment variable to use felinto-connect-bot npm package.')
+	}
+
+	const requiredVars = process.env.NODE_ENV === 'production' ? productionRequiredVars : developmentRequiredVars;
+
 	for (const variable of requiredVars) {
 		if (!process.env[variable]) {
-			throw new Error(`Environment variable ${variable} is missing.`);
+			throw new Error(`Environment variable ${variable} is required for use felinto-connect-bot npm package.`);
 		}
 	}
 };
@@ -35,18 +46,42 @@ const validateEnvironmentVariables = () => {
 export const newPage = async (): Promise<ExtendedPage> => {
 	validateEnvironmentVariables();
 
-	const browser: Browser = await puppeteerExtra.connect({
-		browserWSEndpoint: process.env.CHROME_HEADLESS_WS_URL,
-		defaultViewport: { width: 1920, height: 1080 },
-	});
+	let browser: Browser;
+
+	const commonPuppeteerExtraArgs: Partial<ConnectOptions> = {
+		defaultViewport: {
+			width: Number(process.env.DEFAULT_CHROME_HEADLESS_WIDTH_SCREEN) || 1920,
+			height: Number(process.env.DEFAULT_CHROME_HEADLESS_WIDTH_SCREEN) || 1080,
+		},
+	};
+
+	if (process.env.NODE_ENV === 'production') {
+		browser = await puppeteerExtra.connect({
+			browserWSEndpoint: process.env.CHROME_HEADLESS_WS_URL,
+			...commonPuppeteerExtraArgs,
+		});
+	} else {
+		browser = await puppeteerExtra.launch({
+			headless: false,
+			...commonPuppeteerExtraArgs,
+		});
+	}
 
 	const page = await browser.newPage() as ExtendedPage;
 	page.setDefaultNavigationTimeout(60 * 1000); // 60 seconds
 
-	await page.authenticate({
-		username: process.env.PROXY_USERNAME!,
-		password: process.env.PROXY_PASSWORD!,
-	});
+	if (process.env.PROXY_USERNAME && process.env.PROXY_PASSWORD) {
+		await page.authenticate({
+			username: process.env.PROXY_USERNAME!,
+			password: process.env.PROXY_PASSWORD!,
+		});
+	}
+
+	if (process.env.NODE_ENV === 'development') {
+		page.close = async () => {
+			console.log('simulating the closing of the page...')
+		}
+	}
 
 	page.takeScreenshot = async () => {
 		const screenshot = await page.screenshot({ encoding: 'base64' });
