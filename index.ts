@@ -1,4 +1,4 @@
-import { Browser, ConnectOptions, Page } from 'puppeteer-core';
+import { Browser, ConnectOptions, GoToOptions, HTTPResponse, Page, Protocol } from 'puppeteer-core';
 import puppeteerExtra from 'puppeteer-extra';
 import RecaptchaPlugin from 'puppeteer-extra-plugin-recaptcha';
 import { validateEnvironmentVariables } from './utils/validate-environment-variables';
@@ -17,7 +17,16 @@ puppeteerExtra.use(
 	})
 );
 
-export const newPage = async () => {
+type newPageParams = {
+	browserWSEndpoint?: string;
+	userAgent?: string;
+	cookies?: Protocol.Network.CookieParam[];
+	timeout?: number; // timeout in seconds
+	initialUrl?: string;
+	navigationOptions?: GoToOptions;
+};
+
+export const newPage = async (params: newPageParams = {}) => {
 	validateEnvironmentVariables();
 
 	let browser: Browser;
@@ -31,7 +40,7 @@ export const newPage = async () => {
 
 	if (process.env.NODE_ENV === 'production') {
 		browser = await puppeteerExtra.connect({
-			browserWSEndpoint: process.env.CHROME_HEADLESS_WS_URL,
+			browserWSEndpoint: params.browserWSEndpoint || process.env.CHROME_HEADLESS_WS_URL,
 			...commonPuppeteerExtraArgs,
 		});
 	} else {
@@ -61,6 +70,22 @@ export const newPage = async () => {
 	page.takeScreenshot = async () => {
 		const screenshot = await page.screenshot({ encoding: 'base64' });
 		screenshots.push(screenshot);
+	}
+
+	if (params.userAgent) {
+		await page.setUserAgent(params.userAgent);
+	}
+
+	if (params.cookies) {
+		await page.setCookie(...params.cookies);
+	}
+
+	if (params.timeout) {
+		page.setDefaultTimeout(params.timeout * 1000);
+	}
+
+	if (params.initialUrl) {
+		await page.goto(params.initialUrl, params.navigationOptions);
 	}
 
 	return page;

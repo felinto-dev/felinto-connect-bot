@@ -1,7 +1,6 @@
 export const validateEnvironmentVariables = () => {
 	const productionRequiredVars = [
 		'TWO_CAPTCHA_KEY',
-		'CHROME_HEADLESS_WS_URL',
 		'PROXY_USERNAME',
 		'PROXY_PASSWORD'
 	];
