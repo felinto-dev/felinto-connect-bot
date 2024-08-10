@@ -88,14 +88,14 @@ export const newPage = async (params: newPageParams = {}) => {
 		page.setDefaultTimeout(params.timeout * 1000);
 	}
 
-	if (params.initialUrl) {
-		await page.goto(params.initialUrl, params.navigationOptions);
-	}
-
 	if (params.blockedResourcesTypes) {
 		for (const resource of params.blockedResourcesTypes) {
 			blockResourcesPlugin.blockedTypes.add(resource);
 		}
+	}
+
+	if (params.initialUrl) {
+		await page.goto(params.initialUrl, params.navigationOptions);
 	}
 
 	return page;
