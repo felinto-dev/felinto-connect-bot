@@ -1,6 +1,5 @@
 import { Browser, ConnectOptions, Page } from 'puppeteer-core';
 import puppeteerExtra from 'puppeteer-extra';
-import stealthPlugin from 'puppeteer-extra-plugin-stealth';
 import RecaptchaPlugin from 'puppeteer-extra-plugin-recaptcha';
 import { validateEnvironmentVariables } from './utils/validate-environment-variables';
 export * from './utils/cookies-converter';
@@ -11,7 +10,6 @@ interface ExtendedPage extends Page {
 
 export const screenshots: string[] = [];
 
-puppeteerExtra.use(stealthPlugin());
 puppeteerExtra.use(
 	RecaptchaPlugin({
 		provider: { id: '2captcha', token: process.env.TWO_CAPTCHA_KEY },
