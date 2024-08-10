@@ -1,6 +1,7 @@
 import { Browser, ConnectOptions, GoToOptions, HTTPResponse, Page, Protocol } from 'puppeteer-core';
 import puppeteerExtra from 'puppeteer-extra';
 import RecaptchaPlugin from 'puppeteer-extra-plugin-recaptcha';
+import blockResourcesPlugin from 'puppeteer-extra-plugin-block-resources';
 import { validateEnvironmentVariables } from './utils/validate-environment-variables';
 export * from './utils/cookies-converter';
 
@@ -16,6 +17,7 @@ puppeteerExtra.use(
 		visualFeedback: true,
 	})
 );
+puppeteerExtra.use(blockResourcesPlugin());
 
 type newPageParams = {
 	browserWSEndpoint?: string;
@@ -24,6 +26,7 @@ type newPageParams = {
 	timeout?: number; // timeout in seconds
 	initialUrl?: string;
 	navigationOptions?: GoToOptions;
+	blockedRecoursesTypes?: Set<string>;
 };
 
 export const newPage = async (params: newPageParams = {}) => {
@@ -86,6 +89,12 @@ export const newPage = async (params: newPageParams = {}) => {
 
 	if (params.initialUrl) {
 		await page.goto(params.initialUrl, params.navigationOptions);
+	}
+
+	if (params.blockedRecoursesTypes) {
+		for (const resource of params.blockedRecoursesTypes) {
+			blockResourcesPlugin().blockedTypes.add(resource);
+		}
 	}
 
 	return page;

@@ -24,6 +24,7 @@
 	"dependencies": {
 		"puppeteer-core": "^21.11.0",
 		"puppeteer-extra": "^3.3.6",
+		"puppeteer-extra-plugin-block-resources": "^2.4.3",
 		"puppeteer-extra-plugin-recaptcha": "^3.6.8",
 		"tough-cookie": "^4.1.4"
 	}
