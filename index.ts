@@ -27,8 +27,14 @@ type newPageParams = {
 	blockedResourcesTypes?: Set<string>;
 };
 
-// @ts-ignore
-const getJson = (property: string) => $json?.[property];
+const getJson = (property: string) => {
+	// @ts-ignore
+	if ($json) {
+		// @ts-ignore
+		return $json?.[property];
+	}
+	return null;
+};
 
 export const newPage = async (params: newPageParams = {}) => {
 	validateEnvironmentVariables();
