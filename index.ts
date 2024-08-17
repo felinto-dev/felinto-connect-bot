@@ -25,19 +25,13 @@ type newPageParams = {
 	initialUrl?: string;
 	navigationOptions?: GoToOptions;
 	blockedResourcesTypes?: Set<string>;
-};
-
-const getJson = (property: string) => {
-	// @ts-ignore
-	if ($json) {
-		// @ts-ignore
-		return $json?.[property];
-	}
-	return null;
+	$json?: any;
 };
 
 export const newPage = async (params: newPageParams = {}) => {
 	validateEnvironmentVariables();
+
+	const getJson = (property: string) => params.$json?.[property];
 
 	let browser: Browser;
 
