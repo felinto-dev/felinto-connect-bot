@@ -27,6 +27,9 @@ type newPageParams = {
 	blockedResourcesTypes?: Set<string>;
 };
 
+// @ts-ignore
+const getJson = (property: string) => $json?.[property];
+
 export const newPage = async (params: newPageParams = {}) => {
 	validateEnvironmentVariables();
 
@@ -39,9 +42,13 @@ export const newPage = async (params: newPageParams = {}) => {
 		},
 	};
 
+	const browserWSEndpoint =
+		getJson('browserWSEndpoint') ||
+		params.browserWSEndpoint ||
+		process.env.CHROME_HEADLESS_WS_URL;
 	if (process.env.NODE_ENV === 'production') {
 		browser = await puppeteerExtra.connect({
-			browserWSEndpoint: params.browserWSEndpoint || process.env.CHROME_HEADLESS_WS_URL,
+			browserWSEndpoint,
 			...commonPuppeteerExtraArgs,
 		});
 	} else {
@@ -73,20 +80,26 @@ export const newPage = async (params: newPageParams = {}) => {
 		screenshots.push(screenshot);
 	}
 
-	if (params.userAgent) {
-		await page.setUserAgent(params.userAgent);
+	const browserUserAgent = getJson('browserUserAgent') || params.userAgent;
+	if (browserUserAgent) {
+		await page.setUserAgent(browserUserAgent);
 	}
 
-	if (params.cookies) {
-		await page.setCookie(...params.cookies);
+	const cookies = getJson('cookies') || params.cookies;
+	if (cookies) {
+		await page.setCookie(...cookies);
 	}
 
 	if (params.timeout) {
 		page.setDefaultTimeout(params.timeout * 1000);
 	}
 
-	if (params.initialUrl) {
-		await page.goto(params.initialUrl, params.navigationOptions);
+	const initialUrl = getJson('productPageUrl') || params.initialUrl;
+	const navigationOptions = params.navigationOptions || {
+		waitUntil: 'domcontentloaded',
+	};
+	if (initialUrl) {
+		await page.goto(initialUrl, navigationOptions);
 	}
 
 	return page;
