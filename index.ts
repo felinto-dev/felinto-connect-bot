@@ -4,8 +4,6 @@ import RecaptchaPlugin from 'puppeteer-extra-plugin-recaptcha';
 import { validateEnvironmentVariables } from './utils/validate-environment-variables';
 export * from './utils/cookies-converter';
 
-const blockResourcesPlugin = require('puppeteer-extra-plugin-block-resources')()
-
 interface ExtendedPage extends Page {
 	takeScreenshot: () => Promise<void>;
 }
@@ -18,7 +16,6 @@ puppeteerExtra.use(
 		visualFeedback: true,
 	})
 );
-puppeteerExtra.use(blockResourcesPlugin);
 
 type newPageParams = {
 	browserWSEndpoint?: string;
@@ -86,12 +83,6 @@ export const newPage = async (params: newPageParams = {}) => {
 
 	if (params.timeout) {
 		page.setDefaultTimeout(params.timeout * 1000);
-	}
-
-	if (params.blockedResourcesTypes) {
-		for (const resource of params.blockedResourcesTypes) {
-			blockResourcesPlugin.blockedTypes.add(resource);
-		}
 	}
 
 	if (params.initialUrl) {

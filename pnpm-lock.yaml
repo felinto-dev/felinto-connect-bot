@@ -14,9 +14,6 @@ importers:
       puppeteer-extra:
         specifier: ^3.3.6
         version: 3.3.6(puppeteer-core@21.11.0)
-      puppeteer-extra-plugin-block-resources:
-        specifier: ^2.4.3
-        version: 2.4.3(puppeteer-extra@3.3.6(puppeteer-core@21.11.0))
       puppeteer-extra-plugin-recaptcha:
         specifier: ^3.6.8
         version: 3.6.8(puppeteer-extra@3.3.6(puppeteer-core@21.11.0))
@@ -1746,15 +1743,6 @@ packages:
   puppeteer-core@21.11.0:
     resolution: {integrity: sha512-ArbnyA3U5SGHokEvkfWjW+O8hOxV1RSJxOgriX/3A4xZRqixt9ZFHD0yPgZQF05Qj0oAqi8H/7stDorjoHY90Q==}
     engines: {node: '>=16.13.2'}
-
-  puppeteer-extra-plugin-block-resources@2.4.3:
-    resolution: {integrity: sha512-WLxkytm3Nn6D+3N8lFMIi9lL9lLA1mTRHZAflR+zDs9/d1oOYVy52pWPaiQaetOObgfHDpPlHBmzHE2Yhr3ZnQ==}
-    engines: {node: '>=8'}
-    peerDependencies:
-      puppeteer-extra: '*'
-    peerDependenciesMeta:
-      puppeteer-extra:
-        optional: true
 
   puppeteer-extra-plugin-recaptcha@3.6.8:
     resolution: {integrity: sha512-AY2HG1ZFlSi4xs+Hy84LtRJ95DIfnbjR3Az64dJGVW8gr/hBAGEWRlXTMzea7YOmxO3Nc8Ak3CcUgjgp1gIu1w==}
@@ -4309,16 +4297,6 @@ snapshots:
       - encoding
       - supports-color
       - utf-8-validate
-
-  puppeteer-extra-plugin-block-resources@2.4.3(puppeteer-extra@3.3.6(puppeteer-core@21.11.0)):
-    dependencies:
-      debug: 4.3.5
-      puppeteer-extra-plugin: 3.2.3(puppeteer-extra@3.3.6(puppeteer-core@21.11.0))
-    optionalDependencies:
-      puppeteer-extra: 3.3.6(puppeteer-core@21.11.0)
-    transitivePeerDependencies:
-      - playwright-extra
-      - supports-color
 
   puppeteer-extra-plugin-recaptcha@3.6.8(puppeteer-extra@3.3.6(puppeteer-core@21.11.0)):
     dependencies:
