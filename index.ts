@@ -102,6 +102,10 @@ export const newPage = async (params: newPageParams = {}) => {
 	};
 	if (initialUrl) {
 		await page.goto(initialUrl, navigationOptions);
+		
+		if (params.slowMo) {
+			await new Promise(resolve => setTimeout(resolve, 5 * 1000));
+		}
 	}
 
 	return page;
