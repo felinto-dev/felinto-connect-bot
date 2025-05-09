@@ -25,6 +25,7 @@ type newPageParams = {
 	initialUrl?: string;
 	navigationOptions?: GoToOptions;
 	blockedResourcesTypes?: Set<string>;
+	slowMo?: number;
 	$json?: any;
 };
 
@@ -40,6 +41,7 @@ export const newPage = async (params: newPageParams = {}) => {
 			width: Number(process.env.DEFAULT_CHROME_HEADLESS_WIDTH_SCREEN) || 1920,
 			height: Number(process.env.DEFAULT_CHROME_HEADLESS_HEIGHT_SCREEN) || 1080,
 		},
+		slowMo: params.slowMo,
 	};
 
 	const browserWSEndpoint =
