@@ -1,15 +1,18 @@
-import { Browser, ConnectOptions, GoToOptions, HTTPResponse, Page, Protocol } from 'puppeteer-core';
+import { GoToOptions, Protocol } from 'puppeteer-core';
 import puppeteerExtra from 'puppeteer-extra';
 import RecaptchaPlugin from 'puppeteer-extra-plugin-recaptcha';
 import { validateEnvironmentVariables } from './utils/validate-environment-variables';
+import { BrowserFactory } from './utils/browser-factory';
+import { PageConfigurator, ExtendedPage } from './utils/page-configurator';
+import { RetryOptions } from './utils/retry-mechanism';
+
+// Export utilities and error classes
 export * from './utils/cookies-converter';
+export * from './utils/custom-errors';
+export * from './utils/retry-mechanism';
+export { ExtendedPage };
 
-interface ExtendedPage extends Page {
-	takeScreenshot: () => Promise<void>;
-}
-
-export const screenshots: string[] = [];
-
+// Configure puppeteer-extra with reCAPTCHA plugin
 puppeteerExtra.use(
 	RecaptchaPlugin({
 		provider: { id: '2captcha', token: process.env.TWO_CAPTCHA_KEY },
@@ -17,7 +20,8 @@ puppeteerExtra.use(
 	})
 );
 
-type newPageParams = {
+// Configuration interface for newPage function
+export interface NewPageParams {
 	browserWSEndpoint?: string;
 	userAgent?: string;
 	cookies?: Protocol.Network.CookieParam[];
@@ -27,85 +31,56 @@ type newPageParams = {
 	blockedResourcesTypes?: Set<string>;
 	slowMo?: number;
 	$json?: any;
-};
+	retryOptions?: RetryOptions;
+}
 
-export const newPage = async (params: newPageParams = {}) => {
-	validateEnvironmentVariables();
+// Get screenshots array from PageConfigurator
+export const screenshots = PageConfigurator.getScreenshots();
 
+/**
+ * Creates a new browser page with specified configuration
+ * @param params Configuration parameters for the page
+ * @returns Promise resolving to configured page instance
+ * @throws {BrowserConnectionError} When unable to connect to browser
+ * @throws {PageCreationError} When unable to create or configure page
+ * @throws {NavigationError} When navigation fails
+ * @throws {AuthenticationError} When proxy authentication fails
+ */
+export const newPage = async (params: NewPageParams = {}): Promise<ExtendedPage> => {
+	// Validate environment variables
+	try {
+		validateEnvironmentVariables();
+	} catch (error) {
+		throw new Error(`Environment validation failed: ${(error as Error).message}`);
+	}
+
+	// Extract configuration from JSON or direct params
 	const getJson = (property: string) => params.$json?.[property];
+	const retryOptions = params.retryOptions || { maxRetries: 3, baseDelay: 1000 };
 
-	let browser: Browser;
-
-	const commonPuppeteerExtraArgs: Partial<ConnectOptions> = {
-		defaultViewport: {
-			width: Number(process.env.DEFAULT_CHROME_HEADLESS_WIDTH_SCREEN) || 1920,
-			height: Number(process.env.DEFAULT_CHROME_HEADLESS_HEIGHT_SCREEN) || 1080,
-		},
-		slowMo: params.slowMo,
-	};
-
-	const browserWSEndpoint =
+	// Determine browser endpoint
+	const browserWSEndpoint = 
 		getJson('browserWSEndpoint') ||
 		params.browserWSEndpoint ||
 		process.env.CHROME_HEADLESS_WS_URL;
-	if (process.env.NODE_ENV === 'production') {
-		browser = await puppeteerExtra.connect({
-			browserWSEndpoint,
-			...commonPuppeteerExtraArgs,
-		});
-	} else {
-		browser = await puppeteerExtra.launch({
-			headless: false,
-			args: process.env.CHROME_HEADLESS_ARGS ? process.env.CHROME_HEADLESS_ARGS.split(',') : [],
-			...commonPuppeteerExtraArgs,
-		});
-	}
 
-	const page = await browser.newPage() as ExtendedPage;
+	// Create browser instance
+	const browser = await BrowserFactory.createBrowser({
+		browserWSEndpoint,
+		slowMo: params.slowMo,
+		retryOptions
+	});
 
-	const TIMEOUT = params.timeout || 60;
-	page.setDefaultNavigationTimeout(TIMEOUT * 1000);
-	page.setDefaultTimeout(TIMEOUT * 1000);
-
-	if (process.env.PROXY_USERNAME && process.env.PROXY_PASSWORD) {
-		await page.authenticate({
-			username: process.env.PROXY_USERNAME!,
-			password: process.env.PROXY_PASSWORD!,
-		});
-	}
-
-	if (process.env.NODE_ENV === 'development') {
-		page.close = async () => {
-			console.log('simulating the closing of the page...')
-		}
-	}
-
-	page.takeScreenshot = async () => {
-		const screenshot = await page.screenshot({ encoding: 'base64' });
-		screenshots.push(screenshot);
-	}
-
-	const browserUserAgent = getJson('browserUserAgent') || params.userAgent;
-	if (browserUserAgent) {
-		await page.setUserAgent(browserUserAgent);
-	}
-
-	const cookies = getJson('cookies') || params.cookies;
-	if (cookies) {
-		await page.setCookie(...cookies);
-	}
-
-	const initialUrl = getJson('productPageUrl') || params.initialUrl;
-	const navigationOptions = params.navigationOptions || {
-		waitUntil: 'domcontentloaded',
-	};
-	if (initialUrl) {
-		await page.goto(initialUrl, navigationOptions);
-		
-		if (params.slowMo) {
-			await new Promise(resolve => setTimeout(resolve, 5 * 1000));
-		}
-	}
+	// Create and configure page
+	const page = await PageConfigurator.createAndConfigurePage(browser, {
+		timeout: params.timeout,
+		userAgent: getJson('browserUserAgent') || params.userAgent,
+		cookies: getJson('cookies') || params.cookies,
+		initialUrl: getJson('productPageUrl') || params.initialUrl,
+		navigationOptions: params.navigationOptions,
+		slowMo: params.slowMo,
+		retryOptions
+	});
 
 	return page;
 };
