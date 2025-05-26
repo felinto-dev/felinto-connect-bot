@@ -62,7 +62,10 @@ export const newPage = async (params: newPageParams = {}) => {
 	}
 
 	const page = await browser.newPage() as ExtendedPage;
-	page.setDefaultNavigationTimeout(60 * 1000); // 60 seconds
+
+	const TIMEOUT = params.timeout || 60;
+	page.setDefaultNavigationTimeout(TIMEOUT * 1000);
+	page.setDefaultTimeout(TIMEOUT * 1000);
 
 	if (process.env.PROXY_USERNAME && process.env.PROXY_PASSWORD) {
 		await page.authenticate({
@@ -90,10 +93,6 @@ export const newPage = async (params: newPageParams = {}) => {
 	const cookies = getJson('cookies') || params.cookies;
 	if (cookies) {
 		await page.setCookie(...cookies);
-	}
-
-	if (params.timeout) {
-		page.setDefaultTimeout(params.timeout * 1000);
 	}
 
 	const initialUrl = getJson('productPageUrl') || params.initialUrl;
