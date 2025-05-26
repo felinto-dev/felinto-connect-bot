@@ -6,7 +6,7 @@ export async function retryOperation<T>(
 	maxRetries: number = 3,
 	baseDelay: number = 1000,
 	operationName: string = 'operation'
-): Promise<T> {
+): Promise<T | null> {
 	let lastError: Error;
 
 	for (let attempt = 1; attempt <= maxRetries; attempt++) {
@@ -16,7 +16,8 @@ export async function retryOperation<T>(
 			lastError = error as Error;
 			
 			if (attempt === maxRetries) {
-				throw new Error(`${operationName} failed after ${maxRetries} attempts: ${lastError.message}`);
+				console.error(`${operationName} failed after ${maxRetries} attempts: ${lastError.message}`);
+				return null;
 			}
 
 			const delay = baseDelay * Math.pow(2, attempt - 1); // Exponential backoff
@@ -25,7 +26,7 @@ export async function retryOperation<T>(
 		}
 	}
 
-	throw lastError!;
+	return null;
 }
 
 export interface RetryOptions {

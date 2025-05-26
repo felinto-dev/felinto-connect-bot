@@ -42,25 +42,26 @@ export class PageConfigurator {
 		} = options;
 
 		// Create page with error handling
-		let page: ExtendedPage;
-		try {
-			page = await retryOperation(
-				async () => {
-					try {
-						return await browser.newPage() as ExtendedPage;
-					} catch (error) {
-						const err = error as Error;
-						throw new PageCreationError(`Failed to create new page: ${err.message}`, err);
-					}
-				},
-				retryOptions.maxRetries,
-				retryOptions.baseDelay,
-				'Page creation'
-			);
-		} catch (error) {
+		const pageResult = await retryOperation(
+			async () => {
+				try {
+					return await browser.newPage() as ExtendedPage;
+				} catch (error) {
+					const err = error as Error;
+					throw new PageCreationError(`Failed to create new page: ${err.message}`, err);
+				}
+			},
+			retryOptions.maxRetries,
+			retryOptions.baseDelay,
+			'Page creation'
+		);
+
+		if (!pageResult) {
 			await browser.close().catch(() => {});
-			throw error;
+			throw new PageCreationError('Failed to create page after all retry attempts', new Error('Page creation failed'));
 		}
+
+		const page: ExtendedPage = pageResult;
 
 		// Configure page timeout
 		try {
@@ -154,36 +155,50 @@ export class PageConfigurator {
 		slowMo?: number,
 		retryOptions?: RetryOptions
 	): Promise<void> {
-		try {
-			await retryOperation(
-				async () => {
-					try {
-						await page.goto(url, navigationOptions);
-					} catch (error) {
-						const err = error as Error;
-						if (err.message.includes('net::ERR_NAME_NOT_RESOLVED')) {
-							throw new NavigationError(`URL not found: ${url}`, err);
-						}
-						if (err.message.includes('net::ERR_CONNECTION_REFUSED')) {
-							throw new NavigationError(`Connection refused to: ${url}`, err);
-						}
-						if (err.message.includes('Navigation timeout')) {
-							throw new NavigationError(`Navigation timeout for: ${url}`, err);
-						}
-						throw new NavigationError(`Navigation failed to ${url}: ${err.message}`, err);
-					}
-				},
-				retryOptions?.maxRetries || 3,
-				retryOptions?.baseDelay || 1000,
-				'Page navigation'
-			);
-			
-			if (slowMo) {
-				await new Promise(resolve => setTimeout(resolve, 5 * 1000));
+		// Debug log dos parâmetros de navegação
+		console.log('🔄 Navegação - Parâmetros configurados:', {
+			url,
+			navigationOptions,
+			slowMo,
+			retryOptions: {
+				maxRetries: retryOptions?.maxRetries || 3,
+				baseDelay: retryOptions?.baseDelay || 1000
 			}
-		} catch (error) {
+		});
+
+		const navigationResult = await retryOperation(
+			async () => {
+				try {
+					console.log(`🌐 Executando page.goto para: ${url}`);
+					await page.goto(url, navigationOptions);
+					console.log(`✅ Navegação bem-sucedida para: ${url}`);
+					return true; // Sucesso na navegação
+				} catch (error) {
+					const err = error as Error;
+					if (err.message.includes('net::ERR_NAME_NOT_RESOLVED')) {
+						throw new NavigationError(`URL not found: ${url}`, err);
+					}
+					if (err.message.includes('net::ERR_CONNECTION_REFUSED')) {
+						throw new NavigationError(`Connection refused to: ${url}`, err);
+					}
+					if (err.message.includes('Navigation timeout')) {
+						throw new NavigationError(`Navigation timeout for: ${url}`, err);
+					}
+					throw new NavigationError(`Navigation failed to ${url}: ${err.message}`, err);
+				}
+			},
+			retryOptions?.maxRetries || 3,
+			retryOptions?.baseDelay || 1000,
+			'Page navigation'
+		);
+
+		if (!navigationResult) {
 			await browser.close().catch(() => {});
-			throw error;
+			throw new NavigationError(`Failed to navigate to ${url} after all retry attempts`, new Error('Navigation failed'));
+		}
+		
+		if (slowMo) {
+			await new Promise(resolve => setTimeout(resolve, 5 * 1000));
 		}
 	}
 } 
