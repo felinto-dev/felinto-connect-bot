@@ -1,16 +1,16 @@
 import { GoToOptions, Protocol } from 'puppeteer-core';
 import puppeteerExtra from 'puppeteer-extra';
 import RecaptchaPlugin from 'puppeteer-extra-plugin-recaptcha';
-import { validateEnvironmentVariables } from './utils/validate-environment-variables';
-import { BrowserFactory } from './utils/browser-factory';
-import { PageConfigurator, ExtendedPage } from './utils/page-configurator';
-import { RetryOptions } from './utils/retry-mechanism';
+import { 
+	validateEnvironmentVariables,
+	BrowserFactory,
+	PageConfigurator,
+	ExtendedPage,
+	RetryOptions
+} from './utils';
 
 // Export utilities and error classes
-export * from './utils/cookies-converter';
-export * from './utils/custom-errors';
-export * from './utils/retry-mechanism';
-export { ExtendedPage };
+export * from './utils';
 
 // Configure puppeteer-extra with reCAPTCHA plugin
 puppeteerExtra.use(
