@@ -9,8 +9,13 @@ export const validateEnvironmentVariables = () => {
 		'TWO_CAPTCHA_KEY',
 	];
 
-	if (!process.env.NODE_ENV || !['production', 'development'].includes(process.env.NODE_ENV)) {
-		throw new Error('You MUST define NODE_ENV environment variable to use felinto-connect-bot npm package.')
+	// Se NODE_ENV não estiver definida, assume 'production' como padrão
+	if (!process.env.NODE_ENV) {
+		process.env.NODE_ENV = 'production';
+	}
+
+	if (!['production', 'development'].includes(process.env.NODE_ENV)) {
+		throw new Error('NODE_ENV must be either "production" or "development".');
 	}
 
 	const requiredVars = process.env.NODE_ENV === 'production' ? productionRequiredVars : developmentRequiredVars;
