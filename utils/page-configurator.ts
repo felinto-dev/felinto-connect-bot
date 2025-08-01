@@ -12,6 +12,7 @@ export interface PageConfigurationOptions {
 	cookies?: CookieParam[];
 	initialUrl?: string;
 	navigationOptions?: GoToOptions;
+	blockedResourcesTypes?: string[];
 	slowMo?: number;
 	retryOptions?: RetryOptions;
 }
@@ -37,6 +38,7 @@ export class PageConfigurator {
 			cookies, 
 			initialUrl, 
 			navigationOptions = { waitUntil: 'domcontentloaded' },
+			blockedResourcesTypes,
 			slowMo,
 			retryOptions = { maxRetries: 3, baseDelay: 1000 }
 		} = options;
@@ -75,6 +77,9 @@ export class PageConfigurator {
 		// Setup proxy authentication
 		await this.setupProxyAuthentication(page, browser);
 
+		// Setup resource blocking
+		await this.setupResourceBlocking(page, browser, blockedResourcesTypes);
+
 		// Development mode page close override
 		if (process.env.NODE_ENV === 'development') {
 			page.close = async () => {
@@ -109,6 +114,28 @@ export class PageConfigurator {
 			} catch (error) {
 				await browser.close().catch(() => {});
 				throw new AuthenticationError(`Proxy authentication failed: ${(error as Error).message}`, error as Error);
+			}
+		}
+	}
+
+	private static async setupResourceBlocking(page: ExtendedPage, browser: Browser, blockedTypes?: string[]): Promise<void> {
+		if (blockedTypes && blockedTypes.length > 0) {
+			try {
+				// Remove duplicatas do array
+				const uniqueBlockedTypes = [...new Set(blockedTypes)];
+				
+				await page.setRequestInterception(true);
+				page.on('request', (request) => {
+					const resourceType = request.resourceType();
+					if (uniqueBlockedTypes.includes(resourceType)) {
+						request.abort();
+					} else {
+						request.continue();
+					}
+				});
+			} catch (error) {
+				await browser.close().catch(() => {});
+				throw new PageCreationError(`Failed to setup resource blocking: ${(error as Error).message}`, error as Error);
 			}
 		}
 	}

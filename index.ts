@@ -28,7 +28,7 @@ export interface NewPageParams {
 	timeout?: number; // timeout in seconds
 	initialUrl?: string;
 	navigationOptions?: GoToOptions;
-	blockedResourcesTypes?: Set<string>;
+	blockedResourcesTypes?: string[];
 	slowMo?: number;
 	$json?: any;
 	retryOptions?: RetryOptions;
@@ -78,6 +78,7 @@ export const newPage = async (params: NewPageParams = {}): Promise<ExtendedPage>
 		cookies: getJson('cookies') || params.cookies,
 		initialUrl: getJson('productPageUrl') || params.initialUrl,
 		navigationOptions: params.navigationOptions,
+		blockedResourcesTypes: getJson('blockedResourcesTypes') || params.blockedResourcesTypes,
 		slowMo: params.slowMo,
 		retryOptions
 	});
