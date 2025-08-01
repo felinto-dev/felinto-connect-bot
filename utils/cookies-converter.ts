@@ -1,8 +1,8 @@
-import { Protocol } from 'puppeteer-core';
+import { Protocol, CookieParam } from 'puppeteer-core';
 import { Cookie } from 'tough-cookie';
 
 export const puppeteerToHeaderSetCookie = (
-	cookies: Protocol.Network.CookieParam[]
+	cookies: CookieParam[]
 ) => {
 	return cookies.map(cookie => {
 		let cookieStr = `${cookie.name}=${cookie.value}`;

@@ -1,4 +1,4 @@
-import { GoToOptions, Protocol } from 'puppeteer-core';
+import { GoToOptions, Protocol, CookieParam } from 'puppeteer-core';
 import puppeteerExtra from 'puppeteer-extra';
 import RecaptchaPlugin from 'puppeteer-extra-plugin-recaptcha';
 import { 
@@ -24,7 +24,7 @@ puppeteerExtra.use(
 export interface NewPageParams {
 	browserWSEndpoint?: string;
 	userAgent?: string;
-	cookies?: Protocol.Network.CookieParam[];
+	cookies?: CookieParam[];
 	timeout?: number; // timeout in seconds
 	initialUrl?: string;
 	navigationOptions?: GoToOptions;

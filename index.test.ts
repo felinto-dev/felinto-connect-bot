@@ -1,4 +1,4 @@
-import { Protocol } from 'puppeteer-core';
+import { Protocol, CookieParam } from 'puppeteer-core';
 import { headerSetCookieToPuppeteer, newPage, puppeteerToHeaderSetCookie, screenshots } from './index';
 import { jest, expect, test } from '@jest/globals';
 
@@ -315,7 +315,7 @@ test('puppeteer cookies to header set cookie', async () => {
 			"sourcePort": 443,
 			"sourceScheme": "Secure"
 		}
-	] as any as Protocol.Network.CookieParam[]
+	] as any as CookieParam[]
 	const headerSetCookie = puppeteerToHeaderSetCookie(cookies);
 	console.log(headerSetCookie);
 	expect(headerSetCookie).not.toBe('');

@@ -1,4 +1,4 @@
-import { Browser, GoToOptions, Page, Protocol } from 'puppeteer-core';
+import { Browser, GoToOptions, Page, Protocol, CookieParam } from 'puppeteer-core';
 import { PageCreationError, AuthenticationError, NavigationError } from './custom-errors';
 import { retryOperation, RetryOptions } from './retry-mechanism';
 
@@ -9,7 +9,7 @@ export interface ExtendedPage extends Page {
 export interface PageConfigurationOptions {
 	timeout?: number;
 	userAgent?: string;
-	cookies?: Protocol.Network.CookieParam[];
+	cookies?: CookieParam[];
 	initialUrl?: string;
 	navigationOptions?: GoToOptions;
 	slowMo?: number;
@@ -136,9 +136,11 @@ export class PageConfigurator {
 		}
 	}
 
-	private static async setCookies(page: ExtendedPage, browser: Browser, cookies?: Protocol.Network.CookieParam[]): Promise<void> {
+	private static async setCookies(page: ExtendedPage, browser: Browser, cookies?: CookieParam[]): Promise<void> {
 		if (cookies) {
 			try {
+				// Usando page.setCookie() que continua sendo a API padrão na v24
+				// Esta API permanece estável e não foi depreciada
 				await page.setCookie(...cookies);
 			} catch (error) {
 				await browser.close().catch(() => {});
