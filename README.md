@@ -10,6 +10,7 @@ Uma biblioteca robusta para automação de navegadores usando Puppeteer com recu
 - 📸 **Sistema de screenshots** integrado
 - 🔧 **Configuração flexível** para desenvolvimento e produção
 - 🤖 **Plugin reCAPTCHA** integrado
+- 💾 **Gerenciamento de sessões** com persistência automática
 
 ## 📦 Instalação
 
@@ -55,6 +56,7 @@ interface newPageParams {
     maxRetries?: number;               // Máximo de tentativas (padrão: 3)
     baseDelay?: number;                // Delay base em ms (padrão: 1000)
   };
+  userDataDir?: string;                // Diretório para persistência de sessão
 }
 ```
 
@@ -88,7 +90,9 @@ import {
   BrowserConnectionError,
   PageCreationError, 
   NavigationError,
-  AuthenticationError 
+  AuthenticationError,
+  SessionManager,
+  SessionEnabledPage
 } from 'felinto-connect-bot';
 
 try {
@@ -146,6 +150,133 @@ import { screenshots } from 'felinto-connect-bot';
 console.log(`Total de screenshots: ${screenshots.length}`);
 ```
 
+## 💾 Gerenciamento de Sessões
+
+A biblioteca oferece um sistema robusto de persistência de sessões que permite manter dados como cookies, localStorage, sessionStorage e outros estados da página entre execuções.
+
+### Como Funciona
+
+O sistema de sessões funciona automaticamente quando você especifica um `userDataDir`:
+
+- **Salvamento Automático**: As sessões são salvas automaticamente quando a página é fechada
+- **Restauração Automática**: Sessões são restauradas automaticamente ao navegar para páginas
+- **Persistência**: Dados ficam armazenados em `/tmp/puppeteer-sessions/` com nomes seguros
+
+### Uso Básico com Sessões
+
+```typescript
+import { newPage } from 'felinto-connect-bot';
+
+// Criar nova página com sessão
+const page = await newPage({
+  initialUrl: 'https://example.com/login',
+  userDataDir: 'minha-sessao-login'
+});
+
+// Fazer login (cookies e dados de sessão serão salvos automaticamente)
+await page.type('#username', 'meu-usuario');
+await page.type('#password', 'minha-senha');
+await page.click('#login-btn');
+
+// Fechar página (sessão salva automaticamente)
+await page.close();
+
+// Reutilizar sessão em nova página
+const paginaComSessao = await newPage({
+  initialUrl: 'https://example.com/dashboard',
+  userDataDir: 'minha-sessao-login' // Mesma sessão
+});
+// Já estará logado!
+```
+
+### Métodos de Sessão Disponíveis
+
+Quando você usa `userDataDir`, a página ganha métodos extras:
+
+```typescript
+const page = await newPage({ 
+  userDataDir: 'minha-sessao',
+  initialUrl: 'https://example.com'
+});
+
+// Salvar sessão manualmente
+const salvou = await page.saveSession();
+console.log('Sessão salva:', salvou);
+
+// Restaurar sessão manualmente
+const restaurou = await page.restoreSession();
+console.log('Sessão restaurada:', restaurou);
+
+// Limpar sessão armazenada
+const limpou = await page.clearSession();
+console.log('Sessão limpa:', limpou);
+```
+
+### Funcionalidade `newPage()`
+
+- **`newPage()`**: Cria uma nova página. Se `userDataDir` for fornecido, habilita funcionalidades de sessão e restaura automaticamente dados salvos quando disponíveis.
+
+```typescript
+// Primeira execução - cria nova sessão
+const pagina1 = await newPage({
+  userDataDir: 'sessao-ecommerce',
+  initialUrl: 'https://loja.com/login'
+});
+
+// Login e navegação...
+await pagina1.close(); // Sessão salva automaticamente
+
+// Segunda execução - reutiliza sessão automaticamente
+const pagina2 = await newPage({
+  userDataDir: 'sessao-ecommerce', // Mesma sessão
+  initialUrl: 'https://loja.com/carrinho'
+});
+// Já está logado e com itens no carrinho preservados!
+```
+
+### Casos de Uso Reais
+
+**E-commerce com Carrinho Persistente:**
+```typescript
+const loja = await newPage({
+  userDataDir: 'carrinho-compras',
+  initialUrl: 'https://loja.com'
+});
+
+// Adicionar produtos ao carrinho
+await loja.click('.produto-1 .adicionar-carrinho');
+await loja.close();
+
+// Retomar compra mais tarde
+const checkout = await newPage({
+  userDataDir: 'carrinho-compras',
+  initialUrl: 'https://loja.com/checkout'
+});
+// Carrinho mantido!
+```
+
+**Automação com Login Persistente:**
+```typescript
+// Login uma vez
+const login = await newPage({
+  userDataDir: 'bot-admin',
+  initialUrl: 'https://admin.site.com/login'
+});
+// Fazer login...
+await login.close();
+
+// Executar tarefas diárias sem novo login
+const tarefa1 = await newPage({
+  userDataDir: 'bot-admin',
+  initialUrl: 'https://admin.site.com/relatorios'
+});
+
+const tarefa2 = await newPage({
+  userDataDir: 'bot-admin', 
+  initialUrl: 'https://admin.site.com/usuarios'
+});
+```
+
 ## 🔧 Exemplos Avançados
 
 ### Configuração Completa
@@ -164,6 +295,7 @@ const page = await newPage({
     timeout: 30000
   },
   slowMo: 500,
+  userDataDir: 'minha-sessao-personalizada', // Sessão persistente
   retryOptions: {
     maxRetries: 3,
     baseDelay: 2000
@@ -178,6 +310,7 @@ const config = {
   browserWSEndpoint: 'ws://localhost:9222',
   productPageUrl: 'https://example.com',
   browserUserAgent: 'Custom Bot 1.0',
+  userDataDir: 'sessao-bot-personalizado',
   cookies: [/* seus cookies */]
 };
 

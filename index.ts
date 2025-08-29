@@ -100,22 +100,3 @@ export const newPage = async (params: NewPageParams = {}): Promise<ExtendedPage>
 
 	return page;
 };
-
-/**
- * Creates a new tab that reuses existing session if available
- * @param params Configuration parameters for the page (same as newPage)
- * @returns Promise resolving to configured page instance
- * @description If userDataDir is provided and a session exists, it will reuse the session data.
- * Otherwise, it behaves exactly like newPage.
- */
-export const newTab = async (params: NewPageParams = {}): Promise<ExtendedPage> => {
-	const userDataDir = params.$json?.userDataDir || params.userDataDir;
-	
-	if (userDataDir && await SessionManager.hasSession(userDataDir)) {
-		// Session exists, create page with session restoration
-		return await newPage(params);
-	} else {
-		// No session exists, create new page (same as newPage)
-		return await newPage(params);
-	}
-};
