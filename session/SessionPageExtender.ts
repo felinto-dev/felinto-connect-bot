@@ -1,0 +1,88 @@
+import { ExtendedPage } from '../utils';
+import { SessionManager } from './SessionManager';
+
+/**
+ * Interface for session-enabled pages
+ */
+export interface SessionEnabledPage extends ExtendedPage {
+	saveSession(): Promise<boolean>;
+	clearSession(): Promise<boolean>;
+	restoreSession(): Promise<boolean>;
+}
+
+/**
+ * SessionPageExtender - Extends pages with session functionality
+ */
+export class SessionPageExtender {
+	/**
+	 * Extends a page with session management capabilities
+	 */
+	static extendPageWithSession(page: ExtendedPage, userDataDir: string): SessionEnabledPage {
+		// Cast page to access session methods
+		const sessionPage = page as any;
+		
+		// Add session methods
+		sessionPage.saveSession = async (): Promise<boolean> => {
+			try {
+				const sessionData = await sessionPage.session.dump();
+				return await SessionManager.saveSession(userDataDir, sessionData);
+			} catch (error) {
+				console.error('Failed to save session:', (error as Error).message);
+				return false;
+			}
+		};
+
+		sessionPage.clearSession = async (): Promise<boolean> => {
+			return await SessionManager.clearSession(userDataDir);
+		};
+
+		// Add method to restore session after navigation
+		sessionPage.restoreSession = async (): Promise<boolean> => {
+			const savedSession = await SessionManager.loadSession(userDataDir);
+			if (savedSession) {
+				try {
+					await sessionPage.session.restore(savedSession);
+					return true;
+				} catch (error) {
+					console.warn('Failed to restore session:', (error as Error).message);
+					return false;
+				}
+			}
+			return false;
+		};
+
+		// Override goto to restore session after navigation
+		const originalGoto = page.goto;
+		page.goto = async (url: string, options?: any) => {
+			const result = await originalGoto.call(page, url, options);
+			
+			// Try to restore session after successful navigation
+			try {
+				await sessionPage.restoreSession();
+			} catch (error) {
+				// Ignore restore errors during navigation
+			}
+			
+			return result;
+		};
+
+		// Override close method to auto-save session
+		const originalClose = page.close;
+		page.close = async () => {
+			try {
+				const sessionData = await sessionPage.session.dump();
+				await SessionManager.saveSession(userDataDir, sessionData);
+			} catch (error) {
+				// Ignore save errors during close
+			}
+			
+			try {
+				return await originalClose.call(page);
+			} catch (closeError) {
+				// Ignore close errors (common with remote browsers)
+			}
+		};
+
+		return sessionPage as SessionEnabledPage;
+	}
+}
