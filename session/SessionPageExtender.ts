@@ -8,6 +8,7 @@ export interface SessionEnabledPage extends ExtendedPage {
 	saveSession(): Promise<boolean>;
 	clearSession(): Promise<boolean>;
 	restoreSession(): Promise<boolean>;
+	getSessionData(): Promise<any | null>;
 }
 
 /**
@@ -49,6 +50,15 @@ export class SessionPageExtender {
 				}
 			}
 			return false;
+		};
+
+		sessionPage.getSessionData = async (): Promise<any | null> => {
+			try {
+				return await sessionPage.session.dump();
+			} catch (error) {
+				console.error('Failed to get session data:', (error as Error).message);
+				return null;
+			}
 		};
 
 		// Override goto to restore session after navigation
