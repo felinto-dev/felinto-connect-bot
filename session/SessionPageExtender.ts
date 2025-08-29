@@ -83,6 +83,16 @@ export class SessionPageExtender {
 			}
 		};
 
+		// Restore session immediately after page extension (for initial navigation)
+		// This ensures session is restored even if the page was already navigated
+		setTimeout(async () => {
+			try {
+				await sessionPage.restoreSession();
+			} catch (error) {
+				// Ignore restore errors during initialization
+			}
+		}, 1000);
+
 		return sessionPage as SessionEnabledPage;
 	}
 }
