@@ -17,6 +17,9 @@ importers:
       puppeteer-extra-plugin-recaptcha:
         specifier: ^3.6.8
         version: 3.6.8(puppeteer-extra@3.3.6(puppeteer-core@24.15.0))
+      puppeteer-extra-plugin-session:
+        specifier: ^1.0.1
+        version: 1.0.1(puppeteer-extra@3.3.6(puppeteer-core@24.15.0))
       tough-cookie:
         specifier: ^5.1.2
         version: 5.1.2
@@ -1928,6 +1931,9 @@ packages:
         optional: true
       puppeteer-extra:
         optional: true
+
+  puppeteer-extra-plugin-session@1.0.1:
+    resolution: {integrity: sha512-n5o0TZgEYNaJUkOAxcV7YccfsyJRqvSxtaCy931NgTGRq/xgq55lSUAr5czSACUjE7f+uknZqFmWLyW/8H01IA==}
 
   puppeteer-extra-plugin@3.2.3:
     resolution: {integrity: sha512-6RNy0e6pH8vaS3akPIKGg28xcryKscczt4wIl0ePciZENGE2yoaQJNd17UiEbdmh5/6WW6dPcfRWT9lxBwCi2Q==}
@@ -4556,6 +4562,16 @@ snapshots:
     optionalDependencies:
       puppeteer-extra: 3.3.6(puppeteer-core@24.15.0)
     transitivePeerDependencies:
+      - supports-color
+
+  puppeteer-extra-plugin-session@1.0.1(puppeteer-extra@3.3.6(puppeteer-core@24.15.0)):
+    dependencies:
+      puppeteer-extra-plugin: 3.2.3(puppeteer-extra@3.3.6(puppeteer-core@24.15.0))
+      tslib: 2.6.3
+      zod: 3.25.76
+    transitivePeerDependencies:
+      - playwright-extra
+      - puppeteer-extra
       - supports-color
 
   puppeteer-extra-plugin@3.2.3(puppeteer-extra@3.3.6(puppeteer-core@24.15.0)):

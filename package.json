@@ -25,6 +25,7 @@
 		"puppeteer-core": "^24.15.0",
 		"puppeteer-extra": "^3.3.6",
 		"puppeteer-extra-plugin-recaptcha": "^3.6.8",
+		"puppeteer-extra-plugin-session": "^1.0.1",
 		"tough-cookie": "^5.1.2"
 	}
 }
