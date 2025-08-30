@@ -11,6 +11,8 @@ Uma biblioteca robusta para automação de navegadores usando Puppeteer com recu
 - 🔧 **Configuração flexível** para desenvolvimento e produção
 - 🤖 **Plugin reCAPTCHA** integrado
 - 💾 **Gerenciamento de sessões** com persistência automática
+- 📊 **getSessionData()** para inspecionar dados de sessão
+- 🔄 **sessionData parameter** para aplicar sessões customizadas
 
 ## 📦 Instalação
 
@@ -57,6 +59,12 @@ interface newPageParams {
     baseDelay?: number;                // Delay base em ms (padrão: 1000)
   };
   userDataDir?: string;                // Diretório para persistência de sessão
+  sessionData?: {                      // Dados de sessão para aplicar
+    cookies?: Protocol.Network.CookieParam[];
+    localStorage?: Record<string, string>;
+    sessionStorage?: Record<string, string>;
+    [key: string]: any;
+  };
 }
 ```
 
@@ -210,11 +218,93 @@ console.log('Sessão restaurada:', restaurou);
 // Limpar sessão armazenada
 const limpou = await page.clearSession();
 console.log('Sessão limpa:', limpou);
+
+// Obter dados da sessão atual (sempre disponível)
+const dadosSessao = await page.getSessionData();
+console.log('Dados atuais:', dadosSessao);
+
+// Ler dados de sessão salva em arquivo
+const dadosSalvos = await page.getSessionData('outra-sessao');
+console.log('Dados salvos:', dadosSalvos);
+```
+
+### Método `getSessionData()`
+
+O método `getSessionData()` está disponível em **todas as páginas** e permite obter dados de sessão:
+
+```typescript
+// Obter dados da sessão atual do browser
+const dadosAtuais = await page.getSessionData();
+
+// Ler dados salvos em arquivo (qualquer userDataDir)
+const dadosSalvos = await page.getSessionData('nome-da-sessao');
+```
+
+#### Exemplo de Retorno
+
+```json
+{
+  "cookies": [
+    {
+      "name": "session_token",
+      "value": "abc123xyz",
+      "domain": "example.com",
+      "path": "/",
+      "expires": -1,
+      "httpOnly": false,
+      "secure": true,
+      "session": true
+    }
+  ],
+  "localStorage": {
+    "theme": "dark",
+    "user_preference": "compact_view",
+    "last_login": "2025-01-15T10:30:00Z"
+  },
+  "sessionStorage": {
+    "temp_token": "temp_abc123",
+    "page_visits": "5",
+    "session_start": "2025-01-15T09:15:00Z"
+  },
+  "url": "https://example.com/dashboard",
+  "timestamp": 1736932200000
+}
+```
+
+### Parâmetro `sessionData` no `newPage()`
+
+Agora você pode fornecer dados de sessão diretamente ao criar uma página, sem precisar salvar em arquivo:
+
+```typescript
+// Aplicar dados customizados
+const page = await newPage({
+  sessionData: {
+    cookies: [
+      {name: 'auth_token', value: 'xyz789', domain: 'site.com'}
+    ],
+    localStorage: {
+      theme: 'dark',
+      language: 'pt-BR'
+    },
+    sessionStorage: {
+      sessionId: 'temp_session_123'
+    }
+  }
+});
+
+// Transferir sessão entre páginas
+const page1 = await newPage();
+// ... navegar e fazer login ...
+const sessionData = await page1.getSessionData();
+await page1.close();
+
+const page2 = await newPage({ sessionData }); // Sessão transferida!
 ```
 
 ### Funcionalidade `newPage()`
 
 - **`newPage()`**: Cria uma nova página. Se `userDataDir` for fornecido, habilita funcionalidades de sessão e restaura automaticamente dados salvos quando disponíveis.
+- **`sessionData`**: Se fornecido, aplica os dados após a criação da página. Combina com `userDataDir` (sessionData tem prioridade).
 
 ```typescript
 // Primeira execução - cria nova sessão
@@ -235,6 +325,63 @@ const pagina2 = await newPage({
 ```
 
 ### Casos de Uso Reais
+
+**Transferir Login Entre Sessões:**
+```typescript
+// 1. Fazer login em uma página
+const loginPage = await newPage();
+await loginPage.goto('https://site.com/login');
+await loginPage.type('#user', 'meu-usuario');
+await loginPage.type('#pass', 'minha-senha');
+await loginPage.click('#login');
+
+// 2. Capturar dados da sessão
+const sessionData = await loginPage.getSessionData();
+await loginPage.close();
+
+// 3. Usar em múltiplas páginas simultaneamente
+const [page1, page2, page3] = await Promise.all([
+  newPage({ sessionData, initialUrl: 'https://site.com/profile' }),
+  newPage({ sessionData, initialUrl: 'https://site.com/orders' }),
+  newPage({ sessionData, initialUrl: 'https://site.com/settings' })
+]);
+// Todas as páginas já estão logadas!
+```
+
+**Construir Sessão Programaticamente:**
+```typescript
+// Simular usuário específico
+const page = await newPage({
+  sessionData: {
+    cookies: [
+      {name: 'user_id', value: '12345', domain: 'app.com'},
+      {name: 'role', value: 'admin', domain: 'app.com'}
+    ],
+    localStorage: {
+      preferences: JSON.stringify({
+        theme: 'dark',
+        notifications: true,
+        language: 'pt-BR'
+      }),
+      lastAccess: new Date().toISOString()
+    }
+  },
+  initialUrl: 'https://app.com/dashboard'
+});
+```
+
+**Recuperar Dados de Sessão de Banco/API:**
+```typescript
+// Carregar sessão salva externamente
+const savedSession = await database.getSessionByUserId(123);
+
+const page = await newPage({
+  sessionData: savedSession,
+  initialUrl: 'https://plataforma.com'
+});
+
+// Continuar de onde parou sem novo login
+```
 
 **E-commerce com Carrinho Persistente:**
 ```typescript
@@ -296,6 +443,11 @@ const page = await newPage({
   },
   slowMo: 500,
   userDataDir: 'minha-sessao-personalizada', // Sessão persistente
+  sessionData: { // Dados extras para aplicar
+    localStorage: {
+      customSetting: 'value'
+    }
+  },
   retryOptions: {
     maxRetries: 3,
     baseDelay: 2000
@@ -311,6 +463,9 @@ const config = {
   productPageUrl: 'https://example.com',
   browserUserAgent: 'Custom Bot 1.0',
   userDataDir: 'sessao-bot-personalizado',
+  sessionData: {
+    localStorage: { botConfig: 'active' }
+  },
   cookies: [/* seus cookies */]
 };
 
