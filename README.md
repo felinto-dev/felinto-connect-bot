@@ -301,6 +301,180 @@ await page1.close();
 const page2 = await newPage({ sessionData }); // Sessão transferida!
 ```
 
+## 🔄 Trabalhando com Sessões Sem Persistência
+
+A biblioteca oferece flexibilidade total para trabalhar com dados de sessão sem necessariamente persistir em arquivos. Isso é útil para transferir estados entre páginas, trabalhar com dados obtidos de APIs ou bancos de dados.
+
+### Extraindo Dados de Sessão Atual
+
+Use `getSessionData()` para capturar o estado completo de qualquer página:
+
+```typescript
+import { newPage } from 'felinto-connect-bot';
+
+// Criar página e fazer login
+const loginPage = await newPage({
+  initialUrl: 'https://meusite.com/login'
+});
+
+await loginPage.type('#username', 'meuusuario');
+await loginPage.type('#password', 'minhasenha');
+await loginPage.click('#login-button');
+await loginPage.waitForNavigation();
+
+// Extrair todos os dados da sessão atual
+const dadosSessao = await loginPage.getSessionData();
+console.log('Dados capturados:', {
+  cookies: dadosSessao.cookies.length,
+  localStorageKeys: Object.keys(dadosSessao.localStorage),
+  sessionStorageKeys: Object.keys(dadosSessao.sessionStorage),
+  url: dadosSessao.url
+});
+
+await loginPage.close();
+```
+
+### Aplicando Sessão em Nova Página
+
+Use os dados capturados para criar novas páginas com o mesmo estado:
+
+```typescript
+// Aplicar sessão capturada em nova página
+const dashboardPage = await newPage({
+  sessionData: dadosSessao, // Usar dados da sessão anterior
+  initialUrl: 'https://meusite.com/dashboard'
+});
+
+// A página já estará logada e com todos os dados preservados
+console.log('Dashboard carregado com sessão ativa');
+
+// Verificar se login foi preservado
+const isLoggedIn = await dashboardPage.$('.user-profile'); // null se não logado
+console.log('Estado do login:', isLoggedIn ? 'Logado' : 'Não logado');
+```
+
+### Combinando com Dados Externos
+
+Integre dados de sessão com sistemas externos:
+
+```typescript
+// Simular dados vindo de um banco ou API
+const dadosDoSistema = {
+  userId: '12345',
+  sessionToken: 'abc123xyz789',
+  preferences: {
+    theme: 'dark',
+    language: 'pt-BR',
+    notifications: true
+  }
+};
+
+// Converter para formato de sessão
+const sessionData = {
+  cookies: [
+    {
+      name: 'user_id',
+      value: dadosDoSistema.userId,
+      domain: 'meuapp.com'
+    },
+    {
+      name: 'session_token', 
+      value: dadosDoSistema.sessionToken,
+      domain: 'meuapp.com',
+      httpOnly: true,
+      secure: true
+    }
+  ],
+  localStorage: {
+    user_preferences: JSON.stringify(dadosDoSistema.preferences),
+    last_login: new Date().toISOString()
+  }
+};
+
+// Aplicar na nova página
+const page = await newPage({
+  sessionData,
+  initialUrl: 'https://meuapp.com/profile'
+});
+
+// Página carregará com usuário já autenticado e preferências aplicadas
+```
+
+### Pipeline de Processamento de Sessões
+
+Processe e transforme dados de sessão conforme necessário:
+
+```typescript
+// Capturar sessão de uma página
+const paginaOrigem = await newPage({
+  initialUrl: 'https://site1.com/login'
+});
+// ... fazer login ...
+const sessaoOriginal = await paginaOrigem.getSessionData();
+
+// Processar dados para outro site
+const sessaoProcessada = {
+  cookies: sessaoOriginal.cookies
+    .filter(cookie => cookie.name.includes('auth')) // Filtrar apenas cookies de auth
+    .map(cookie => ({
+      ...cookie,
+      domain: 'site2.com' // Adaptar para outro domínio
+    })),
+  localStorage: {
+    // Mapear dados relevantes
+    user_token: sessaoOriginal.localStorage.session_id,
+    migrated_from: 'site1.com',
+    migration_date: new Date().toISOString()
+  }
+};
+
+// Usar sessão processada
+const paginaDestino = await newPage({
+  sessionData: sessaoProcessada,
+  initialUrl: 'https://site2.com/dashboard'
+});
+```
+
+### Debugging e Inspeção de Sessões
+
+Use `getSessionData()` para debug e monitoramento:
+
+```typescript
+const page = await newPage({
+  initialUrl: 'https://app.com'
+});
+
+// Capturar estado inicial
+const estadoInicial = await page.getSessionData();
+console.log('Estado inicial:', {
+  cookies: estadoInicial.cookies.length,
+  localStorage: Object.keys(estadoInicial.localStorage).length
+});
+
+// Fazer algumas ações...
+await page.click('#some-button');
+await page.waitForTimeout(2000);
+
+// Comparar estado após ações
+const estadoFinal = await page.getSessionData();
+console.log('Mudanças detectadas:', {
+  novosCookies: estadoFinal.cookies.length - estadoInicial.cookies.length,
+  novosLocalStorage: Object.keys(estadoFinal.localStorage).length - Object.keys(estadoInicial.localStorage).length
+});
+
+// Salvar apenas as mudanças para uso posterior
+const apenasAlteracoes = {
+  cookies: estadoFinal.cookies.filter(c => 
+    !estadoInicial.cookies.some(ic => ic.name === c.name && ic.value === c.value)
+  ),
+  localStorage: Object.fromEntries(
+    Object.entries(estadoFinal.localStorage).filter(([key, value]) =>
+      estadoInicial.localStorage[key] !== value
+    )
+  )
+};
+```
+
 ### Funcionalidade `newPage()`
 
 - **`newPage()`**: Cria uma nova página. Se `userDataDir` for fornecido, habilita funcionalidades de sessão e restaura automaticamente dados salvos quando disponíveis.
