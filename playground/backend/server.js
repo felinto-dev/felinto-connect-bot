@@ -24,10 +24,10 @@ const clients = new Set();
 // Function to detect possible Chrome endpoints
 function detectPossibleEndpoints() {
   const endpoints = [
+    'docker.for.mac.localhost:9222', // Funciona melhor no macOS com Docker Desktop
     'host.docker.internal:9222',
     'localhost:9222',
-    '127.0.0.1:9222',
-    'docker.for.mac.localhost:9222'
+    '127.0.0.1:9222'
   ];
   
   try {
@@ -243,10 +243,23 @@ app.post('/api/execute', async (req, res) => {
 
   } catch (error) {
     console.error('Erro ao executar sessão:', error);
+    
+    let errorMessage = error.message;
+    
+    // Melhorar mensagens de erro para problemas de conexão Chrome
+    if (error.message.includes('Failed to connect to browser') || error.message.includes('ECONNREFUSED')) {
+      errorMessage = `❌ Erro de conexão com Chrome: Verifique se o Chrome está rodando com debug habilitado na porta 9222`;
+      broadcast({ type: 'info', message: '💡 Execute o comando: /Applications/Google\\ Chrome.app/Contents/MacOS/Google\\ Chrome --remote-debugging-port=9222 --remote-debugging-address=0.0.0.0' });
+    } else if (error.message.includes('Unexpected server response: 404')) {
+      errorMessage = `❌ Chrome não encontrado: Verifique se foi iniciado com as flags corretas`;
+      broadcast({ type: 'info', message: '💡 Certifique-se de usar --remote-debugging-address=0.0.0.0' });
+    }
+    
     broadcast({ 
       type: 'error', 
-      message: `❌ Erro: ${error.message}` 
+      message: errorMessage
     });
+    
     res.status(500).json({ 
       error: error.message,
       stack: process.env.NODE_ENV === 'development' ? error.stack : undefined

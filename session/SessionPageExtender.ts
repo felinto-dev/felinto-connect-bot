@@ -1,4 +1,4 @@
-import { ExtendedPage } from '../utils';
+import { ExtendedPage, SessionDataApplier } from '../utils';
 import { SessionManager } from './SessionManager';
 
 /**
@@ -25,8 +25,15 @@ export class SessionPageExtender {
 		// Add session methods
 		sessionPage.saveSession = async (): Promise<boolean> => {
 			try {
-				const sessionData = await sessionPage.session.dump();
-				return await SessionManager.saveSession(userDataDir, sessionData);
+				// Verifica se o plugin session está disponível
+				if (sessionPage.session && typeof sessionPage.session.dump === 'function') {
+					const sessionData = await sessionPage.session.dump();
+					return await SessionManager.saveSession(userDataDir, sessionData);
+				} else {
+					// Fallback: usar coleta manual de dados de sessão
+					const sessionData = await sessionPage.getSessionData();
+					return await SessionManager.saveSession(userDataDir, sessionData);
+				}
 			} catch (error) {
 				console.error('Failed to save session:', (error as Error).message);
 				return false;
@@ -42,8 +49,15 @@ export class SessionPageExtender {
 			const savedSession = await SessionManager.loadSession(userDataDir);
 			if (savedSession) {
 				try {
-					await sessionPage.session.restore(savedSession);
-					return true;
+					// Verifica se o plugin session está disponível
+					if (sessionPage.session && typeof sessionPage.session.restore === 'function') {
+						await sessionPage.session.restore(savedSession);
+						return true;
+					} else {
+						// Fallback: aplicar dados de sessão manualmente usando SessionDataApplier
+						await SessionDataApplier.applySessionData(sessionPage, savedSession);
+						return true;
+					}
 				} catch (error) {
 					console.warn('Failed to restore session:', (error as Error).message);
 					return false;
@@ -93,16 +107,18 @@ export class SessionPageExtender {
 		const originalClose = page.close;
 		page.close = async () => {
 			try {
-				const sessionData = await sessionPage.session.dump();
-				await SessionManager.saveSession(userDataDir, sessionData);
+				// Tentar salvar sessão antes de fechar
+				await sessionPage.saveSession();
 			} catch (error) {
 				// Ignore save errors during close
+				console.warn('Failed to save session during close:', (error as Error).message);
 			}
 			
 			try {
 				return await originalClose.call(page);
 			} catch (closeError) {
 				// Ignore close errors (common with remote browsers)
+				console.warn('Failed to close page:', (closeError as Error).message);
 			}
 		};
 

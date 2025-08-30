@@ -61,7 +61,9 @@ export class PageConfigurator {
 		);
 
 		if (!pageResult) {
-			await browser.close().catch(() => {});
+			if (browser) {
+				await browser.close().catch(() => {});
+			}
 			throw new PageCreationError('Failed to create page after all retry attempts', new Error('Page creation failed'));
 		}
 
@@ -72,7 +74,9 @@ export class PageConfigurator {
 			page.setDefaultNavigationTimeout(timeout * 1000);
 			page.setDefaultTimeout(timeout * 1000);
 		} catch (error) {
-			await browser.close().catch(() => {});
+			if (browser) {
+				await browser.close().catch(() => {});
+			}
 			throw new PageCreationError(`Failed to set page timeouts: ${(error as Error).message}`, error as Error);
 		}
 
@@ -117,7 +121,9 @@ export class PageConfigurator {
 					password: process.env.PROXY_PASSWORD!,
 				});
 			} catch (error) {
-				await browser.close().catch(() => {});
+				if (browser) {
+					await browser.close().catch(() => {});
+				}
 				throw new AuthenticationError(`Proxy authentication failed: ${(error as Error).message}`, error as Error);
 			}
 		}
@@ -142,7 +148,9 @@ export class PageConfigurator {
 					}
 				});
 			} catch (error) {
-				await browser.close().catch(() => {});
+				if (browser) {
+					await browser.close().catch(() => {});
+				}
 				throw new PageCreationError(`Failed to setup resource blocking: ${(error as Error).message}`, error as Error);
 			}
 		}
@@ -209,7 +217,9 @@ export class PageConfigurator {
 			try {
 				await page.setUserAgent(userAgent);
 			} catch (error) {
-				await browser.close().catch(() => {});
+				if (browser) {
+					await browser.close().catch(() => {});
+				}
 				throw new PageCreationError(`Failed to set user agent: ${(error as Error).message}`, error as Error);
 			}
 		}
@@ -222,7 +232,9 @@ export class PageConfigurator {
 				// Esta API permanece estável e não foi depreciada
 				await page.setCookie(...cookies);
 			} catch (error) {
-				await browser.close().catch(() => {});
+				if (browser) {
+					await browser.close().catch(() => {});
+				}
 				throw new PageCreationError(`Failed to set cookies: ${(error as Error).message}`, error as Error);
 			}
 		}
@@ -274,7 +286,9 @@ export class PageConfigurator {
 		);
 
 		if (!navigationResult) {
-			await browser.close().catch(() => {});
+			if (browser) {
+				await browser.close().catch(() => {});
+			}
 			throw new NavigationError(`Failed to navigate to ${url} after all retry attempts`, new Error('Navigation failed'));
 		}
 		
