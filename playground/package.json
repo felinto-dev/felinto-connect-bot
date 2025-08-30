@@ -1,0 +1,23 @@
+{
+  "name": "felinto-connect-bot-playground",
+  "version": "1.0.0",
+  "description": "Debug playground for felinto-connect-bot with Chrome integration",
+  "private": true,
+  "scripts": {
+    "dev": "concurrently \"pnpm run frontend:dev\" \"pnpm run backend:dev\"",
+    "frontend:dev": "cd frontend && pnpm run dev",
+    "backend:dev": "cd backend && pnpm run dev",
+    "start": "concurrently \"pnpm run frontend:start\" \"pnpm run backend:start\"",
+    "frontend:start": "cd frontend && pnpm run preview",
+    "backend:start": "cd backend && pnpm run start",
+    "install:all": "pnpm install && cd frontend && pnpm install && cd ../backend && pnpm install",
+    "build": "cd frontend && pnpm run build"
+  },
+  "keywords": ["debug", "playground", "puppeteer", "chrome", "automation"],
+  "author": "",
+  "license": "MIT",
+  "devDependencies": {
+    "concurrently": "^9.2.1"
+  },
+  "packageManager": "pnpm@10.10.0"
+}

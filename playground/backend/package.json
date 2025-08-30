@@ -1,0 +1,25 @@
+{
+  "name": "playground-backend",
+  "version": "1.0.0",
+  "description": "Debug playground backend for felinto-connect-bot",
+  "main": "server.js",
+  "type": "module",
+  "scripts": {
+    "dev": "nodemon server.js",
+    "start": "node server.js"
+  },
+  "keywords": ["debug", "playground", "puppeteer", "chrome"],
+  "author": "",
+  "license": "ISC",
+  "packageManager": "pnpm@10.10.0",
+  "dependencies": {
+    "@felinto-dev/felinto-connect-bot": "link:../..",
+    "cors": "^2.8.5",
+    "express": "^5.1.0",
+    "ws": "^8.18.3"
+  },
+  "devDependencies": {
+    "concurrently": "^9.2.1",
+    "nodemon": "^3.1.10"
+  }
+}

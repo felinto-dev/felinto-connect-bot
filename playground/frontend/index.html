@@ -1,0 +1,206 @@
+<!doctype html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/svg+xml" href="/vite.svg" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Felinto Connect Bot - Debug Playground</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  </head>
+  <body>
+    <div id="app">
+      <header class="header">
+        <h1>🤖 Felinto Connect Bot - Debug Playground</h1>
+        <div class="status-indicator" id="status">
+          <span class="status-dot"></span>
+          <span class="status-text">Verificando...</span>
+        </div>
+      </header>
+
+      <main class="container">
+        <section class="config-section">
+          <h2>⚙️ Configuração da Sessão</h2>
+          
+          <div class="config-grid">
+            <div class="config-group">
+              <h3>Browser</h3>
+              <div class="field">
+                <label for="slowMo">Slow Motion (ms):</label>
+                <input type="number" id="slowMo" value="500" min="0" max="5000" step="100">
+                <small>Velocidade de execução (0 = máximo)</small>
+              </div>
+              
+              <div class="field">
+                <label for="timeout">Timeout (segundos):</label>
+                <input type="number" id="timeout" value="60" min="10" max="300" step="10">
+                <small>Timeout para navegação e operações</small>
+              </div>
+
+              <div class="field">
+                <label for="userAgent">User Agent:</label>
+                <input type="text" id="userAgent" placeholder="Deixe vazio para usar padrão">
+                <small>Agente do usuário personalizado</small>
+              </div>
+            </div>
+
+            <div class="config-group">
+              <h3>Sessão</h3>
+              <div class="field">
+                <label for="userDataDir">Diretório da Sessão:</label>
+                <input type="text" id="userDataDir" value="debug-session" placeholder="nome-da-sessao">
+                <small>Dados persistentes entre execuções</small>
+              </div>
+
+              <div class="field">
+                <label for="initialUrl">URL Inicial:</label>
+                <input type="url" id="initialUrl" placeholder="https://exemplo.com">
+                <small>Página inicial a ser carregada</small>
+              </div>
+
+              <div class="field">
+                <label>Cookies (JSON):</label>
+                <textarea id="cookies" rows="4" placeholder='[{"name": "session", "value": "abc123", "domain": ".exemplo.com"}]'></textarea>
+                <small>Array de cookies em formato JSON</small>
+              </div>
+            </div>
+          </div>
+
+          <div class="advanced-section">
+            <details>
+              <summary>🔧 Configurações Avançadas</summary>
+              
+              <div class="advanced-grid">
+                <div class="field">
+                  <label>Local Storage (JSON):</label>
+                  <textarea id="localStorage" rows="3" placeholder='{"chave": "valor", "user_id": "123"}'></textarea>
+                </div>
+
+                <div class="field">
+                  <label>Session Storage (JSON):</label>
+                  <textarea id="sessionStorage" rows="3" placeholder='{"temp_data": "valor temporário"}'></textarea>
+                </div>
+
+                <div class="field">
+                  <label for="blockedResourcesTypes">Bloquear Recursos:</label>
+                  <input type="text" id="blockedResourcesTypes" placeholder="image,stylesheet,font">
+                  <small>Tipos separados por vírgula</small>
+                </div>
+
+                <div class="field">
+                  <label for="waitUntil">Wait Until:</label>
+                  <select id="waitUntil">
+                    <option value="domcontentloaded">DOM Content Loaded</option>
+                    <option value="load">Load</option>
+                    <option value="networkidle0">Network Idle 0</option>
+                    <option value="networkidle2">Network Idle 2</option>
+                  </select>
+                </div>
+              </div>
+            </details>
+          </div>
+
+          <div class="template-section">
+            <h3>📋 Templates Rápidos</h3>
+            <div class="template-buttons">
+              <button class="template-btn" data-template="basic">🌐 Básico</button>
+              <button class="template-btn" data-template="ecommerce">🛒 E-commerce</button>
+              <button class="template-btn" data-template="social">📱 Social Media</button>
+              <button class="template-btn" data-template="scraping">🔍 Scraping</button>
+            </div>
+          </div>
+        </section>
+
+        <section class="output-section">
+          <h2>🚀 Execução</h2>
+          
+          <div class="action-buttons">
+            <button id="checkChrome" class="btn btn-secondary">🔍 Verificar Chrome</button>
+            <button id="executeBtn" class="btn btn-primary" disabled>🚀 Executar Sessão</button>
+            <button id="generateCode" class="btn btn-secondary">📝 Gerar Código</button>
+          </div>
+
+          <div class="output-tabs">
+            <div class="tab-buttons">
+              <button class="tab-btn active" data-tab="logs">📋 Logs</button>
+              <button class="tab-btn" data-tab="code">💻 Código Gerado</button>
+              <button class="tab-btn" data-tab="help">❓ Ajuda</button>
+            </div>
+
+            <div class="tab-content">
+              <div class="tab-pane active" id="logs-tab">
+                <div id="logs" class="logs-container"></div>
+              </div>
+
+              <div class="tab-pane" id="code-tab">
+                <pre><code id="generated-code">// O código será gerado aqui...</code></pre>
+              </div>
+
+              <div class="tab-pane" id="help-tab">
+                <div class="help-content">
+                  <h3>🚀 Como usar o Playground</h3>
+                  
+                  <div class="help-section">
+                    <h4>1. Preparar o ambiente</h4>
+                    
+                    <h5>🍎 macOS:</h5>
+                    <div class="code-block">
+                      <code>/Applications/Google\ Chrome.app/Contents/MacOS/Google\ Chrome --remote-debugging-port=9222 --remote-debugging-address=0.0.0.0 --disable-web-security --disable-features=VizDisplayCompositor</code>
+                      <button class="copy-btn" data-copy="/Applications/Google\ Chrome.app/Contents/MacOS/Google\ Chrome --remote-debugging-port=9222 --remote-debugging-address=0.0.0.0 --disable-web-security --disable-features=VizDisplayCompositor">📋 Copiar</button>
+                    </div>
+                    
+                    <h5>🐧 Linux:</h5>
+                    <div class="code-block">
+                      <code>google-chrome --remote-debugging-port=9222 --remote-debugging-address=0.0.0.0 --disable-web-security</code>
+                      <button class="copy-btn" data-copy="google-chrome --remote-debugging-port=9222 --remote-debugging-address=0.0.0.0 --disable-web-security">📋 Copiar</button>
+                    </div>
+                    
+                    <h5>🪟 Windows:</h5>
+                    <div class="code-block">
+                      <code>"C:\Program Files\Google\Chrome\Application\chrome.exe" --remote-debugging-port=9222 --remote-debugging-address=0.0.0.0 --disable-web-security</code>
+                      <button class="copy-btn" data-copy='"C:\Program Files\Google\Chrome\Application\chrome.exe" --remote-debugging-port=9222 --remote-debugging-address=0.0.0.0 --disable-web-security'>📋 Copiar</button>
+                    </div>
+                    
+                    <p>Execute este comando no <strong>terminal do seu host</strong> (fora do devcontainer).</p>
+                    
+                    <div style="background: #fff3cd; border: 1px solid #ffeaa7; border-radius: 8px; padding: 1rem; margin-top: 1rem;">
+                      <strong>⚠️ IMPORTANTE:</strong> A flag <code>--remote-debugging-address=0.0.0.0</code> é <strong>ESSENCIAL</strong> para permitir conexões do devcontainer. Sem ela, o playground não conseguirá se conectar ao Chrome!
+                    </div>
+                  </div>
+
+                  <div class="help-section">
+                    <h4>2. Verificar conexão</h4>
+                    <p>Clique em "🔍 Verificar Chrome" para confirmar que o playground consegue se conectar ao Chrome.</p>
+                  </div>
+
+                  <div class="help-section">
+                    <h4>3. Configurar sessão</h4>
+                    <p>Preencha os campos de configuração ou use um template rápido.</p>
+                  </div>
+
+                  <div class="help-section">
+                    <h4>4. Executar</h4>
+                    <p>Clique em "🚀 Executar Sessão" e veja o Chrome abrir automaticamente no seu desktop!</p>
+                  </div>
+
+                  <div class="help-section">
+                    <h4>💡 Dicas</h4>
+                    <ul>
+                      <li>Use Slow Motion para ver as ações acontecendo</li>
+                      <li>Configurações de sessão são salvas automaticamente</li>
+                      <li>Logs em tempo real mostram o progresso</li>
+                      <li>Gere código para usar em seus projetos</li>
+                    </ul>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+      </main>
+    </div>
+    
+    <script type="module" src="/src/main.js"></script>
+  </body>
+</html>
