@@ -8,7 +8,7 @@ export interface SessionEnabledPage extends ExtendedPage {
 	saveSession(): Promise<boolean>;
 	clearSession(): Promise<boolean>;
 	restoreSession(): Promise<boolean>;
-	getSessionData(): Promise<any | null>;
+	getSessionData(userDataDir?: string): Promise<any | null>;
 }
 
 /**
@@ -52,9 +52,22 @@ export class SessionPageExtender {
 			return false;
 		};
 
-		sessionPage.getSessionData = async (): Promise<any | null> => {
+		// Override getSessionData para usar session plugin quando disponível
+		const originalGetSessionData = sessionPage.getSessionData;
+		sessionPage.getSessionData = async (userDataDirParam?: string): Promise<any | null> => {
 			try {
-				return await sessionPage.session.dump();
+				// Se um userDataDir foi passado como parâmetro, lê do arquivo
+				if (userDataDirParam) {
+					return await SessionManager.loadSession(userDataDirParam);
+				}
+				
+				// Sem parâmetro: usa session plugin se disponível, senão fallback
+				if (sessionPage.session && typeof sessionPage.session.dump === 'function') {
+					return await sessionPage.session.dump();
+				}
+				
+				// Fallback para implementação padrão se session plugin não estiver disponível
+				return await originalGetSessionData.call(sessionPage);
 			} catch (error) {
 				console.error('Failed to get session data:', (error as Error).message);
 				return null;

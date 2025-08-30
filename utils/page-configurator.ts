@@ -1,9 +1,11 @@
 import { Browser, GoToOptions, Page, Protocol, CookieParam } from 'puppeteer-core';
 import { PageCreationError, AuthenticationError, NavigationError } from './custom-errors';
 import { retryOperation, RetryOptions } from './retry-mechanism';
+import { SessionManager } from '../session/SessionManager';
 
 export interface ExtendedPage extends Page {
 	takeScreenshot: () => Promise<void>;
+	getSessionData: (userDataDir?: string) => Promise<any | null>;
 }
 
 export interface PageConfigurationOptions {
@@ -89,6 +91,9 @@ export class PageConfigurator {
 
 		// Add screenshot functionality
 		this.addScreenshotFunctionality(page);
+		
+		// Add session functionality
+		this.addSessionFunctionality(page);
 
 		// Configure user agent
 		await this.configureUserAgent(page, browser, userAgent);
@@ -150,6 +155,50 @@ export class PageConfigurator {
 				throw error;
 			}
 		}
+	}
+	
+	private static addSessionFunctionality(page: ExtendedPage): void {
+		page.getSessionData = async (userDataDir?: string): Promise<any | null> => {
+			try {
+				// Se um userDataDir foi passado como parâmetro, lê do arquivo
+				if (userDataDir) {
+					return await SessionManager.loadSession(userDataDir);
+				}
+				
+				// Sem parâmetro: retorna dados básicos da página atual
+				// Para páginas sem sessão plugin, coleta dados manualmente
+				const [cookies, localStorage, sessionStorage] = await Promise.all([
+					page.cookies(),
+					page.evaluate(() => {
+						const data: Record<string, string> = {};
+						for (let i = 0; i < window.localStorage.length; i++) {
+							const key = window.localStorage.key(i);
+							if (key) data[key] = window.localStorage.getItem(key) || '';
+						}
+						return data;
+					}).catch(() => ({})),
+					page.evaluate(() => {
+						const data: Record<string, string> = {};
+						for (let i = 0; i < window.sessionStorage.length; i++) {
+							const key = window.sessionStorage.key(i);
+							if (key) data[key] = window.sessionStorage.getItem(key) || '';
+						}
+						return data;
+					}).catch(() => ({}))
+				]);
+				
+				return {
+					cookies,
+					localStorage,
+					sessionStorage,
+					url: page.url(),
+					timestamp: Date.now()
+				};
+			} catch (error) {
+				console.error('Failed to get session data:', (error as Error).message);
+				return null;
+			}
+		};
 	}
 
 	private static async configureUserAgent(page: ExtendedPage, browser: Browser, userAgent?: string): Promise<void> {
