@@ -131,6 +131,9 @@ export class PageConfigurator {
 				
 				await page.setRequestInterception(true);
 				page.on('request', (request) => {
+					// Verificar se a requisição já foi processada por outro interceptador
+					if (request.isInterceptResolutionHandled()) return;
+					
 					const resourceType = request.resourceType();
 					if (uniqueBlockedTypes.includes(resourceType)) {
 						request.abort();
