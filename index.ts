@@ -7,7 +7,9 @@ import {
 	BrowserFactory,
 	PageConfigurator,
 	ExtendedPage,
-	RetryOptions
+	RetryOptions,
+	SessionDataApplier,
+	SessionData
 } from './utils';
 import { SessionManager, SessionPageExtender, SessionEnabledPage } from './session';
 
@@ -39,6 +41,12 @@ export interface NewPageParams {
 	$json?: any;
 	retryOptions?: RetryOptions;
 	userDataDir?: string; // Directory for session persistence
+	sessionData?: {
+		cookies?: CookieParam[];
+		localStorage?: Record<string, string>;
+		sessionStorage?: Record<string, string>;
+		[key: string]: any; // Allow additional session data
+	};
 }
 
 
@@ -67,6 +75,7 @@ export const newPage = async (params: NewPageParams = {}): Promise<ExtendedPage>
 	const getJson = (property: string) => params.$json?.[property];
 	const retryOptions = params.retryOptions || { maxRetries: 3, baseDelay: 1000 };
 	const userDataDir = getJson('userDataDir') || params.userDataDir;
+	const sessionData = getJson('sessionData') || params.sessionData;
 
 	// Determine browser endpoint
 	const browserWSEndpoint = 
@@ -93,10 +102,33 @@ export const newPage = async (params: NewPageParams = {}): Promise<ExtendedPage>
 		retryOptions
 	});
 
+	// Handle session data and persistence
+	let finalPage = page;
+	
 	// Add session persistence if userDataDir is provided
 	if (userDataDir) {
-		return SessionPageExtender.extendPageWithSession(page, userDataDir);
+		finalPage = SessionPageExtender.extendPageWithSession(page, userDataDir);
+	}
+	
+	// Apply session data if provided (after page creation and initial navigation)
+	if (sessionData) {
+		try {
+			// Apply sessionData (overrides any existing session data)
+			// This happens after page creation and navigation, so it applies on top
+			console.log('📋 Aplicando sessionData fornecido pelo usuário...');
+			
+			// If no initial URL was provided, navigate to about:blank first to ensure page context
+			const currentUrl = finalPage.url();
+			if (!currentUrl || currentUrl === 'about:blank') {
+				await finalPage.goto('about:blank', { waitUntil: 'domcontentloaded' });
+			}
+			
+			await SessionDataApplier.applySessionData(finalPage, sessionData);
+		} catch (error) {
+			console.warn('⚠️ Falha ao aplicar sessionData:', (error as Error).message);
+			// Continue execution even if session data application fails
+		}
 	}
 
-	return page;
+	return finalPage;
 };
