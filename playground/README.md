@@ -180,8 +180,7 @@ Verifica se Chrome está disponível na porta 9222
 ### POST `/api/execute`
 Executa uma sessão com a configuração fornecida
 
-### POST `/api/generate-code`
-Gera código TypeScript/JavaScript para a configuração
+
 
 ## 🐛 Troubleshooting
 

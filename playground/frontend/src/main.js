@@ -97,11 +97,7 @@ class PlaygroundApp {
           this.executeSession();
           break;
           
-        case 'generateCode':
-          e.preventDefault(); 
-          this.generateCode();
-          break;
-          
+
         case 'importConfig':
           e.preventDefault();
           this.importConfig();
@@ -365,35 +361,7 @@ class PlaygroundApp {
     }
   }
 
-  // Generate Code
-  async generateCode() {
-    const config = this.getConfigFromForm();
-    
-    try {
-      this.log('🔧 Gerando código...', 'info');
-      
-      const response = await fetch('/api/generate-code', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(config)
-      });
 
-      const result = await response.json();
-      
-      if (response.ok) {
-        // Exibir código na interface
-        this.displayGeneratedCode(result.code);
-        this.log('✅ Código gerado com sucesso!', 'success');
-      } else {
-        this.log(`❌ Erro ao gerar código: ${result.error}`, 'error');
-      }
-
-    } catch (error) {
-      this.log(`❌ Erro: ${error.message}`, 'error');
-    }
-  }
 
   // Generate Code Automatically (local generation)
   generateCodeAutomatically() {

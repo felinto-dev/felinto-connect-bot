@@ -303,41 +303,7 @@ app.post('/api/execute', async (req, res) => {
   }
 });
 
-// Generate code endpoint
-app.post('/api/generate-code', (req, res) => {
-  try {
-    const config = req.body;
-    
-    // Generate TypeScript/JavaScript code
-    const code = `import { newPage } from '@felinto-dev/felinto-connect-bot';
 
-// Configuração da sessão
-const config = ${JSON.stringify(config, null, 2)};
-
-// Criar página
-const page = await newPage({
-  ...config,
-  browserWSEndpoint: 'ws://host.docker.internal:9222' // Chrome no host
-});
-
-console.log('✅ Sessão iniciada!');
-console.log('URL atual:', await page.url());
-console.log('Título:', await page.title());
-
-// Suas automações aqui...
-// await page.click('#botao');
-// await page.type('#input', 'texto');
-// await page.screenshot({ path: 'screenshot.png' });
-
-// Fechar (opcional)
-// await page.close();`;
-
-    res.json({ code });
-
-  } catch (error) {
-    res.status(500).json({ error: error.message });
-  }
-});
 
 // Start server
 server.listen(port, () => {
@@ -348,7 +314,7 @@ server.listen(port, () => {
   console.log(`   GET  /api/docs - Documentação (README.md)`);
   console.log(`   GET  /api/chrome/check - Verificar Chrome`);
   console.log(`   POST /api/execute - Executar sessão`);
-  console.log(`   POST /api/generate-code - Gerar código`);
+
   console.log(`\n💡 Para usar o playground:`);
   console.log(`   1. Execute no terminal do host:`);
   console.log(`      google-chrome --remote-debugging-port=9222 --user-data-dir=/tmp/chrome-debug`);

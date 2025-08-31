@@ -192,27 +192,15 @@
             <h2><i data-lucide="play" class="section-icon"></i> Execução</h2>
             <div class="connection-status">
               <i data-lucide="wifi" class="status-icon connected"></i>
-              <span class="status-text">Conectado</span>
-            </div>
-          </div>
-          
-          <div class="execution-group">
-            <h3><i data-lucide="zap" class="subsection-icon"></i> Ações</h3>
-            <div class="action-buttons">
-              <button id="checkChrome" class="btn btn-secondary">
+              <span class="status-text">Chrome Conectado</span>
+              <button id="checkChrome" class="btn btn-secondary btn-small" style="margin-left: 10px;">
                 <i data-lucide="eye"></i>
                 Verificar Chrome
               </button>
-              <button id="executeBtn" class="btn btn-primary">
-                <i data-lucide="play"></i>
-                Executar
-              </button>
-              <button id="generateCode" class="btn btn-secondary">
-                <i data-lucide="code"></i>
-                Gerar Código
-              </button>
             </div>
           </div>
+          
+
 
           <div class="execution-group">
             <h3><i data-lucide="activity" class="subsection-icon"></i> Status</h3>
@@ -238,6 +226,12 @@
                 </button>
               </div>
               <pre id="generatedCode" class="code-output"><code class="language-typescript"></code></pre>
+            </div>
+            <div style="margin-top: 15px; text-align: center;">
+              <button id="executeBtn" class="btn btn-primary">
+                <i data-lucide="play"></i>
+                Executar
+              </button>
             </div>
           </div>
 
