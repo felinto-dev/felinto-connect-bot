@@ -967,9 +967,9 @@ console.log('🔚 Sessão finalizada!');`
         this.log('📱 Aplicado User Agent: Android', 'info');
         break;
         
-      case 'ipad':
-        userAgent = 'Mozilla/5.0 (iPad; CPU OS 17_1_1 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.1 Mobile/15E148 Safari/604.1';
-        this.log('🔷 Aplicado User Agent: iPad', 'info');
+      case 'current-browser':
+        userAgent = navigator.userAgent;
+        this.log('🌐 Aplicado User Agent: Navegador Atual', 'info');
         break;
         
       case 'clear':
