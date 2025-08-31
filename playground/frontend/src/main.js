@@ -374,18 +374,18 @@ class PlaygroundApp {
 
   // Generate Code Template (local generation)
   generateCodeTemplate(config) {
-    const configJson = JSON.stringify(config, null, 2);
+    // Add browserWSEndpoint directly to config for cleaner code
+    const configWithEndpoint = {
+      ...config,
+      browserWSEndpoint: 'ws://host.docker.internal:9222' // Chrome no host
+    };
+    
+    const configJson = JSON.stringify(configWithEndpoint, null, 2);
     
     return `import { newPage } from '@felinto-dev/felinto-connect-bot';
 
-// Configuração da sessão
-const config = ${configJson};
-
 // Criar página
-const page = await newPage({
-  ...config,
-  browserWSEndpoint: 'ws://host.docker.internal:9222' // Chrome no host
-});
+const page = await newPage(${configJson});
 
 console.log('✅ Sessão iniciada!');
 console.log('URL atual:', await page.url());

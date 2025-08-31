@@ -116,31 +116,20 @@ export const newPage = async (params: NewPageParams = {}): Promise<ExtendedPage>
 	// Apply session data with proper timing if provided
 	if (sessionData) {
 		try {
-			console.log('📋 Aplicando sessionData fornecido pelo usuário...');
-			console.log('🔍 SessionData em index.ts:', {
-				cookies: sessionData.cookies ? `array[${sessionData.cookies.length}]` : 'undefined',
-				localStorage: sessionData.localStorage ? `object{${Object.keys(sessionData.localStorage).length}}` : 'undefined',
-				sessionStorage: sessionData.sessionStorage ? `object{${Object.keys(sessionData.sessionStorage).length}}` : 'undefined'
-			});
-			
 			// Navigate to about:blank first to ensure clean context
 			await finalPage.goto('about:blank', { waitUntil: 'domcontentloaded' });
 			
 			// STEP 1: Apply cookies first (works on about:blank)
-			console.log('🍪 Aplicando cookies em about:blank...');
 			await SessionDataApplier.applyCookies(finalPage, sessionData);
 			
 			// STEP 2: Navigate to the target URL
 			if (initialUrl) {
-				console.log(`🌐 Navegando para ${initialUrl}...`);
 				await finalPage.goto(initialUrl, params.navigationOptions || { waitUntil: 'domcontentloaded' });
 				
 				// STEP 3: Apply storage data immediately after navigation (works on real domain)
-				console.log('💾 Aplicando dados de storage no domínio real...');
 				await SessionDataApplier.applyStorage(finalPage, sessionData);
 			}
 		} catch (error) {
-			console.warn('⚠️ Falha ao aplicar sessionData:', (error as Error).message);
 			// Continue execution even if session data application fails
 		}
 	}

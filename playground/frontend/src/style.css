@@ -338,18 +338,7 @@ body {
   align-items: center;
 }
 
-/* Status Info */
-.status-info {
-  margin-bottom: 0;
-}
 
-.status-item {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  font-size: 13px;
-  color: #4a5568;
-}
 
 
 
@@ -883,32 +872,7 @@ body {
   overflow: hidden;
 }
 
-.code-header {
-  background: #2d3748;
-  border-bottom: 1px solid #4a5568;
-  padding: 8px 12px;
-  display: flex;
-  justify-content: flex-end;
-  gap: 8px;
-}
 
-.code-header .btn {
-  padding: 4px 8px;
-  font-size: 11px;
-  border: 1px solid #4a5568;
-  background: #374151;
-  color: #e2e8f0;
-}
-
-.code-header .btn:hover {
-  background: #4a5568;
-  border-color: #6b7280;
-}
-
-.code-header .btn i {
-  width: 12px;
-  height: 12px;
-}
 
 .code-output {
   background: #1a202c;

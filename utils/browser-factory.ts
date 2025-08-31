@@ -48,15 +48,12 @@ export class BrowserFactory {
 						const versionData = await response.json();
 						if (versionData.webSocketDebuggerUrl) {
 							actualEndpoint = versionData.webSocketDebuggerUrl;
-							console.log(`🔗 Auto-detectado endpoint específico do browser: ${actualEndpoint}`);
 						}
 					}
 				} else {
 					// Fallback para ambientes sem fetch - usar endpoint original
-					console.warn('⚠️ Fetch não disponível, usando endpoint original');
 				}
 			} catch (error) {
-				console.warn('⚠️ Falha na auto-detecção do endpoint do browser, usando endpoint fornecido');
 				// Continua com o endpoint original se a auto-detecção falhar
 			}
 		}

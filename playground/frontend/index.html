@@ -41,6 +41,61 @@
           </div>
           
           <div class="config-group">
+            <div class="field">
+              <label for="initialUrl">
+                <i data-lucide="globe" class="field-icon"></i>
+                URL Inicial
+              </label>
+              <input type="url" id="initialUrl" value="https://twitter.com/login">
+              <small>Página inicial a ser carregada</small>
+            </div>
+
+            <div class="field">
+              <label>
+                <i data-lucide="database" class="field-icon"></i>
+                Session Data (JSON)
+              </label>
+              <textarea id="sessionData" rows="6">{
+  "localStorage": {
+    "userPreferred_language": "pt-BR",
+    "currency": "BRL"
+  }
+}</textarea>
+              <small>Dados completos da sessão (cookies, localStorage, sessionStorage)</small>
+              
+              <!-- Session Data Templates -->
+              <div class="session-templates" style="margin-top: 10px;">
+                <label style="font-size: 12px; color: #666; margin-bottom: 5px; display: block;">
+                  <i data-lucide="zap" style="width: 12px; height: 12px;"></i>
+                  Templates Rápidos:
+                </label>
+                <div class="session-template-buttons" style="display: flex; gap: 5px; flex-wrap: wrap;">
+                  <button type="button" class="session-template-btn" data-session-template="clear-all" style="font-size: 11px; padding: 6px 10px; background: #ef4444; color: white; border: none; border-radius: 4px; cursor: pointer; transition: all 0.2s; display: flex; align-items: center;" onmouseover="this.style.background='#dc2626'" onmouseout="this.style.background='#ef4444'">
+                    <i data-lucide="trash-2" style="width: 12px; height: 12px; margin-right: 4px;"></i>
+                    Limpar Tudo
+                  </button>
+                  <button type="button" class="session-template-btn" data-session-template="clear-cookies" style="font-size: 11px; padding: 6px 10px; background: #f97316; color: white; border: none; border-radius: 4px; cursor: pointer; transition: all 0.2s; display: flex; align-items: center;" onmouseover="this.style.background='#ea580c'" onmouseout="this.style.background='#f97316'">
+                    <i data-lucide="cookie" style="width: 12px; height: 12px; margin-right: 4px;"></i>
+                    Só Cookies
+                  </button>
+                  <button type="button" class="session-template-btn" data-session-template="clear-localStorage" style="font-size: 11px; padding: 6px 10px; background: #8b5cf6; color: white; border: none; border-radius: 4px; cursor: pointer; transition: all 0.2s; display: flex; align-items: center;" onmouseover="this.style.background='#7c3aed'" onmouseout="this.style.background='#8b5cf6'">
+                    <i data-lucide="hard-drive" style="width: 12px; height: 12px; margin-right: 4px;"></i>
+                    Só localStorage
+                  </button>
+                  <button type="button" class="session-template-btn" data-session-template="clear-sessionStorage" style="font-size: 11px; padding: 6px 10px; background: #06b6d4; color: white; border: none; border-radius: 4px; cursor: pointer; transition: all 0.2s; display: flex; align-items: center;" onmouseover="this.style.background='#0891b2'" onmouseout="this.style.background='#06b6d4'">
+                    <i data-lucide="database" style="width: 12px; height: 12px; margin-right: 4px;"></i>
+                    Só sessionStorage
+                  </button>
+                  <button type="button" class="session-template-btn" data-session-template="empty" style="font-size: 11px; padding: 6px 10px; background: #10b981; color: white; border: none; border-radius: 4px; cursor: pointer; transition: all 0.2s; display: flex; align-items: center;" onmouseover="this.style.background='#059669'" onmouseout="this.style.background='#10b981'">
+                    <i data-lucide="minimize-2" style="width: 12px; height: 12px; margin-right: 4px;"></i>
+                    {} Vazio
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="config-group">
             <h3><i data-lucide="chrome" class="subsection-icon"></i> Configurações do Browser</h3>
             
             <div class="config-row">
@@ -108,63 +163,6 @@
           </div>
 
           <div class="config-group">
-            <h3><i data-lucide="layers" class="subsection-icon"></i> Configurações da Sessão</h3>
-            
-            <div class="field">
-              <label for="initialUrl">
-                <i data-lucide="globe" class="field-icon"></i>
-                URL Inicial
-              </label>
-              <input type="url" id="initialUrl" value="https://twitter.com/login">
-              <small>Página inicial a ser carregada</small>
-            </div>
-
-            <div class="field">
-              <label>
-                <i data-lucide="database" class="field-icon"></i>
-                Session Data (JSON)
-              </label>
-              <textarea id="sessionData" rows="6">{
-  "localStorage": {
-    "userPreferred_language": "pt-BR",
-    "currency": "BRL"
-  }
-}</textarea>
-              <small>Dados completos da sessão (cookies, localStorage, sessionStorage)</small>
-              
-              <!-- Session Data Templates -->
-              <div class="session-templates" style="margin-top: 10px;">
-                <label style="font-size: 12px; color: #666; margin-bottom: 5px; display: block;">
-                  <i data-lucide="zap" style="width: 12px; height: 12px;"></i>
-                  Templates Rápidos:
-                </label>
-                <div class="session-template-buttons" style="display: flex; gap: 5px; flex-wrap: wrap;">
-                  <button type="button" class="session-template-btn" data-session-template="clear-all" style="font-size: 11px; padding: 6px 10px; background: #ef4444; color: white; border: none; border-radius: 4px; cursor: pointer; transition: all 0.2s; display: flex; align-items: center;" onmouseover="this.style.background='#dc2626'" onmouseout="this.style.background='#ef4444'">
-                    <i data-lucide="trash-2" style="width: 12px; height: 12px; margin-right: 4px;"></i>
-                    Limpar Tudo
-                  </button>
-                  <button type="button" class="session-template-btn" data-session-template="clear-cookies" style="font-size: 11px; padding: 6px 10px; background: #f97316; color: white; border: none; border-radius: 4px; cursor: pointer; transition: all 0.2s; display: flex; align-items: center;" onmouseover="this.style.background='#ea580c'" onmouseout="this.style.background='#f97316'">
-                    <i data-lucide="cookie" style="width: 12px; height: 12px; margin-right: 4px;"></i>
-                    Só Cookies
-                  </button>
-                  <button type="button" class="session-template-btn" data-session-template="clear-localStorage" style="font-size: 11px; padding: 6px 10px; background: #8b5cf6; color: white; border: none; border-radius: 4px; cursor: pointer; transition: all 0.2s; display: flex; align-items: center;" onmouseover="this.style.background='#7c3aed'" onmouseout="this.style.background='#8b5cf6'">
-                    <i data-lucide="hard-drive" style="width: 12px; height: 12px; margin-right: 4px;"></i>
-                    Só localStorage
-                  </button>
-                  <button type="button" class="session-template-btn" data-session-template="clear-sessionStorage" style="font-size: 11px; padding: 6px 10px; background: #06b6d4; color: white; border: none; border-radius: 4px; cursor: pointer; transition: all 0.2s; display: flex; align-items: center;" onmouseover="this.style.background='#0891b2'" onmouseout="this.style.background='#06b6d4'">
-                    <i data-lucide="database" style="width: 12px; height: 12px; margin-right: 4px;"></i>
-                    Só sessionStorage
-                  </button>
-                  <button type="button" class="session-template-btn" data-session-template="empty" style="font-size: 11px; padding: 6px 10px; background: #10b981; color: white; border: none; border-radius: 4px; cursor: pointer; transition: all 0.2s; display: flex; align-items: center;" onmouseover="this.style.background='#059669'" onmouseout="this.style.background='#10b981'">
-                    <i data-lucide="minimize-2" style="width: 12px; height: 12px; margin-right: 4px;"></i>
-                    {} Vazio
-                  </button>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          <div class="config-group">
             <h3><i data-lucide="layout-template" class="subsection-icon"></i> Templates Rápidos</h3>
             <div class="template-buttons">
               <button class="template-btn" data-template="basic">
@@ -202,32 +200,22 @@
           
 
 
-          <div class="execution-group">
-            <h3><i data-lucide="activity" class="subsection-icon"></i> Status</h3>
-            <div class="status-info">
-              <div class="status-item">
-                <i data-lucide="check-circle" class="status-icon connected"></i>
-                <span>Conectado</span>
-              </div>
-            </div>
-          </div>
+
 
           <div class="execution-group" id="codeGeneratedGroup">
             <h3><i data-lucide="code" class="subsection-icon"></i> Código Gerado</h3>
             <div class="code-section">
-              <div class="code-header">
-                <button id="copyCodeBtn" class="btn btn-secondary btn-small" title="Copiar código para clipboard">
-                  <i data-lucide="copy"></i>
-                  Copiar Código
-                </button>
-                <button id="clearCodeBtn" class="btn btn-secondary btn-small" title="Limpar código exibido">
-                  <i data-lucide="x"></i>
-                  Limpar
-                </button>
-              </div>
               <pre id="generatedCode" class="code-output"><code class="language-typescript"></code></pre>
             </div>
-            <div style="margin-top: 15px; text-align: center;">
+            <div class="action-buttons" style="margin-top: 15px;">
+              <button id="copyCodeBtn" class="btn btn-secondary" title="Copiar código para clipboard">
+                <i data-lucide="copy"></i>
+                Copiar Código
+              </button>
+              <button id="clearCodeBtn" class="btn btn-secondary" title="Limpar código exibido">
+                <i data-lucide="x"></i>
+                Limpar
+              </button>
               <button id="executeBtn" class="btn btn-primary">
                 <i data-lucide="play"></i>
                 Executar
