@@ -659,7 +659,7 @@ console.log('Título:', await page.title());
       basic: {
         name: 'Configuração Básica',
         config: {
-          slowMo: 1000,
+          slowMo: 0,
           timeout: 60,
           initialUrl: 'https://example.com'
         }
@@ -667,7 +667,7 @@ console.log('Título:', await page.title());
       ecommerce: {
         name: '🛒 E-commerce',
         config: {
-          slowMo: 500,
+          slowMo: 0,
           timeout: 90,
           initialUrl: 'https://shopee.com.br',
           sessionData: {
@@ -681,7 +681,7 @@ console.log('Título:', await page.title());
       social: {
         name: '📱 Social Media',
         config: {
-          slowMo: 800,
+          slowMo: 0,
           timeout: 120,
           initialUrl: 'https://twitter.com/login',
           userAgent: 'Mozilla/5.0 (iPhone; CPU iPhone OS 14_7_1 like Mac OS X) AppleWebKit/605.1.15',
@@ -695,7 +695,7 @@ console.log('Título:', await page.title());
       scraping: {
         name: '🔍 Web Scraping',
         config: {
-          slowMo: 200,
+          slowMo: 0,
           timeout: 45,
           blockedResourcesTypes: ['image', 'stylesheet', 'font'],
           navigationOptions: { waitUntil: 'networkidle0' }
