@@ -70,7 +70,6 @@ O playground abre automaticamente em `http://localhost:3000`
 {
   slowMo: 1000,
   timeout: 60,
-  userDataDir: 'sessao-basica',
   initialUrl: 'https://example.com'
 }
 ```
@@ -80,7 +79,6 @@ O playground abre automaticamente em `http://localhost:3000`
 {
   slowMo: 500,
   timeout: 90,
-  userDataDir: 'sessao-ecommerce',
   initialUrl: 'https://shopee.com.br',
   sessionData: {
     localStorage: {
@@ -96,9 +94,13 @@ O playground abre automaticamente em `http://localhost:3000`
 {
   slowMo: 800,
   timeout: 120,
-  userDataDir: 'sessao-social',
   initialUrl: 'https://twitter.com/login',
-  userAgent: 'Mozilla/5.0 (iPhone; CPU iPhone OS 14_7_1 like Mac OS X)'
+  userAgent: 'Mozilla/5.0 (iPhone; CPU iPhone OS 14_7_1 like Mac OS X)',
+  sessionData: {
+    cookies: [
+      {"name": "logged_in", "value": "yes", "domain": ".twitter.com"}
+    ]
+  }
 }
 ```
 
@@ -107,7 +109,6 @@ O playground abre automaticamente em `http://localhost:3000`
 {
   slowMo: 200,
   timeout: 45,
-  userDataDir: 'sessao-scraping',
   blockedResourcesTypes: ['image', 'stylesheet', 'font'],
   navigationOptions: { waitUntil: 'networkidle0' }
 }
