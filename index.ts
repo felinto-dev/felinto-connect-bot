@@ -90,12 +90,15 @@ export const newPage = async (params: NewPageParams = {}): Promise<ExtendedPage>
 		retryOptions
 	});
 
-	// Create and configure page
+	// Extract initialUrl to handle it separately when sessionData is provided
+	const initialUrl = getJson('productPageUrl') || params.initialUrl;
+	
+	// Create and configure page WITHOUT navigation if sessionData is provided
 	const page = await PageConfigurator.createAndConfigurePage(browser, {
 		timeout: params.timeout,
 		userAgent: getJson('browserUserAgent') || params.userAgent,
 		cookies: getJson('cookies') || params.cookies,
-		initialUrl: getJson('productPageUrl') || params.initialUrl,
+		initialUrl: sessionData ? undefined : initialUrl, // Skip initial navigation if sessionData exists
 		navigationOptions: params.navigationOptions,
 		blockedResourcesTypes: getJson('blockedResourcesTypes') || params.blockedResourcesTypes,
 		slowMo: params.slowMo,
@@ -110,20 +113,32 @@ export const newPage = async (params: NewPageParams = {}): Promise<ExtendedPage>
 		finalPage = SessionPageExtender.extendPageWithSession(page, userDataDir);
 	}
 	
-	// Apply session data if provided (after page creation and initial navigation)
+	// Apply session data with proper timing if provided
 	if (sessionData) {
 		try {
-			// Apply sessionData (overrides any existing session data)
-			// This happens after page creation and navigation, so it applies on top
 			console.log('📋 Aplicando sessionData fornecido pelo usuário...');
+			console.log('🔍 SessionData em index.ts:', {
+				cookies: sessionData.cookies ? `array[${sessionData.cookies.length}]` : 'undefined',
+				localStorage: sessionData.localStorage ? `object{${Object.keys(sessionData.localStorage).length}}` : 'undefined',
+				sessionStorage: sessionData.sessionStorage ? `object{${Object.keys(sessionData.sessionStorage).length}}` : 'undefined'
+			});
 			
-			// If no initial URL was provided, navigate to about:blank first to ensure page context
-			const currentUrl = finalPage.url();
-			if (!currentUrl || currentUrl === 'about:blank') {
-				await finalPage.goto('about:blank', { waitUntil: 'domcontentloaded' });
+			// Navigate to about:blank first to ensure clean context
+			await finalPage.goto('about:blank', { waitUntil: 'domcontentloaded' });
+			
+			// STEP 1: Apply cookies first (works on about:blank)
+			console.log('🍪 Aplicando cookies em about:blank...');
+			await SessionDataApplier.applyCookies(finalPage, sessionData);
+			
+			// STEP 2: Navigate to the target URL
+			if (initialUrl) {
+				console.log(`🌐 Navegando para ${initialUrl}...`);
+				await finalPage.goto(initialUrl, params.navigationOptions || { waitUntil: 'domcontentloaded' });
+				
+				// STEP 3: Apply storage data immediately after navigation (works on real domain)
+				console.log('💾 Aplicando dados de storage no domínio real...');
+				await SessionDataApplier.applyStorage(finalPage, sessionData);
 			}
-			
-			await SessionDataApplier.applySessionData(finalPage, sessionData);
 		} catch (error) {
 			console.warn('⚠️ Falha ao aplicar sessionData:', (error as Error).message);
 			// Continue execution even if session data application fails

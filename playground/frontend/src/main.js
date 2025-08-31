@@ -107,6 +107,14 @@ class PlaygroundApp {
       });
     });
 
+    // Session Data Template buttons
+    document.querySelectorAll('.session-template-btn').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        const template = e.target.dataset.sessionTemplate;
+        this.applySessionTemplate(template);
+      });
+    });
+
     this.setupAutoSave();
   }
 
@@ -357,22 +365,38 @@ class PlaygroundApp {
         if (sessionData) {
           const parsedSessionData = JSON.parse(sessionData);
           
-          // Extrair cookies se presentes
-          if (parsedSessionData.cookies) {
-            config.cookies = parsedSessionData.cookies;
-          }
-          
-          // Construir sessionData para localStorage e sessionStorage
-          const sessionDataObj = {};
-          if (parsedSessionData.localStorage) {
-            sessionDataObj.localStorage = parsedSessionData.localStorage;
-          }
-          if (parsedSessionData.sessionStorage) {
-            sessionDataObj.sessionStorage = parsedSessionData.sessionStorage;
-          }
-          
-          if (Object.keys(sessionDataObj).length > 0) {
-            config.sessionData = sessionDataObj;
+          // Verificar se é um objeto vazio {} - tratar como "limpar tudo"
+          const keys = Object.keys(parsedSessionData);
+          if (keys.length === 0) {
+            console.log('🧹 Frontend detectou {} vazio - interpretando como limpar tudo');
+            config.sessionData = {
+              cookies: [],
+              localStorage: {},
+              sessionStorage: {}
+            };
+          } else {
+            // Construir sessionData completo incluindo todas as propriedades definidas
+            const sessionDataObj = {};
+            
+            // Incluir cookies no sessionData se definido
+            if (parsedSessionData.cookies !== undefined) {
+              sessionDataObj.cookies = parsedSessionData.cookies;
+            }
+            
+            if (parsedSessionData.localStorage !== undefined) {
+              sessionDataObj.localStorage = parsedSessionData.localStorage;
+            }
+            
+            if (parsedSessionData.sessionStorage !== undefined) {
+              sessionDataObj.sessionStorage = parsedSessionData.sessionStorage;
+            }
+            
+            // SEMPRE aplicar sessionData quando qualquer propriedade estiver definida
+            if (parsedSessionData.cookies !== undefined || 
+                parsedSessionData.localStorage !== undefined || 
+                parsedSessionData.sessionStorage !== undefined) {
+              config.sessionData = sessionDataObj;
+            }
           }
         }
       } catch (error) {
@@ -477,6 +501,59 @@ class PlaygroundApp {
     this.setConfigToForm(template.config);
   }
 
+  applySessionTemplate(templateName) {
+    const sessionDataEl = document.getElementById('sessionData');
+    if (!sessionDataEl) return;
+
+    let sessionData = {};
+
+    switch (templateName) {
+      case 'clear-all':
+        sessionData = {
+          "cookies": [],
+          "localStorage": {},
+          "sessionStorage": {}
+        };
+        this.log('🧹 Aplicado template: Limpar Tudo', 'info');
+        break;
+        
+      case 'clear-cookies':
+        sessionData = {
+          "cookies": []
+        };
+        this.log('🍪 Aplicado template: Limpar só Cookies', 'info');
+        break;
+        
+      case 'clear-localStorage':
+        sessionData = {
+          "localStorage": {}
+        };
+        this.log('💾 Aplicado template: Limpar só localStorage', 'info');
+        break;
+        
+      case 'clear-sessionStorage':
+        sessionData = {
+          "sessionStorage": {}
+        };
+        this.log('🔄 Aplicado template: Limpar só sessionStorage', 'info');
+        break;
+        
+      case 'empty':
+        sessionData = {};
+        this.log('📋 Aplicado template: {} Vazio', 'info');
+        break;
+        
+      default:
+        return;
+    }
+
+    // Aplicar o JSON formatado ao textarea
+    sessionDataEl.value = JSON.stringify(sessionData, null, 2);
+    
+    // Trigger input event to save config
+    sessionDataEl.dispatchEvent(new Event('input'));
+  }
+
   setConfigToForm(config) {
     const slowMoEl = document.getElementById('slowMo');
     if (slowMoEl && config.slowMo) slowMoEl.value = config.slowMo;
@@ -493,20 +570,24 @@ class PlaygroundApp {
     // Construir o sessionData combinando cookies e sessionData
     const sessionDataObj = {};
     
-    if (config.cookies) {
+    // Incluir SEMPRE que definido (mesmo se vazio)
+    if (config.cookies !== undefined) {
       sessionDataObj.cookies = config.cookies;
     }
     
-    if (config.sessionData?.localStorage) {
+    if (config.sessionData?.localStorage !== undefined) {
       sessionDataObj.localStorage = config.sessionData.localStorage;
     }
     
-    if (config.sessionData?.sessionStorage) {
+    if (config.sessionData?.sessionStorage !== undefined) {
       sessionDataObj.sessionStorage = config.sessionData.sessionStorage;
     }
     
     const sessionDataEl = document.getElementById('sessionData');
-    if (sessionDataEl && Object.keys(sessionDataObj).length > 0) {
+    // SEMPRE mostrar se houver alguma propriedade definida (mesmo se vazia)
+    if (sessionDataEl && (config.cookies !== undefined || 
+                          config.sessionData?.localStorage !== undefined ||
+                          config.sessionData?.sessionStorage !== undefined)) {
       sessionDataEl.value = JSON.stringify(sessionDataObj, null, 2);
     }
 
