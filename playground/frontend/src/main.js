@@ -824,7 +824,7 @@ console.log('Título:', await page.title());
 
   setConfigToForm(config) {
     const slowMoEl = document.getElementById('slowMo');
-    if (slowMoEl && config.slowMo) slowMoEl.value = config.slowMo;
+    if (slowMoEl && config.slowMo !== undefined) slowMoEl.value = config.slowMo;
     
     const timeoutEl = document.getElementById('timeout');
     if (timeoutEl && config.timeout) timeoutEl.value = config.timeout;
