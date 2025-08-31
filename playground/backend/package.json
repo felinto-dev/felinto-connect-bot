@@ -8,7 +8,12 @@
     "dev": "nodemon server.js",
     "start": "node server.js"
   },
-  "keywords": ["debug", "playground", "puppeteer", "chrome"],
+  "keywords": [
+    "debug",
+    "playground",
+    "puppeteer",
+    "chrome"
+  ],
   "author": "",
   "license": "ISC",
   "packageManager": "pnpm@10.10.0",
@@ -16,6 +21,7 @@
     "@felinto-dev/felinto-connect-bot": "link:../..",
     "cors": "^2.8.5",
     "express": "^5.1.0",
+    "marked": "^16.2.1",
     "ws": "^8.18.3"
   },
   "devDependencies": {

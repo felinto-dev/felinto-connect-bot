@@ -97,6 +97,26 @@ class PlaygroundApp {
           e.preventDefault(); 
           this.generateCode();
           break;
+          
+        case 'importConfig':
+          e.preventDefault();
+          this.importConfig();
+          break;
+          
+        case 'exportConfig':
+          e.preventDefault();
+          this.exportConfig();
+          break;
+          
+        case 'docsBtn':
+          e.preventDefault();
+          this.openDocumentation();
+          break;
+          
+        case 'closeDocsModal':
+          e.preventDefault();
+          this.closeDocumentation();
+          break;
       }
     });
 
@@ -124,6 +144,7 @@ class PlaygroundApp {
     });
 
     this.setupAutoSave();
+    this.setupModalEventListeners();
   }
 
   setupAutoSave() {
@@ -132,6 +153,25 @@ class PlaygroundApp {
       input.addEventListener('input', () => {
         this.saveConfig();
       });
+    });
+  }
+
+  setupModalEventListeners() {
+    // Close modal when clicking on overlay
+    document.addEventListener('click', (e) => {
+      if (e.target.classList.contains('modal-overlay')) {
+        this.closeDocumentation();
+      }
+    });
+
+    // Close modal with Escape key
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape') {
+        const modal = document.getElementById('docsModal');
+        if (modal && modal.style.display !== 'none') {
+          this.closeDocumentation();
+        }
+      }
     });
   }
 
@@ -335,6 +375,74 @@ class PlaygroundApp {
 
     } catch (error) {
       this.log(`Erro: ${error.message}`, 'error');
+    }
+  }
+
+  // Import/Export Configuration
+  async exportConfig() {
+    try {
+      const config = this.getConfigFromForm();
+      const configJson = JSON.stringify(config, null, 2);
+      
+      if (navigator.clipboard) {
+        await navigator.clipboard.writeText(configJson);
+        this.log('✅ Configurações exportadas para o clipboard!', 'success');
+      } else {
+        // Fallback para browsers mais antigos
+        const textArea = document.createElement('textarea');
+        textArea.value = configJson;
+        document.body.appendChild(textArea);
+        textArea.select();
+        document.execCommand('copy');
+        document.body.removeChild(textArea);
+        this.log('✅ Configurações exportadas para o clipboard!', 'success');
+      }
+    } catch (error) {
+      this.log(`❌ Erro ao exportar configurações: ${error.message}`, 'error');
+    }
+  }
+
+  async importConfig() {
+    try {
+      let configText = '';
+      
+      if (navigator.clipboard) {
+        configText = await navigator.clipboard.readText();
+      } else {
+        // Fallback para browsers mais antigos - solicitar que o usuário cole
+        configText = prompt('Cole aqui o JSON das configurações:');
+      }
+      
+      if (!configText || !configText.trim()) {
+        this.log('⚠️ Clipboard vazio ou operação cancelada', 'warning');
+        return;
+      }
+      
+      // Validar e parsear JSON
+      let config;
+      try {
+        config = JSON.parse(configText.trim());
+      } catch (parseError) {
+        this.log('❌ JSON inválido no clipboard. Verifique o formato.', 'error');
+        return;
+      }
+      
+      // Aplicar configurações ao formulário
+      this.setConfigToForm(config);
+      
+      // Salvar configurações
+      this.saveConfig();
+      
+      this.log('✅ Configurações importadas com sucesso!', 'success');
+      
+      // Mostrar resumo das configurações importadas
+      const configKeys = Object.keys(config);
+      if (configKeys.length > 0) {
+        this.log(`📋 Configurações carregadas: ${configKeys.join(', ')}`, 'info');
+      }
+      
+    } catch (error) {
+      this.log(`❌ Erro ao importar configurações: ${error.message}`, 'error');
     }
   }
 
@@ -659,6 +767,123 @@ class PlaygroundApp {
     }
 
     this.saveConfig();
+  }
+
+  // Documentation Modal
+  async openDocumentation() {
+    const modal = document.getElementById('docsModal');
+    const content = document.getElementById('docsContent');
+    
+    if (!modal || !content) return;
+    
+    // Show modal
+    modal.style.display = 'flex';
+    
+    // Reset content to loading state
+    content.innerHTML = `
+      <div class="loading-spinner">
+        <i data-lucide="loader-2"></i>
+        Carregando documentação...
+      </div>
+    `;
+    
+    // Reinitialize icons
+    this.initializeIcons();
+    
+    try {
+      // Fetch documentation
+      const response = await fetch('/api/docs');
+      const result = await response.json();
+      
+      if (response.ok) {
+        content.innerHTML = result.content;
+        
+        // Apply special styling to sections based on content
+        this.applyDocumentationStyling(content);
+        
+        this.log('📖 Documentação carregada com sucesso', 'info');
+      } else {
+        content.innerHTML = `
+          <div class="error-message">
+            <i data-lucide="alert-circle"></i>
+            <h3>Erro ao carregar documentação</h3>
+            <p>${result.error || 'Erro desconhecido'}</p>
+          </div>
+        `;
+        this.log(`❌ Erro ao carregar documentação: ${result.error}`, 'error');
+      }
+    } catch (error) {
+      content.innerHTML = `
+        <div class="error-message">
+          <i data-lucide="wifi-off"></i>
+          <h3>Erro de conexão</h3>
+          <p>Não foi possível conectar ao servidor para carregar a documentação.</p>
+          <small>${error.message}</small>
+        </div>
+      `;
+      this.log(`❌ Erro de conexão ao carregar documentação: ${error.message}`, 'error');
+    }
+    
+    // Reinitialize icons after content update
+    this.initializeIcons();
+  }
+
+  closeDocumentation() {
+    const modal = document.getElementById('docsModal');
+    if (modal) {
+      modal.style.display = 'none';
+    }
+  }
+
+  applyDocumentationStyling(container) {
+    // Style headers based on emojis
+    const headers = container.querySelectorAll('h2, h3');
+    headers.forEach(header => {
+      const text = header.textContent || header.innerText;
+      
+      if (text.includes('⚠️') || text.includes('IMPORTANTE')) {
+        header.classList.add('warning-section');
+      } else if (text.includes('🚀')) {
+        header.classList.add('info-section');
+      } else if (text.includes('🔧') || text.includes('🛠️')) {
+        header.classList.add('config-section');
+      }
+    });
+
+    // Style code elements that contain flags
+    const codeElements = container.querySelectorAll('code');
+    codeElements.forEach(code => {
+      const text = code.textContent || code.innerText;
+      if (text.startsWith('--')) {
+        code.classList.add('command-flag');
+      }
+    });
+
+    // Improve lists with better spacing for nested content
+    const listItems = container.querySelectorAll('li');
+    listItems.forEach(li => {
+      // Add class for items with code or special content
+      if (li.querySelector('code') || li.textContent.includes('→')) {
+        li.style.paddingTop = '6px';
+        li.style.paddingBottom = '6px';
+      }
+    });
+
+    // Add special styling to important paragraphs
+    const paragraphs = container.querySelectorAll('p');
+    paragraphs.forEach(p => {
+      const text = p.textContent || p.innerText;
+      if (text.includes('ESSENCIAL') || text.includes('IMPORTANTE') || 
+          text.includes('⚠️') || text.includes('OBRIGATÓRIO')) {
+        p.style.background = '#fff3cd';
+        p.style.border = '1px solid #ffeaa7';
+        p.style.borderRadius = '6px';
+        p.style.padding = '10px 12px';
+        p.style.margin = '12px 0';
+        p.style.color = '#856404';
+        p.style.fontWeight = '500';
+      }
+    });
   }
 
   // Config Persistence

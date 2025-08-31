@@ -17,8 +17,16 @@ Para que o playground funcione corretamente, o Chrome **DEVE** ser iniciado com:
 /Applications/Google\ Chrome.app/Contents/MacOS/Google\ Chrome \
   --remote-debugging-port=9222 \
   --remote-debugging-address=0.0.0.0 \
+  --user-data-dir=/tmp/chrome-debug \
   --disable-web-security \
-  --disable-features=VizDisplayCompositor
+  --disable-features=VizDisplayCompositor \
+  --disable-site-isolation-trials \
+  --allow-running-insecure-content \
+  --ignore-ssl-errors \
+  --ignore-certificate-errors \
+  --disable-background-timer-throttling \
+  --disable-backgrounding-occluded-windows \
+  --disable-renderer-backgrounding
 ```
 
 #### 🐧 **Linux:**
@@ -217,9 +225,10 @@ Se `host.docker.internal` não funciona, o playground testa automaticamente:
 3. Tente recarregar a página
 
 ### 🗃️ **Erro de permissões**
-1. Confirme que `/tmp/chrome-debug` é acessível
-2. Tente usar outro diretório: `--user-data-dir=~/chrome-debug`
-3. Execute Chrome como administrador se necessário
+1. Confirme que `/tmp/chrome-debug` é acessível e tem permissões de escrita
+2. Se houver problemas com `/tmp/chrome-debug`, tente outro diretório: `--user-data-dir=~/chrome-debug`
+3. Em macOS, pode ser necessário dar permissão ao Terminal para acessar arquivos
+4. Execute Chrome como administrador se necessário
 
 ## 💡 Dicas
 

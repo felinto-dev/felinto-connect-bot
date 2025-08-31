@@ -3,10 +3,25 @@ import { WebSocketServer } from 'ws';
 import cors from 'cors';
 import http from 'http';
 import { execSync } from 'child_process';
+import { readFileSync } from 'fs';
+import { join, dirname } from 'path';
+import { fileURLToPath } from 'url';
+import { marked } from 'marked';
 import { newPage } from '@felinto-dev/felinto-connect-bot';
 
 const app = express();
 const port = 3001;
+
+// Get current directory for ES modules
+const __dirname = dirname(fileURLToPath(import.meta.url));
+
+// Configure marked options
+marked.setOptions({
+  gfm: true, // GitHub Flavored Markdown
+  breaks: true, // Convert \n to <br>
+  sanitize: false, // Allow HTML
+  smartypants: true, // Use smart quotes
+});
 
 // Middleware
 app.use(cors());
@@ -77,6 +92,27 @@ function broadcast(message) {
 // Health check endpoint
 app.get('/api/health', (req, res) => {
   res.json({ status: 'OK', timestamp: new Date().toISOString() });
+});
+
+// Documentation endpoint
+app.get('/api/docs', (req, res) => {
+  try {
+    const readmePath = join(__dirname, '../README.md');
+    const readmeContent = readFileSync(readmePath, 'utf-8');
+    const htmlContent = marked.parse(readmeContent);
+    
+    res.json({ 
+      content: htmlContent,
+      markdown: readmeContent,
+      lastModified: new Date().toISOString()
+    });
+  } catch (error) {
+    console.error('Erro ao ler README.md:', error);
+    res.status(500).json({ 
+      error: 'Não foi possível carregar a documentação',
+      details: error.message 
+    });
+  }
 });
 
 // Check Chrome connection endpoint
@@ -309,6 +345,7 @@ server.listen(port, () => {
   console.log(`📡 WebSocket disponível em ws://localhost:${port}/ws`);
   console.log(`\n📋 Endpoints disponíveis:`);
   console.log(`   GET  /api/health - Health check`);
+  console.log(`   GET  /api/docs - Documentação (README.md)`);
   console.log(`   GET  /api/chrome/check - Verificar Chrome`);
   console.log(`   POST /api/execute - Executar sessão`);
   console.log(`   POST /api/generate-code - Gerar código`);
