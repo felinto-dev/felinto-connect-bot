@@ -317,6 +317,8 @@ body {
   border-color: #cbd5e0;
 }
 
+
+
 .btn-icon {
   font-size: 14px;
 }
@@ -916,31 +918,60 @@ pre[class*="language-"] {
   background: none !important;
 }
 
+/* Code Editor Container */
+.code-editor-container {
+  border: 1px solid #2d3748;
+  border-radius: 6px;
+  overflow: hidden;
+  transition: border-color 0.2s ease;
+}
+
+.code-editor-container:focus-within {
+  border-color: #4299e1;
+  box-shadow: 0 0 0 3px rgba(66, 153, 225, 0.1);
+}
+
+/* CodeMirror customizations */
+.code-editor-container .cm-editor {
+  border: none;
+}
+
+.code-editor-container .cm-focused {
+  outline: none;
+}
+
+
+
 /* Code output scrollbar */
-.code-output::-webkit-scrollbar {
+.code-output::-webkit-scrollbar,
+.code-editor-container .cm-scroller::-webkit-scrollbar {
   width: 8px;
   height: 8px;
 }
 
-.code-output::-webkit-scrollbar-track {
+.code-output::-webkit-scrollbar-track,
+.code-editor-container .cm-scroller::-webkit-scrollbar-track {
   background: #2d3748;
   border-radius: 4px;
 }
 
-.code-output::-webkit-scrollbar-thumb {
+.code-output::-webkit-scrollbar-thumb,
+.code-editor-container .cm-scroller::-webkit-scrollbar-thumb {
   background: #4a5568;
   border-radius: 4px;
 }
 
-.code-output::-webkit-scrollbar-thumb:hover {
+.code-output::-webkit-scrollbar-thumb:hover,
+.code-editor-container .cm-scroller::-webkit-scrollbar-thumb:hover {
   background: #6b7280;
 }
 
-.code-output::-webkit-scrollbar-corner {
+.code-output::-webkit-scrollbar-corner,
+.code-editor-container .cm-scroller::-webkit-scrollbar-corner {
   background: #2d3748;
 }
 
-/* Syntax highlighting agora é feito pelo Prism.js */
+/* Syntax highlighting agora é feito pelo CodeMirror */
 
 /* Advanced Config Main Group */
 .advanced-main-header {

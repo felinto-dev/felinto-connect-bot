@@ -1,8 +1,12 @@
 import './style.css'
-import Prism from 'prismjs';
-import 'prismjs/themes/prism-tomorrow.css';
-import 'prismjs/components/prism-javascript';
-import 'prismjs/components/prism-typescript';
+import { EditorView, keymap, highlightSpecialChars, drawSelection, rectangularSelection, highlightActiveLineGutter, lineNumbers } from '@codemirror/view'
+import { EditorState } from '@codemirror/state'
+import { javascript } from '@codemirror/lang-javascript'
+import { oneDark } from '@codemirror/theme-one-dark'
+import { defaultKeymap, history, historyKeymap } from '@codemirror/commands'
+import { searchKeymap } from '@codemirror/search'
+import { autocompletion, completionKeymap, closeBrackets, closeBracketsKeymap } from '@codemirror/autocomplete'
+import { foldGutter, indentOnInput, indentUnit, bracketMatching } from '@codemirror/language'
 
 class PlaygroundApp {
   constructor() {
@@ -18,8 +22,15 @@ class PlaygroundApp {
     this.setupEventListeners();
     this.loadSavedConfig();
     this.loadAdvancedConfigState();
+    this.initCodeEditor();
     this.checkChromeStatus();
     this.initializeIcons();
+    
+    // Gerar código inicial após tudo estar configurado
+    // Pequeno delay para garantir que todos os elementos estejam prontos
+    setTimeout(() => {
+      this.generateCodeAutomatically();
+    }, 50);
   }
   
   initializeIcons() {
@@ -161,9 +172,6 @@ class PlaygroundApp {
 
     this.setupAutoSave();
     this.setupModalEventListeners();
-    
-    // Gerar código inicial automaticamente
-    this.generateCodeAutomatically();
   }
 
   setupAutoSave() {
@@ -337,6 +345,17 @@ class PlaygroundApp {
       return;
     }
 
+    // Verificar se há código editado para incluir na execução
+    let customCode = '';
+    if (this.codeEditor) {
+      customCode = this.codeEditor.state.doc.toString();
+    }
+    
+    // Adicionar código customizado à configuração se disponível
+    if (customCode && customCode.trim() && !customCode.includes('// Configure os parâmetros acima')) {
+      config.customCode = customCode;
+    }
+
     this.log('🚀 Executando sessão...', 'info');
     this.setLoading(true);
 
@@ -406,52 +425,119 @@ console.log('Título:', await page.title());
 // await page.close();`;
   }
 
+  // Initialize Code Editor
+  initCodeEditor() {
+    const container = document.getElementById('codeEditor');
+    if (!container) return;
+    
+    // Limpar container
+    container.innerHTML = '';
+    
+    // Configurar estado inicial do editor
+    const startState = EditorState.create({
+      doc: '// Configure os parâmetros acima para gerar o código automaticamente...',
+      extensions: [
+        // Funcionalidades básicas
+        lineNumbers(),
+        highlightActiveLineGutter(),
+        highlightSpecialChars(),
+        history(),
+        foldGutter(),
+        drawSelection(),
+        indentOnInput(),
+        bracketMatching(),
+        closeBrackets(),
+        autocompletion(),
+        rectangularSelection(),
+
+        
+        // Keymaps
+        keymap.of([
+          ...closeBracketsKeymap,
+          ...defaultKeymap,
+          ...searchKeymap,
+          ...historyKeymap,
+          ...completionKeymap,
+        ]),
+        
+        // Linguagem e tema
+        javascript({ typescript: true }),
+        oneDark,
+        
+        // Configurações customizadas
+        indentUnit.of('  '), // 2 espaços para indentação
+        EditorView.lineWrapping,
+        EditorView.theme({
+          '&': {
+            fontSize: '12px',
+            fontFamily: "'Monaco', 'Menlo', 'Ubuntu Mono', monospace"
+          },
+          '.cm-focused': {
+            outline: 'none'
+          },
+          '.cm-editor': {
+            borderRadius: '6px'
+          },
+          '.cm-scroller': {
+            fontFamily: "'Monaco', 'Menlo', 'Ubuntu Mono', monospace"
+          },
+          '.cm-gutters': {
+            paddingRight: '2px',
+            marginRight: '2px'
+          },
+          '.cm-content': {
+            padding: '16px 16px 16px 4px',
+            minHeight: '300px'
+          }
+        })
+      ]
+    });
+    
+    // Criar instância do editor
+    this.codeEditor = new EditorView({
+      state: startState,
+      parent: container
+    });
+  }
+
   // Display Generated Code
   displayGeneratedCode(code) {
-    const codeElement = document.getElementById('generatedCode');
-    const codeGroup = document.getElementById('codeGeneratedGroup');
+    if (!this.codeEditor) return;
     
-    if (codeElement && codeGroup) {
-      // Buscar o elemento code existente ou criar um novo
-      let codeTag = codeElement.querySelector('code');
-      if (!codeTag) {
-        codeTag = document.createElement('code');
-        codeTag.className = 'language-typescript';
-        codeElement.appendChild(codeTag);
+    // Atualizar conteúdo do editor CodeMirror
+    const transaction = this.codeEditor.state.update({
+      changes: {
+        from: 0,
+        to: this.codeEditor.state.doc.length,
+        insert: code
       }
-      
-      // Inserir código e aplicar syntax highlighting
-      codeTag.textContent = code;
-      codeTag.className = 'language-typescript'; // Garantir classe correta
-      
-      // Aplicar syntax highlighting com Prism.js
-      Prism.highlightElement(codeTag);
-      
-      // Seção sempre visível - não precisa mostrar/esconder
-      codeGroup.style.display = 'block';
-    }
+    });
+    
+    this.codeEditor.dispatch(transaction);
   }
 
   // Copy Generated Code
   async copyGeneratedCode() {
-    const codeElement = document.getElementById('generatedCode');
-    const codeTag = codeElement?.querySelector('code');
+    if (!this.codeEditor) {
+      this.log('⚠️ Editor não inicializado', 'warning');
+      return;
+    }
     
-    if (!codeTag || !codeTag.textContent.trim()) {
-      this.log('⚠️ Nenhum código gerado para copiar', 'warning');
+    const textToCopy = this.codeEditor.state.doc.toString();
+    
+    if (!textToCopy.trim()) {
+      this.log('⚠️ Nenhum código para copiar', 'warning');
       return;
     }
 
     try {
-      const codeText = codeTag.textContent;
-      
       if (navigator.clipboard) {
-        await navigator.clipboard.writeText(codeText);
+        await navigator.clipboard.writeText(textToCopy);
         this.log('📋 Código copiado para clipboard!', 'success');
       } else {
         // Fallback para browsers mais antigos
         const textArea = document.createElement('textarea');
-        textArea.value = codeText;
+        textArea.value = textToCopy;
         document.body.appendChild(textArea);
         textArea.select();
         document.execCommand('copy');
@@ -465,19 +551,23 @@ console.log('Título:', await page.title());
 
   // Clear Generated Code
   clearGeneratedCode() {
-    const codeElement = document.getElementById('generatedCode');
+    if (!this.codeEditor) return;
     
-    if (codeElement) {
-      const codeTag = codeElement.querySelector('code');
-      if (codeTag) {
-        codeTag.textContent = '// Código será gerado automaticamente baseado nas configurações...';
-        codeTag.className = 'language-typescript';
-        Prism.highlightElement(codeTag);
+    // Limpar conteúdo do editor CodeMirror
+    const transaction = this.codeEditor.state.update({
+      changes: {
+        from: 0,
+        to: this.codeEditor.state.doc.length,
+        insert: ''
       }
-    }
+    });
+    
+    this.codeEditor.dispatch(transaction);
     
     this.log('🧹 Código limpo', 'info');
   }
+
+
 
   // Import/Export Configuration
   async exportConfig() {
@@ -1079,6 +1169,8 @@ console.log('Título:', await page.title());
     if (Object.keys(this.config).length > 0) {
       this.setConfigToForm(this.config);
     }
+    // Nota: Se não há config salva, os campos HTML já têm valores padrão
+    // O código será gerado automaticamente no final do init()
   }
 }
 
