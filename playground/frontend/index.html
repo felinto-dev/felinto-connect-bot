@@ -224,6 +224,23 @@
             </div>
           </div>
 
+          <div class="execution-group" id="codeGeneratedGroup">
+            <h3><i data-lucide="code" class="subsection-icon"></i> Código Gerado</h3>
+            <div class="code-section">
+              <div class="code-header">
+                <button id="copyCodeBtn" class="btn btn-secondary btn-small" title="Copiar código para clipboard">
+                  <i data-lucide="copy"></i>
+                  Copiar Código
+                </button>
+                <button id="clearCodeBtn" class="btn btn-secondary btn-small" title="Limpar código exibido">
+                  <i data-lucide="x"></i>
+                  Limpar
+                </button>
+              </div>
+              <pre id="generatedCode" class="code-output"><code class="language-typescript"></code></pre>
+            </div>
+          </div>
+
           <div class="execution-group">
             <h3><i data-lucide="terminal" class="subsection-icon"></i> Console de Saída</h3>
             <div id="logs" class="console-output">

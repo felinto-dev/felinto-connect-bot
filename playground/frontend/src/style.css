@@ -875,6 +875,109 @@ body {
   font-size: 12px;
 }
 
+/* Code Section */
+.code-section {
+  background: #1a202c;
+  border: 1px solid #2d3748;
+  border-radius: 6px;
+  overflow: hidden;
+}
+
+.code-header {
+  background: #2d3748;
+  border-bottom: 1px solid #4a5568;
+  padding: 8px 12px;
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+.code-header .btn {
+  padding: 4px 8px;
+  font-size: 11px;
+  border: 1px solid #4a5568;
+  background: #374151;
+  color: #e2e8f0;
+}
+
+.code-header .btn:hover {
+  background: #4a5568;
+  border-color: #6b7280;
+}
+
+.code-header .btn i {
+  width: 12px;
+  height: 12px;
+}
+
+.code-output {
+  background: #1a202c;
+  color: #e2e8f0;
+  padding: 16px;
+  margin: 0;
+  font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+  font-size: 12px;
+  line-height: 1.5;
+  white-space: pre;
+  overflow-x: auto;
+  min-height: 120px;
+  max-height: 400px;
+  overflow-y: auto;
+  border: none;
+}
+
+/* Mensagem para seção vazia */
+.code-output:empty:before {
+  content: "// Configure os parâmetros acima para gerar o código automaticamente...";
+  color: #718096;
+  font-style: italic;
+}
+
+/* Ajustar estilos para funcionar com Prism.js */
+.code-output code {
+  background: none !important;
+  padding: 0 !important;
+  border-radius: 0 !important;
+  font-family: inherit !important;
+  font-size: inherit !important;
+}
+
+.code-output .token {
+  background: none !important;
+}
+
+/* Remover background do Prism.js */
+:not(pre) > code[class*="language-"], 
+pre[class*="language-"] {
+  background: none !important;
+}
+
+/* Code output scrollbar */
+.code-output::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+.code-output::-webkit-scrollbar-track {
+  background: #2d3748;
+  border-radius: 4px;
+}
+
+.code-output::-webkit-scrollbar-thumb {
+  background: #4a5568;
+  border-radius: 4px;
+}
+
+.code-output::-webkit-scrollbar-thumb:hover {
+  background: #6b7280;
+}
+
+.code-output::-webkit-scrollbar-corner {
+  background: #2d3748;
+}
+
+/* Syntax highlighting agora é feito pelo Prism.js */
+
 /* Header Right Spacing */
 .header-right {
   display: flex;

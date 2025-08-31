@@ -1,4 +1,8 @@
 import './style.css'
+import Prism from 'prismjs';
+import 'prismjs/themes/prism-tomorrow.css';
+import 'prismjs/components/prism-javascript';
+import 'prismjs/components/prism-typescript';
 
 class PlaygroundApp {
   constructor() {
@@ -117,6 +121,16 @@ class PlaygroundApp {
           e.preventDefault();
           this.closeDocumentation();
           break;
+          
+        case 'copyCodeBtn':
+          e.preventDefault();
+          this.copyGeneratedCode();
+          break;
+          
+        case 'clearCodeBtn':
+          e.preventDefault();
+          this.clearGeneratedCode();
+          break;
       }
     });
 
@@ -145,6 +159,9 @@ class PlaygroundApp {
 
     this.setupAutoSave();
     this.setupModalEventListeners();
+    
+    // Gerar código inicial automaticamente
+    this.generateCodeAutomatically();
   }
 
   setupAutoSave() {
@@ -152,6 +169,8 @@ class PlaygroundApp {
     inputs.forEach(input => {
       input.addEventListener('input', () => {
         this.saveConfig();
+        // Gerar código automaticamente quando a configuração mudar
+        this.generateCodeAutomatically();
       });
     });
   }
@@ -351,6 +370,8 @@ class PlaygroundApp {
     const config = this.getConfigFromForm();
     
     try {
+      this.log('🔧 Gerando código...', 'info');
+      
       const response = await fetch('/api/generate-code', {
         method: 'POST',
         headers: {
@@ -362,20 +383,126 @@ class PlaygroundApp {
       const result = await response.json();
       
       if (response.ok) {
-        // Copiar código para clipboard ou mostrar em uma modal
-        if (navigator.clipboard) {
-          await navigator.clipboard.writeText(result.code);
-          this.log('Código gerado e copiado para clipboard!', 'success');
-        } else {
-          this.log('Código gerado com sucesso!', 'success');
-        }
+        // Exibir código na interface
+        this.displayGeneratedCode(result.code);
+        this.log('✅ Código gerado com sucesso!', 'success');
       } else {
-        this.log(`Erro ao gerar código: ${result.error}`, 'error');
+        this.log(`❌ Erro ao gerar código: ${result.error}`, 'error');
       }
 
     } catch (error) {
-      this.log(`Erro: ${error.message}`, 'error');
+      this.log(`❌ Erro: ${error.message}`, 'error');
     }
+  }
+
+  // Generate Code Automatically (local generation)
+  generateCodeAutomatically() {
+    const config = this.getConfigFromForm();
+    
+    // Gerar código localmente sem requisição HTTP
+    const generatedCode = this.generateCodeTemplate(config);
+    this.displayGeneratedCode(generatedCode);
+  }
+
+  // Generate Code Template (local generation)
+  generateCodeTemplate(config) {
+    const configJson = JSON.stringify(config, null, 2);
+    
+    return `import { newPage } from '@felinto-dev/felinto-connect-bot';
+
+// Configuração da sessão
+const config = ${configJson};
+
+// Criar página
+const page = await newPage({
+  ...config,
+  browserWSEndpoint: 'ws://host.docker.internal:9222' // Chrome no host
+});
+
+console.log('✅ Sessão iniciada!');
+console.log('URL atual:', await page.url());
+console.log('Título:', await page.title());
+
+// Suas automações aqui...
+// await page.click('#botao');
+// await page.type('#input', 'texto');
+// await page.screenshot({ path: 'screenshot.png' });
+
+// Fechar (opcional)
+// await page.close();`;
+  }
+
+  // Display Generated Code
+  displayGeneratedCode(code) {
+    const codeElement = document.getElementById('generatedCode');
+    const codeGroup = document.getElementById('codeGeneratedGroup');
+    
+    if (codeElement && codeGroup) {
+      // Buscar o elemento code existente ou criar um novo
+      let codeTag = codeElement.querySelector('code');
+      if (!codeTag) {
+        codeTag = document.createElement('code');
+        codeTag.className = 'language-typescript';
+        codeElement.appendChild(codeTag);
+      }
+      
+      // Inserir código e aplicar syntax highlighting
+      codeTag.textContent = code;
+      codeTag.className = 'language-typescript'; // Garantir classe correta
+      
+      // Aplicar syntax highlighting com Prism.js
+      Prism.highlightElement(codeTag);
+      
+      // Seção sempre visível - não precisa mostrar/esconder
+      codeGroup.style.display = 'block';
+    }
+  }
+
+  // Copy Generated Code
+  async copyGeneratedCode() {
+    const codeElement = document.getElementById('generatedCode');
+    const codeTag = codeElement?.querySelector('code');
+    
+    if (!codeTag || !codeTag.textContent.trim()) {
+      this.log('⚠️ Nenhum código gerado para copiar', 'warning');
+      return;
+    }
+
+    try {
+      const codeText = codeTag.textContent;
+      
+      if (navigator.clipboard) {
+        await navigator.clipboard.writeText(codeText);
+        this.log('📋 Código copiado para clipboard!', 'success');
+      } else {
+        // Fallback para browsers mais antigos
+        const textArea = document.createElement('textarea');
+        textArea.value = codeText;
+        document.body.appendChild(textArea);
+        textArea.select();
+        document.execCommand('copy');
+        document.body.removeChild(textArea);
+        this.log('📋 Código copiado para clipboard!', 'success');
+      }
+    } catch (error) {
+      this.log(`❌ Erro ao copiar código: ${error.message}`, 'error');
+    }
+  }
+
+  // Clear Generated Code
+  clearGeneratedCode() {
+    const codeElement = document.getElementById('generatedCode');
+    
+    if (codeElement) {
+      const codeTag = codeElement.querySelector('code');
+      if (codeTag) {
+        codeTag.textContent = '// Código será gerado automaticamente baseado nas configurações...';
+        codeTag.className = 'language-typescript';
+        Prism.highlightElement(codeTag);
+      }
+    }
+    
+    this.log('🧹 Código limpo', 'info');
   }
 
   // Import/Export Configuration
@@ -615,6 +742,9 @@ class PlaygroundApp {
 
     this.log(`Aplicando template: ${template.name}`, 'info');
     this.setConfigToForm(template.config);
+    
+    // Gerar código automaticamente após aplicar template
+    this.generateCodeAutomatically();
   }
 
   applySessionTemplate(templateName) {
@@ -668,6 +798,9 @@ class PlaygroundApp {
     
     // Trigger input event to save config
     sessionDataEl.dispatchEvent(new Event('input'));
+    
+    // Gerar código automaticamente após template
+    this.generateCodeAutomatically();
   }
 
   applyUserAgentTemplate(templateName) {
@@ -716,6 +849,9 @@ class PlaygroundApp {
     
     // Trigger input event to save config
     userAgentEl.dispatchEvent(new Event('input'));
+    
+    // Gerar código automaticamente após template
+    this.generateCodeAutomatically();
   }
 
   setConfigToForm(config) {
@@ -767,6 +903,9 @@ class PlaygroundApp {
     }
 
     this.saveConfig();
+    
+    // Gerar código automaticamente após carregar configuração
+    this.generateCodeAutomatically();
   }
 
   // Documentation Modal
