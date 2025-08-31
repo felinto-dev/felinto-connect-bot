@@ -13,6 +13,11 @@ class PlaygroundApp {
     this.ws = null;
     this.config = this.loadConfig();
     this.templates = this.getTemplates();
+    this.editors = {
+      header: null,
+      automation: null,
+      footer: null
+    };
     
     this.init();
   }
@@ -22,7 +27,7 @@ class PlaygroundApp {
     this.setupEventListeners();
     this.loadSavedConfig();
     this.loadAdvancedConfigState();
-    this.initCodeEditor();
+    this.initCodeEditors();
     this.checkChromeStatus();
     this.initializeIcons();
     
@@ -347,8 +352,12 @@ class PlaygroundApp {
 
     // Verificar se há código editado para incluir na execução
     let customCode = '';
-    if (this.codeEditor) {
-      customCode = this.codeEditor.state.doc.toString();
+    if (this.editors.header && this.editors.automation && this.editors.footer) {
+      const headerCode = this.editors.header.state.doc.toString();
+      const automationCode = this.editors.automation.state.doc.toString();
+      const footerCode = this.editors.footer.state.doc.toString();
+      
+      customCode = `${headerCode}\n\n${automationCode}\n\n${footerCode}`;
     }
     
     // Adicionar código customizado à configuração se disponível
@@ -393,12 +402,12 @@ class PlaygroundApp {
     const config = this.getConfigFromForm();
     
     // Gerar código localmente sem requisição HTTP
-    const generatedCode = this.generateCodeTemplate(config);
-    this.displayGeneratedCode(generatedCode);
+    const codeSections = this.generateCodeSections(config);
+    this.displayGeneratedCodeSections(codeSections);
   }
 
-  // Generate Code Template (local generation)
-  generateCodeTemplate(config) {
+  // Generate Code Sections (local generation)
+  generateCodeSections(config) {
     // Add browserWSEndpoint directly to config for cleaner code
     const configWithEndpoint = {
       ...config,
@@ -407,27 +416,51 @@ class PlaygroundApp {
     
     const configJson = JSON.stringify(configWithEndpoint, null, 2);
     
-    return `import { newPage } from '@felinto-dev/felinto-connect-bot';
+    return {
+      header: `import { newPage } from '@felinto-dev/felinto-connect-bot';
 
 // Criar página
 const page = await newPage(${configJson});
 
 console.log('✅ Sessão iniciada!');
-console.log('URL atual:', await page.url());
-console.log('Título:', await page.title());
+console.log('🌐 URL atual:', await page.url());
+console.log('📄 Título:', await page.title());`,
 
-// Suas automações aqui...
+      automation: `// Exemplos de automações:
 // await page.click('#botao');
 // await page.type('#input', 'texto');
+// await page.waitForSelector('.elemento');
 // await page.screenshot({ path: 'screenshot.png' });
 
-// Fechar (opcional)
-// await page.close();`;
+// Suas automações personalizadas aqui...`,
+
+      footer: `// Capturar informações finais
+const finalUrl = await page.url();
+const finalTitle = await page.title();
+const pageContent = await page.content();
+
+// Exibir resultados
+console.log('📋 Informações finais:');
+console.log('  URL final:', finalUrl);
+console.log('  Título final:', finalTitle);
+console.log('  Tamanho do conteúdo:', pageContent.length, 'caracteres');
+
+// Fechar página
+await page.close();
+console.log('🔚 Sessão finalizada!');`
+    };
   }
 
-  // Initialize Code Editor
-  initCodeEditor() {
-    const container = document.getElementById('codeEditor');
+  // Initialize Code Editors
+  initCodeEditors() {
+    this.initSingleEditor('headerEditor', 'header', '// Configure os parâmetros acima para gerar o código automaticamente...');
+    this.initSingleEditor('automationEditor', 'automation', '// Suas automações personalizadas aqui...');
+    this.initSingleEditor('footerEditor', 'footer', '// Extração de dados e encerramento da sessão...');
+  }
+
+  // Initialize Single Editor
+  initSingleEditor(containerId, editorKey, placeholder) {
+    const container = document.getElementById(containerId);
     if (!container) return;
     
     // Limpar container
@@ -435,7 +468,7 @@ console.log('Título:', await page.title());
     
     // Configurar estado inicial do editor
     const startState = EditorState.create({
-      doc: '// Configure os parâmetros acima para gerar o código automaticamente...',
+      doc: placeholder,
       extensions: [
         // Funcionalidades básicas
         lineNumbers(),
@@ -487,43 +520,64 @@ console.log('Título:', await page.title());
           },
           '.cm-content': {
             padding: '16px 16px 16px 4px',
-            minHeight: '300px'
+            minHeight: '200px'
           }
         })
       ]
     });
     
     // Criar instância do editor
-    this.codeEditor = new EditorView({
+    this.editors[editorKey] = new EditorView({
       state: startState,
       parent: container
     });
   }
 
-  // Display Generated Code
-  displayGeneratedCode(code) {
-    if (!this.codeEditor) return;
+  // Display Generated Code Sections
+  displayGeneratedCodeSections(codeSections) {
+    if (!this.editors.header || !this.editors.automation || !this.editors.footer) return;
     
-    // Atualizar conteúdo do editor CodeMirror
-    const transaction = this.codeEditor.state.update({
+    // Atualizar conteúdo dos editores CodeMirror
+    const headerTransaction = this.editors.header.state.update({
       changes: {
         from: 0,
-        to: this.codeEditor.state.doc.length,
-        insert: code
+        to: this.editors.header.state.doc.length,
+        insert: codeSections.header
       }
     });
-    
-    this.codeEditor.dispatch(transaction);
+    this.editors.header.dispatch(headerTransaction);
+
+    const automationTransaction = this.editors.automation.state.update({
+      changes: {
+        from: 0,
+        to: this.editors.automation.state.doc.length,
+        insert: codeSections.automation
+      }
+    });
+    this.editors.automation.dispatch(automationTransaction);
+
+    const footerTransaction = this.editors.footer.state.update({
+      changes: {
+        from: 0,
+        to: this.editors.footer.state.doc.length,
+        insert: codeSections.footer
+      }
+    });
+    this.editors.footer.dispatch(footerTransaction);
   }
 
   // Copy Generated Code
   async copyGeneratedCode() {
-    if (!this.codeEditor) {
-      this.log('⚠️ Editor não inicializado', 'warning');
+    if (!this.editors.header || !this.editors.automation || !this.editors.footer) {
+      this.log('⚠️ Editores não inicializados', 'warning');
       return;
     }
     
-    const textToCopy = this.codeEditor.state.doc.toString();
+    const headerCode = this.editors.header.state.doc.toString();
+    const automationCode = this.editors.automation.state.doc.toString();
+    const footerCode = this.editors.footer.state.doc.toString();
+    
+    const textToCopy = `${headerCode}\n\n${automationCode}\n\n${footerCode}`;
     
     if (!textToCopy.trim()) {
       this.log('⚠️ Nenhum código para copiar', 'warning');
@@ -533,7 +587,7 @@ console.log('Título:', await page.title());
     try {
       if (navigator.clipboard) {
         await navigator.clipboard.writeText(textToCopy);
-        this.log('📋 Código copiado para clipboard!', 'success');
+        this.log('📋 Código completo copiado para clipboard!', 'success');
       } else {
         // Fallback para browsers mais antigos
         const textArea = document.createElement('textarea');
@@ -542,7 +596,7 @@ console.log('Título:', await page.title());
         textArea.select();
         document.execCommand('copy');
         document.body.removeChild(textArea);
-        this.log('📋 Código copiado para clipboard!', 'success');
+        this.log('📋 Código completo copiado para clipboard!', 'success');
       }
     } catch (error) {
       this.log(`❌ Erro ao copiar código: ${error.message}`, 'error');
@@ -551,20 +605,37 @@ console.log('Título:', await page.title());
 
   // Clear Generated Code
   clearGeneratedCode() {
-    if (!this.codeEditor) return;
+    if (!this.editors.header || !this.editors.automation || !this.editors.footer) return;
     
-    // Limpar conteúdo do editor CodeMirror
-    const transaction = this.codeEditor.state.update({
+    // Limpar conteúdo dos editores CodeMirror
+    const headerTransaction = this.editors.header.state.update({
       changes: {
         from: 0,
-        to: this.codeEditor.state.doc.length,
-        insert: ''
+        to: this.editors.header.state.doc.length,
+        insert: '// Configure os parâmetros acima para gerar o código automaticamente...'
       }
     });
+    this.editors.header.dispatch(headerTransaction);
+
+    const automationTransaction = this.editors.automation.state.update({
+      changes: {
+        from: 0,
+        to: this.editors.automation.state.doc.length,
+        insert: '// Suas automações personalizadas aqui...'
+      }
+    });
+    this.editors.automation.dispatch(automationTransaction);
+
+    const footerTransaction = this.editors.footer.state.update({
+      changes: {
+        from: 0,
+        to: this.editors.footer.state.doc.length,
+        insert: '// Extração de dados e encerramento da sessão...'
+      }
+    });
+    this.editors.footer.dispatch(footerTransaction);
     
-    this.codeEditor.dispatch(transaction);
-    
-    this.log('🧹 Código limpo', 'info');
+    this.log('🧹 Código limpo em todas as seções', 'info');
   }
 
 

@@ -215,19 +215,36 @@
 
 
 
-          <div class="execution-group" id="codeGeneratedGroup">
-            <h3><i data-lucide="code" class="subsection-icon"></i> Código</h3>
+          <!-- Configuração Inicial -->
+          <div class="execution-group" id="headerCodeGroup">
+            <h3><i data-lucide="settings" class="subsection-icon"></i> Configuração Inicial</h3>
             <div class="code-section">
-              <div id="codeEditor" class="code-editor-container"></div>
+              <div id="headerEditor" class="code-editor-container"></div>
+            </div>
+          </div>
+
+          <!-- Código da Automação -->
+          <div class="execution-group" id="automationCodeGroup">
+            <h3><i data-lucide="bot" class="subsection-icon"></i> Código da Automação</h3>
+            <div class="code-section">
+              <div id="automationEditor" class="code-editor-container"></div>
+            </div>
+          </div>
+
+          <!-- Extração de dados e encerramento da sessão -->
+          <div class="execution-group" id="footerCodeGroup">
+            <h3><i data-lucide="database" class="subsection-icon"></i> Extração de dados e encerramento da sessão</h3>
+            <div class="code-section">
+              <div id="footerEditor" class="code-editor-container"></div>
             </div>
             <div class="action-buttons" style="margin-top: 15px;">
-              <button id="copyCodeBtn" class="btn btn-secondary" title="Copiar código para clipboard">
+              <button id="copyCodeBtn" class="btn btn-secondary" title="Copiar código completo para clipboard">
                 <i data-lucide="copy"></i>
-                Copiar Código
+                Copiar Código Completo
               </button>
               <button id="clearCodeBtn" class="btn btn-secondary" title="Limpar código exibido">
                 <i data-lucide="x"></i>
-                Limpar
+                Limpar Tudo
               </button>
               <button id="executeBtn" class="btn btn-primary">
                 <i data-lucide="play"></i>
