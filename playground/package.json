@@ -4,7 +4,7 @@
   "description": "Debug playground for felinto-connect-bot with Chrome integration",
   "private": true,
   "scripts": {
-    "dev": "concurrently \"pnpm run frontend:dev\" \"pnpm run backend:dev\"",
+    "dev": "concurrently \"cd .. && pnpm dev\" \"pnpm run frontend:dev\" \"pnpm run backend:dev\"",
     "frontend:dev": "cd frontend && pnpm run dev",
     "backend:dev": "cd backend && pnpm run dev",
     "start": "concurrently \"pnpm run frontend:start\" \"pnpm run backend:start\"",

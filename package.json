@@ -7,6 +7,7 @@
 	"private": false,
 	"license": "MIT",
 	"scripts": {
+		"dev": "tsup index.ts --format cjs,esm --dts --watch",
 		"build": "tsup index.ts --format cjs,esm --dts",
 		"release": "pnpm run build && changeset publish",
 		"lint": "tsc"
