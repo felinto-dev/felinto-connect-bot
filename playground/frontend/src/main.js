@@ -115,6 +115,14 @@ class PlaygroundApp {
       });
     });
 
+    // User Agent Template buttons
+    document.querySelectorAll('.ua-template-btn').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        const template = e.target.dataset.uaTemplate;
+        this.applyUserAgentTemplate(template);
+      });
+    });
+
     this.setupAutoSave();
   }
 
@@ -552,6 +560,54 @@ class PlaygroundApp {
     
     // Trigger input event to save config
     sessionDataEl.dispatchEvent(new Event('input'));
+  }
+
+  applyUserAgentTemplate(templateName) {
+    const userAgentEl = document.getElementById('userAgent');
+    if (!userAgentEl) return;
+
+    let userAgent = '';
+
+    switch (templateName) {
+      case 'chrome-desktop':
+        userAgent = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36';
+        this.log('💻 Aplicado User Agent: Chrome Desktop', 'info');
+        break;
+        
+      case 'safari-desktop':
+        userAgent = 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.1 Safari/605.1.15';
+        this.log('💻 Aplicado User Agent: Safari Desktop', 'info');
+        break;
+        
+      case 'iphone':
+        userAgent = 'Mozilla/5.0 (iPhone; CPU iPhone OS 17_1_1 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.1 Mobile/15E148 Safari/604.1';
+        this.log('📱 Aplicado User Agent: iPhone', 'info');
+        break;
+        
+      case 'android':
+        userAgent = 'Mozilla/5.0 (Linux; Android 14; SM-G981B) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Mobile Safari/537.36';
+        this.log('📱 Aplicado User Agent: Android', 'info');
+        break;
+        
+      case 'ipad':
+        userAgent = 'Mozilla/5.0 (iPad; CPU OS 17_1_1 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.1 Mobile/15E148 Safari/604.1';
+        this.log('🔷 Aplicado User Agent: iPad', 'info');
+        break;
+        
+      case 'clear':
+        userAgent = '';
+        this.log('🧹 User Agent limpo', 'info');
+        break;
+        
+      default:
+        return;
+    }
+
+    // Aplicar o user agent ao campo
+    userAgentEl.value = userAgent;
+    
+    // Trigger input event to save config
+    userAgentEl.dispatchEvent(new Event('input'));
   }
 
   setConfigToForm(config) {
