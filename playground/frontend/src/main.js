@@ -714,8 +714,10 @@ console.log('🔚 Sessão finalizada!');`
 
     const slowMoEl = document.getElementById('slowMo');
     if (slowMoEl) {
-      const slowMo = parseInt(slowMoEl.value);
-      if (slowMo > 0) config.slowMo = slowMo;
+      const slowMoValue = slowMoEl.value.trim();
+      // Valor vazio ou "0" = sem slow motion
+      const slowMo = slowMoValue === '' ? 0 : parseInt(slowMoValue);
+      if (!isNaN(slowMo) && slowMo >= 0) config.slowMo = slowMo;
     }
 
     const timeoutEl = document.getElementById('timeout');
@@ -991,7 +993,10 @@ console.log('🔚 Sessão finalizada!');`
 
   setConfigToForm(config) {
     const slowMoEl = document.getElementById('slowMo');
-    if (slowMoEl && config.slowMo !== undefined) slowMoEl.value = config.slowMo;
+    if (slowMoEl && config.slowMo !== undefined) {
+      // Se slowMo é 0, pode mostrar como vazio (equivalente)
+      slowMoEl.value = config.slowMo === 0 ? '' : config.slowMo;
+    }
     
     const timeoutEl = document.getElementById('timeout');
     if (timeoutEl && config.timeout) timeoutEl.value = config.timeout;
