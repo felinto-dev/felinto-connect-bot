@@ -234,5 +234,5 @@ Se `host.docker.internal` não funciona, o playground testa automaticamente:
 - Use **Slow Motion** para ver as ações acontecendo
 - **Templates** são um ótimo ponto de partida
 - **Logs em tempo real** mostram exatamente o que está acontecendo
-- **Código gerado** pode ser copiado direto para seus projetos
+- **Código** pode ser copiado direto para seus projetos
 - **Configurações** são salvas automaticamente entre sessões
