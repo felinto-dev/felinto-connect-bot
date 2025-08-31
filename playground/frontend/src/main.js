@@ -17,6 +17,7 @@ class PlaygroundApp {
     this.setupWebSocket();
     this.setupEventListeners();
     this.loadSavedConfig();
+    this.loadAdvancedConfigState();
     this.checkChromeStatus();
     this.initializeIcons();
   }
@@ -126,6 +127,11 @@ class PlaygroundApp {
         case 'clearCodeBtn':
           e.preventDefault();
           this.clearGeneratedCode();
+          break;
+          
+        case 'toggleAdvancedConfig':
+          e.preventDefault();
+          this.toggleAdvancedConfig();
           break;
       }
     });
@@ -991,6 +997,67 @@ console.log('Título:', await page.title());
         p.style.fontWeight = '500';
       }
     });
+  }
+
+  // Advanced Config Toggle
+  toggleAdvancedConfig() {
+    const toggleBtn = document.getElementById('toggleAdvancedConfig');
+    const content = document.getElementById('advancedConfigContent');
+    const toggleIcon = toggleBtn.querySelector('.toggle-icon');
+    
+    if (!toggleBtn || !content || !toggleIcon) return;
+    
+    const isExpanded = !content.classList.contains('collapsed');
+    
+    if (isExpanded) {
+      // Colapsar
+      content.classList.add('collapsed');
+      toggleBtn.classList.remove('expanded');
+      toggleBtn.querySelector('.toggle-text').textContent = 'Mostrar Configurações';
+    } else {
+      // Expandir
+      content.classList.remove('collapsed');
+      toggleBtn.classList.add('expanded');
+      toggleBtn.querySelector('.toggle-text').textContent = 'Ocultar Configurações';
+    }
+    
+    // Salvar estado no localStorage
+    this.saveAdvancedConfigState(!isExpanded);
+    
+    // Reinicializar ícones após mudança no DOM
+    setTimeout(() => {
+      if (typeof lucide !== 'undefined') {
+        lucide.createIcons();
+      }
+    }, 100);
+  }
+  
+  saveAdvancedConfigState(isExpanded) {
+    localStorage.setItem('playground-advanced-config-expanded', JSON.stringify(isExpanded));
+  }
+  
+  loadAdvancedConfigState() {
+    try {
+      const saved = localStorage.getItem('playground-advanced-config-expanded');
+      const isExpanded = saved ? JSON.parse(saved) : false;
+      
+      const toggleBtn = document.getElementById('toggleAdvancedConfig');
+      const content = document.getElementById('advancedConfigContent');
+      
+      if (!toggleBtn || !content) return;
+      
+      if (isExpanded) {
+        content.classList.remove('collapsed');
+        toggleBtn.classList.add('expanded');
+        toggleBtn.querySelector('.toggle-text').textContent = 'Ocultar Configurações';
+      } else {
+        content.classList.add('collapsed');
+        toggleBtn.classList.remove('expanded');
+        toggleBtn.querySelector('.toggle-text').textContent = 'Mostrar Configurações';
+      }
+    } catch (error) {
+      console.warn('Erro ao carregar estado das configurações avançadas:', error);
+    }
   }
 
   // Config Persistence

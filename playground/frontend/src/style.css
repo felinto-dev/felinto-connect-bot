@@ -942,6 +942,97 @@ pre[class*="language-"] {
 
 /* Syntax highlighting agora é feito pelo Prism.js */
 
+/* Advanced Config Main Group */
+.advanced-main-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16px;
+}
+
+.advanced-main-header h3 {
+  margin-bottom: 0;
+}
+
+.advanced-toggle-btn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 6px;
+  color: #4a5568;
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.advanced-toggle-btn:hover {
+  background: #f1f5f9;
+  border-color: #cbd5e0;
+  color: #2d3748;
+}
+
+.advanced-toggle-btn .toggle-icon {
+  width: 14px;
+  height: 14px;
+  transition: transform 0.2s ease;
+}
+
+.advanced-toggle-btn.expanded .toggle-icon {
+  transform: rotate(180deg);
+}
+
+.advanced-config-content {
+  overflow: hidden;
+  transition: all 0.3s ease;
+}
+
+.advanced-config-content.collapsed {
+  max-height: 0;
+  opacity: 0;
+  margin-top: 0;
+  padding-top: 0;
+  padding-bottom: 0;
+}
+
+.advanced-config-content:not(.collapsed) {
+  max-height: 1000px;
+  opacity: 1;
+  margin-top: 0;
+  padding-top: 0;
+  padding-bottom: 0;
+}
+
+/* Browser Config Subgroup */
+.browser-config-subgroup {
+  background: #fafbfc;
+  border: 1px solid #f1f5f9;
+  border-radius: 6px;
+  padding: 16px;
+  margin-bottom: 16px;
+}
+
+.browser-config-subgroup h4 {
+  font-size: 13px;
+  font-weight: 600;
+  color: #4a5568;
+  margin: 0 0 16px 0;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid #e2e8f0;
+}
+
+.browser-section-icon {
+  width: 13px;
+  height: 13px;
+  color: #9ca3af;
+}
+
 /* Header Right Spacing */
 .header-right {
   display: flex;
