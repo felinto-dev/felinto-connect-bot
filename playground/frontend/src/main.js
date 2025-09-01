@@ -171,10 +171,7 @@ class PlaygroundApp {
           this.copyGeneratedCode();
           break;
           
-        case 'clearCodeBtn':
-          e.preventDefault();
-          this.clearGeneratedCode();
-          break;
+
           
         case 'toggleAdvancedConfig':
           e.preventDefault();
@@ -1031,59 +1028,7 @@ console.log('🔚 Sessão finalizada!');`
     }
   }
 
-  // Clear Generated Code
-  clearGeneratedCode() {
-    const clearBtn = document.getElementById('clearCodeBtn');
-    const originalHTML = clearBtn.innerHTML;
-    
-    if (!this.editors.header || !this.editors.automation || !this.editors.footer) return;
-    
-    // Limpar conteúdo dos editores CodeMirror
-    const headerTransaction = this.editors.header.state.update({
-      changes: {
-        from: 0,
-        to: this.editors.header.state.doc.length,
-        insert: '// Configure os parâmetros acima para gerar o código automaticamente...'
-      }
-    });
-    this.editors.header.dispatch(headerTransaction);
 
-    const automationTransaction = this.editors.automation.state.update({
-      changes: {
-        from: 0,
-        to: this.editors.automation.state.doc.length,
-        insert: '// Suas automações personalizadas aqui...'
-      }
-    });
-    this.editors.automation.dispatch(automationTransaction);
-
-    const footerTransaction = this.editors.footer.state.update({
-      changes: {
-        from: 0,
-        to: this.editors.footer.state.doc.length,
-        insert: '// Extração de dados e encerramento da sessão...'
-      }
-    });
-    this.editors.footer.dispatch(footerTransaction);
-    
-    this.log('🧹 Código limpo em todas as seções', 'info');
-    
-    // Alterar ícone e texto do botão para indicar sucesso
-    clearBtn.innerHTML = '<i data-lucide="check"></i> Sucesso!';
-    
-    // Recriar ícones do Lucide após mudança do HTML
-    if (typeof lucide !== 'undefined') {
-      lucide.createIcons();
-    }
-    
-    // Restaurar texto original após 3 segundos
-    setTimeout(() => {
-      clearBtn.innerHTML = originalHTML;
-      if (typeof lucide !== 'undefined') {
-        lucide.createIcons();
-      }
-    }, 3000);
-  }
 
 
 

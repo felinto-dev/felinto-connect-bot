@@ -32,6 +32,12 @@ body {
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
 }
 
+.header-right {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
 .header-left h1 {
   font-size: 18px;
   font-weight: 600;
@@ -103,6 +109,7 @@ body {
   gap: 8px;
   font-size: 13px;
   font-weight: 500;
+  flex-wrap: wrap;
 }
 
 .status-icon {
@@ -261,11 +268,10 @@ body {
 
 /* Action Buttons */
 .action-buttons {
-  display: flex;
-  flex-direction: row;
-  gap: 8px;
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 10px;
   margin-bottom: 0;
-  flex-wrap: wrap;
 }
 
 .btn {
@@ -439,8 +445,30 @@ body {
   .header {
     padding: 1rem;
     flex-direction: column;
-    gap: 8px;
+    gap: 12px;
     text-align: center;
+  }
+  
+  .header-right {
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 6px;
+  }
+  
+  .header-right .btn-small {
+    font-size: 11px;
+    padding: 8px 10px;
+  }
+  
+  .connection-status {
+    justify-content: center;
+    gap: 6px;
+  }
+  
+  .connection-status .btn-small {
+    font-size: 11px;
+    padding: 6px 8px;
+    margin-left: 4px !important;
   }
   
   .container {
@@ -457,12 +485,12 @@ body {
   }
   
   .action-buttons {
-    flex-direction: column;
+    grid-template-columns: 1fr;
+    gap: 8px;
   }
   
   .btn {
     width: 100%;
-    flex: none;
   }
 }
 
@@ -1122,23 +1150,52 @@ pre[class*="language-"] {
 
 /* Button variants */
 .btn.btn-success {
-  background: #48bb78;
-  border-color: #48bb78;
+  background: #10b981;
+  border-color: #10b981;
+  color: white;
+  font-weight: 600;
 }
 
 .btn.btn-success:hover {
-  background: #38a169;
-  border-color: #38a169;
+  background: #059669;
+  border-color: #059669;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
 }
 
 .btn.btn-danger {
-  background: #f56565;
-  border-color: #f56565;
+  background: #ef4444;
+  border-color: #ef4444;
+  color: white;
+  font-weight: 600;
 }
 
 .btn.btn-danger:hover {
-  background: #e53e3e;
-  border-color: #e53e3e;
+  background: #dc2626;
+  border-color: #dc2626;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(239, 68, 68, 0.3);
+}
+
+/* Estados desabilitados com melhor contraste */
+.btn.btn-success:disabled {
+  background: #6b7280;
+  border-color: #6b7280;
+  color: #f9fafb;
+  opacity: 1;
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
+}
+
+.btn.btn-danger:disabled {
+  background: #6b7280;
+  border-color: #6b7280;
+  color: #f9fafb;
+  opacity: 1;
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
 }
 
 
