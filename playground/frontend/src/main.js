@@ -2,6 +2,7 @@ import './style.css'
 import { EditorView, keymap, highlightSpecialChars, drawSelection, rectangularSelection, highlightActiveLineGutter, lineNumbers } from '@codemirror/view'
 import { EditorState } from '@codemirror/state'
 import { javascript } from '@codemirror/lang-javascript'
+import { json } from '@codemirror/lang-json'
 import { oneDark } from '@codemirror/theme-one-dark'
 import { defaultKeymap, history, historyKeymap } from '@codemirror/commands'
 import { searchKeymap } from '@codemirror/search'
@@ -16,7 +17,8 @@ class PlaygroundApp {
     this.editors = {
       header: null,
       automation: null,
-      footer: null
+      footer: null,
+      sessionData: null
     };
     this.currentSession = {
       id: null,
@@ -131,9 +133,9 @@ class PlaygroundApp {
           this.executeSession();
           break;
           
-        case 'createSessionBtn':
+        case 'sessionToggleBtn':
           e.preventDefault();
-          this.createSession();
+          this.toggleSession();
           break;
           
         case 'executeCodeBtn':
@@ -144,11 +146,6 @@ class PlaygroundApp {
         case 'takeScreenshotBtn':
           e.preventDefault();
           this.takeScreenshot();
-          break;
-          
-        case 'closeSessionBtn':
-          e.preventDefault();
-          this.closeSession();
           break;
 
         case 'importConfig':
@@ -699,27 +696,46 @@ class PlaygroundApp {
     }
   }
 
-  // Update session status UI (apenas controla botões)
+  // Toggle session (create or close)
+  async toggleSession() {
+    if (this.currentSession.active) {
+      await this.closeSession();
+    } else {
+      await this.createSession();
+    }
+  }
+
+  // Update session status UI (controla botão unificado e outros botões)
   updateSessionStatus() {
     // Session control buttons
-    const createBtn = document.getElementById('createSessionBtn');
+    const sessionToggleBtn = document.getElementById('sessionToggleBtn');
     const executeBtn = document.getElementById('executeCodeBtn');
     const screenshotBtn = document.getElementById('takeScreenshotBtn');
-    const closeBtn = document.getElementById('closeSessionBtn');
 
     if (this.currentSession.active) {
-      // Enable session buttons
-      createBtn.disabled = true;
+      // Session is active - show close button
+      sessionToggleBtn.className = 'btn btn-danger';
+      sessionToggleBtn.title = 'Fechar sessão ativa';
+      sessionToggleBtn.innerHTML = '<i data-lucide="x-circle"></i>Fechar Sessão';
+      
+      // Enable other session buttons
       executeBtn.disabled = false;
       screenshotBtn.disabled = false;
-      closeBtn.disabled = false;
       
     } else {
-      // Disable session buttons
-      createBtn.disabled = false;
+      // Session is inactive - show create button
+      sessionToggleBtn.className = 'btn btn-success';
+      sessionToggleBtn.title = 'Criar nova sessão Puppeteer';
+      sessionToggleBtn.innerHTML = '<i data-lucide="plus-circle"></i>Criar Sessão';
+      
+      // Disable other session buttons
       executeBtn.disabled = true;
       screenshotBtn.disabled = true;
-      closeBtn.disabled = true;
+    }
+    
+    // Re-initialize lucide icons for the updated button
+    if (typeof lucide !== 'undefined') {
+      lucide.createIcons();
     }
   }
 
@@ -939,6 +955,96 @@ return {
   finalUrl,
   finalTitle,
 }`);
+    
+    // Inicializar editor JSON para sessionData
+    this.initSessionDataEditor();
+  }
+
+  // Initialize Session Data Editor (JSON)
+  initSessionDataEditor() {
+    const textarea = document.getElementById('sessionData');
+    if (!textarea) return;
+    
+    // Obter valor atual do textarea
+    const currentValue = textarea.value || '{\n  "localStorage": {\n    "userPreferred_language": "pt-BR",\n    "currency": "BRL"\n  }\n}';
+    
+    // Criar container para o editor
+    const editorContainer = document.createElement('div');
+    editorContainer.className = 'session-data-editor';
+    editorContainer.style.cssText = 'border: 1px solid #333; border-radius: 4px; overflow: hidden;';
+    
+    // Substituir textarea pelo container do editor
+    textarea.parentNode.insertBefore(editorContainer, textarea);
+    textarea.style.display = 'none';
+    
+    // Configurar extensões para JSON
+    const extensions = [
+      // Funcionalidades básicas
+      lineNumbers(),
+      highlightActiveLineGutter(),
+      highlightSpecialChars(),
+      history(),
+      foldGutter(),
+      drawSelection(),
+      indentOnInput(),
+      bracketMatching(),
+      closeBrackets(),
+      autocompletion(),
+      rectangularSelection(),
+      
+      // Keymaps
+      keymap.of([
+        ...closeBracketsKeymap,
+        ...defaultKeymap,
+        ...searchKeymap,
+        ...historyKeymap,
+        ...completionKeymap,
+      ]),
+      
+      // Linguagem JSON e tema
+      json(),
+      oneDark,
+      
+      // Configurações customizadas
+      indentUnit.of('  '), // 2 espaços para indentação
+      EditorView.lineWrapping,
+      EditorView.theme({
+        '&': {
+          fontSize: '12px',
+          fontFamily: "'Monaco', 'Menlo', 'Ubuntu Mono', monospace"
+        },
+        '.cm-focused': {
+          outline: 'none'
+        },
+        '.cm-editor': {
+          height: 'auto'
+        },
+        '.cm-scroller': {
+          fontFamily: "'Monaco', 'Menlo', 'Ubuntu Mono', monospace"
+        }
+      }),
+      
+      // Listener para sincronizar com textarea
+      EditorView.updateListener.of((update) => {
+        if (update.docChanged) {
+          textarea.value = update.state.doc.toString();
+          // Disparar evento change para manter compatibilidade
+          textarea.dispatchEvent(new Event('change', { bubbles: true }));
+        }
+      })
+    ];
+
+    // Configurar estado inicial do editor
+    const startState = EditorState.create({
+      doc: currentValue,
+      extensions: extensions
+    });
+    
+    // Criar instância do editor
+    this.editors.sessionData = new EditorView({
+      state: startState,
+      parent: editorContainer
+    });
   }
 
   // Initialize Single Editor
@@ -1273,12 +1379,20 @@ return {
       if (initialUrl) config.initialUrl = initialUrl;
     }
 
-    const sessionDataEl = document.getElementById('sessionData');
-    if (sessionDataEl) {
+    // Obter sessionData do editor CodeMirror ou fallback para textarea
+    let sessionDataValue = '';
+    if (this.editors.sessionData) {
+      sessionDataValue = this.editors.sessionData.state.doc.toString().trim();
+    } else {
+      const sessionDataEl = document.getElementById('sessionData');
+      if (sessionDataEl) {
+        sessionDataValue = sessionDataEl.value.trim();
+      }
+    }
+    
+    if (sessionDataValue) {
       try {
-        const sessionData = sessionDataEl.value.trim();
-        if (sessionData) {
-          const parsedSessionData = JSON.parse(sessionData);
+        const parsedSessionData = JSON.parse(sessionDataValue);
           
           // Verificar se é um objeto vazio {} - tratar como "limpar tudo"
           const keys = Object.keys(parsedSessionData);
@@ -1313,7 +1427,6 @@ return {
               config.sessionData = sessionDataObj;
             }
           }
-        }
       } catch (error) {
         this.log('Erro no JSON do session data', 'warning');
       }
@@ -1420,9 +1533,6 @@ return {
   }
 
   applySessionTemplate(templateName) {
-    const sessionDataEl = document.getElementById('sessionData');
-    if (!sessionDataEl) return;
-
     let sessionData = {};
 
     switch (templateName) {
@@ -1465,11 +1575,27 @@ return {
         return;
     }
 
-    // Aplicar o JSON formatado ao textarea
-    sessionDataEl.value = JSON.stringify(sessionData, null, 2);
+    // Aplicar o JSON formatado ao editor CodeMirror ou textarea
+    const jsonString = JSON.stringify(sessionData, null, 2);
     
-    // Trigger input event to save config
-    sessionDataEl.dispatchEvent(new Event('input'));
+    if (this.editors.sessionData) {
+      const transaction = this.editors.sessionData.state.update({
+        changes: {
+          from: 0,
+          to: this.editors.sessionData.state.doc.length,
+          insert: jsonString
+        }
+      });
+      this.editors.sessionData.dispatch(transaction);
+    } else {
+      // Fallback para textarea
+      const sessionDataEl = document.getElementById('sessionData');
+      if (sessionDataEl) {
+        sessionDataEl.value = jsonString;
+        // Trigger input event to save config
+        sessionDataEl.dispatchEvent(new Event('input'));
+      }
+    }
     
     // Gerar código automaticamente após template
     this.generateCodeAutomatically();
@@ -1561,12 +1687,27 @@ return {
       sessionDataObj.sessionStorage = config.sessionData.sessionStorage;
     }
     
-    const sessionDataEl = document.getElementById('sessionData');
-    // SEMPRE mostrar se houver alguma propriedade definida (mesmo se vazia)
-    if (sessionDataEl && (config.cookies !== undefined || 
+    // Atualizar sessionData usando o editor CodeMirror se disponível
+    if (this.editors.sessionData && (config.cookies !== undefined || 
                           config.sessionData?.localStorage !== undefined ||
                           config.sessionData?.sessionStorage !== undefined)) {
-      sessionDataEl.value = JSON.stringify(sessionDataObj, null, 2);
+      const jsonString = JSON.stringify(sessionDataObj, null, 2);
+      const transaction = this.editors.sessionData.state.update({
+        changes: {
+          from: 0,
+          to: this.editors.sessionData.state.doc.length,
+          insert: jsonString
+        }
+      });
+      this.editors.sessionData.dispatch(transaction);
+    } else {
+      // Fallback para textarea se editor não estiver disponível
+      const sessionDataEl = document.getElementById('sessionData');
+      if (sessionDataEl && (config.cookies !== undefined || 
+                            config.sessionData?.localStorage !== undefined ||
+                            config.sessionData?.sessionStorage !== undefined)) {
+        sessionDataEl.value = JSON.stringify(sessionDataObj, null, 2);
+      }
     }
 
     // Campos opcionais que podem não existir

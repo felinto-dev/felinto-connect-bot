@@ -328,8 +328,7 @@ body {
 
 /* Action Buttons */
 .action-buttons {
-  display: grid;
-  grid-template-columns: repeat(2, 1fr);
+  display: flex;
   gap: 10px;
   margin-bottom: 0;
 }
@@ -545,7 +544,7 @@ body {
   }
   
   .action-buttons {
-    grid-template-columns: 1fr;
+    flex-direction: column;
     gap: 8px;
   }
   
