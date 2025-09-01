@@ -568,6 +568,9 @@ console.log('🔚 Sessão finalizada!');`
 
   // Copy Generated Code
   async copyGeneratedCode() {
+    const copyBtn = document.getElementById('copyCodeBtn');
+    const originalHTML = copyBtn.innerHTML;
+    
     if (!this.editors.header || !this.editors.automation || !this.editors.footer) {
       this.log('⚠️ Editores não inicializados', 'warning');
       return;
@@ -598,6 +601,23 @@ console.log('🔚 Sessão finalizada!');`
         document.body.removeChild(textArea);
         this.log('📋 Código completo copiado para clipboard!', 'success');
       }
+      
+      // Alterar ícone e texto do botão para indicar sucesso
+      copyBtn.innerHTML = '<i data-lucide="check"></i> Sucesso!';
+      
+      // Recriar ícones do Lucide após mudança do HTML
+      if (typeof lucide !== 'undefined') {
+        lucide.createIcons();
+      }
+      
+      // Restaurar texto original após 3 segundos
+      setTimeout(() => {
+        copyBtn.innerHTML = originalHTML;
+        if (typeof lucide !== 'undefined') {
+          lucide.createIcons();
+        }
+      }, 3000);
+      
     } catch (error) {
       this.log(`❌ Erro ao copiar código: ${error.message}`, 'error');
     }
@@ -605,6 +625,9 @@ console.log('🔚 Sessão finalizada!');`
 
   // Clear Generated Code
   clearGeneratedCode() {
+    const clearBtn = document.getElementById('clearCodeBtn');
+    const originalHTML = clearBtn.innerHTML;
+    
     if (!this.editors.header || !this.editors.automation || !this.editors.footer) return;
     
     // Limpar conteúdo dos editores CodeMirror
@@ -636,12 +659,31 @@ console.log('🔚 Sessão finalizada!');`
     this.editors.footer.dispatch(footerTransaction);
     
     this.log('🧹 Código limpo em todas as seções', 'info');
+    
+    // Alterar ícone e texto do botão para indicar sucesso
+    clearBtn.innerHTML = '<i data-lucide="check"></i> Sucesso!';
+    
+    // Recriar ícones do Lucide após mudança do HTML
+    if (typeof lucide !== 'undefined') {
+      lucide.createIcons();
+    }
+    
+    // Restaurar texto original após 3 segundos
+    setTimeout(() => {
+      clearBtn.innerHTML = originalHTML;
+      if (typeof lucide !== 'undefined') {
+        lucide.createIcons();
+      }
+    }, 3000);
   }
 
 
 
   // Import/Export Configuration
   async exportConfig() {
+    const exportBtn = document.getElementById('exportConfig');
+    const originalHTML = exportBtn.innerHTML;
+    
     try {
       const config = this.getConfigFromForm();
       const configJson = JSON.stringify(config, null, 2);
@@ -659,12 +701,32 @@ console.log('🔚 Sessão finalizada!');`
         document.body.removeChild(textArea);
         this.log('✅ Configurações exportadas para o clipboard!', 'success');
       }
+      
+      // Alterar ícone e texto do botão para indicar sucesso
+      exportBtn.innerHTML = '<i data-lucide="check"></i> Sucesso!';
+      
+      // Recriar ícones do Lucide após mudança do HTML
+      if (typeof lucide !== 'undefined') {
+        lucide.createIcons();
+      }
+      
+      // Restaurar texto original após 3 segundos
+      setTimeout(() => {
+        exportBtn.innerHTML = originalHTML;
+        if (typeof lucide !== 'undefined') {
+          lucide.createIcons();
+        }
+      }, 3000);
+      
     } catch (error) {
       this.log(`❌ Erro ao exportar configurações: ${error.message}`, 'error');
     }
   }
 
   async importConfig() {
+    const importBtn = document.getElementById('importConfig');
+    const originalHTML = importBtn.innerHTML;
+    
     try {
       let configText = '';
       
@@ -696,6 +758,22 @@ console.log('🔚 Sessão finalizada!');`
       this.saveConfig();
       
       this.log('✅ Configurações importadas com sucesso!', 'success');
+      
+      // Alterar ícone e texto do botão para indicar sucesso
+      importBtn.innerHTML = '<i data-lucide="check"></i> Sucesso!';
+      
+      // Recriar ícones do Lucide após mudança do HTML
+      if (typeof lucide !== 'undefined') {
+        lucide.createIcons();
+      }
+      
+      // Restaurar texto original após 3 segundos
+      setTimeout(() => {
+        importBtn.innerHTML = originalHTML;
+        if (typeof lucide !== 'undefined') {
+          lucide.createIcons();
+        }
+      }, 3000);
       
       // Mostrar resumo das configurações importadas
       const configKeys = Object.keys(config);
