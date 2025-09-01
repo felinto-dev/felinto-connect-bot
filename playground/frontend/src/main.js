@@ -2153,8 +2153,12 @@ return {
     // Verificar se há dados para carregar (incluindo arrays/objetos vazios)
     const hasSessionData = Object.keys(sessionDataObj).length > 0;
     
-    if (this.editors.sessionData && hasSessionData) {
-      const jsonString = JSON.stringify(sessionDataObj, null, 2);
+    // Se estiver aplicando template, sempre atualizar sessionData (mesmo que vazio)
+    // Se não estiver aplicando template, só atualizar se houver dados
+    const shouldUpdateSessionData = isApplyingTemplate || hasSessionData;
+    
+    if (this.editors.sessionData && shouldUpdateSessionData) {
+      const jsonString = hasSessionData ? JSON.stringify(sessionDataObj, null, 2) : '{}';
       
       const transaction = this.editors.sessionData.state.update({
         changes: {
@@ -2167,8 +2171,8 @@ return {
     } else {
       // Fallback para textarea se editor não estiver disponível
       const sessionDataEl = document.getElementById('sessionData');
-      if (sessionDataEl && hasSessionData) {
-        const jsonString = JSON.stringify(sessionDataObj, null, 2);
+      if (sessionDataEl && shouldUpdateSessionData) {
+        const jsonString = hasSessionData ? JSON.stringify(sessionDataObj, null, 2) : '{}';
         sessionDataEl.value = jsonString;
       }
     }
