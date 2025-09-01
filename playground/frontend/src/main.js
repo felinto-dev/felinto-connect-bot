@@ -1854,28 +1854,8 @@ return {
               sessionStorage: {}
             };
           } else {
-            // Construir sessionData completo incluindo todas as propriedades definidas
-            const sessionDataObj = {};
-            
-            // Incluir cookies no sessionData se definido
-            if (parsedSessionData.cookies !== undefined) {
-              sessionDataObj.cookies = parsedSessionData.cookies;
-            }
-            
-            if (parsedSessionData.localStorage !== undefined) {
-              sessionDataObj.localStorage = parsedSessionData.localStorage;
-            }
-            
-            if (parsedSessionData.sessionStorage !== undefined) {
-              sessionDataObj.sessionStorage = parsedSessionData.sessionStorage;
-            }
-            
-            // SEMPRE aplicar sessionData quando qualquer propriedade estiver definida
-            if (parsedSessionData.cookies !== undefined || 
-                parsedSessionData.localStorage !== undefined || 
-                parsedSessionData.sessionStorage !== undefined) {
-              config.sessionData = sessionDataObj;
-            }
+            // Aceitar TODAS as propriedades do sessionData (incluindo customizadas)
+            config.sessionData = parsedSessionData;
           }
       } catch (error) {
         this.log(`❌ Erro no JSON do Session Data: ${error.message}`, 'error');
@@ -2142,22 +2122,17 @@ return {
     const initialUrlEl = document.getElementById('initialUrl');
     if (initialUrlEl && config.initialUrl) initialUrlEl.value = config.initialUrl;
 
-    // Construir o sessionData combinando cookies e sessionData
-    const sessionDataObj = {};
+    // Usar sessionData completo (incluindo propriedades customizadas)
+    let sessionDataObj = {};
     
-    // Incluir cookies - verificar tanto config.cookies quanto config.sessionData.cookies
-    if (config.cookies !== undefined) {
+    // Se há sessionData, usar tudo (incluindo propriedades customizadas)
+    if (config.sessionData && typeof config.sessionData === 'object') {
+      sessionDataObj = { ...config.sessionData };
+    }
+    
+    // Incluir cookies legados se existir e não estiver em sessionData
+    if (config.cookies !== undefined && !sessionDataObj.cookies) {
       sessionDataObj.cookies = config.cookies;
-    } else if (config.sessionData?.cookies !== undefined) {
-      sessionDataObj.cookies = config.sessionData.cookies;
-    }
-    
-    if (config.sessionData?.localStorage !== undefined) {
-      sessionDataObj.localStorage = config.sessionData.localStorage;
-    }
-    
-    if (config.sessionData?.sessionStorage !== undefined) {
-      sessionDataObj.sessionStorage = config.sessionData.sessionStorage;
     }
     
     // Verificar se há dados para carregar (incluindo arrays/objetos vazios)
