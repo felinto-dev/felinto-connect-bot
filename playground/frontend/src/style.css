@@ -275,6 +275,26 @@ body {
   cursor: not-allowed;
 }
 
+.inline-badge-button.success {
+  background: #10b981 !important;
+  color: white !important;
+  transition: all 0.3s ease;
+}
+
+.inline-badge-button.success:hover {
+  background: #059669 !important;
+}
+
+.inline-badge-button.error {
+  background: #ef4444 !important;
+  color: white !important;
+  transition: all 0.3s ease;
+}
+
+.inline-badge-button.error:hover {
+  background: #dc2626 !important;
+}
+
 .inline-badge-button svg {
   flex-shrink: 0;
 }

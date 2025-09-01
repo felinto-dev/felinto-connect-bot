@@ -309,22 +309,27 @@ class PlaygroundApp {
     
     if (!endpoint) {
       this.log('Por favor, insira uma URL WebSocket para validar', 'error');
+      this.showButtonError(validateButton, 'URL obrigatória', 'empty');
       return;
     }
     
     // Validar formato básico da URL
     if (!endpoint.startsWith('ws://') && !endpoint.startsWith('wss://')) {
       this.log('URL deve começar com ws:// ou wss://', 'error');
+      this.showButtonError(validateButton, 'Formato inválido', 'format');
       return;
     }
     
-    // Feedback visual no botão
+    // Feedback visual no botão - estado de loading
     const originalContent = validateButton.innerHTML;
     validateButton.disabled = true;
     validateButton.classList.add('loading');
     validateButton.innerHTML = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="animation: spin 1s linear infinite;"><path d="M21 12a9 9 0 11-6.219-8.56"></path></svg><span>Validando...</span>';
     
     this.log(`Validando conexão com ${endpoint}...`, 'info');
+    
+    let isSuccess = false;
+    let errorType = 'connection';
     
     try {
       // Extrair host e porta da URL WebSocket
@@ -340,26 +345,95 @@ class PlaygroundApp {
         const data = await response.json();
         this.log(`✅ Conexão válida! Chrome ${data.Browser || 'versão desconhecida'}`, 'success');
         this.log(`WebSocket URL: ${data.webSocketDebuggerUrl || 'N/A'}`, 'info');
+        isSuccess = true;
       } else {
         this.log(`❌ Endpoint não respondeu (HTTP ${response.status})`, 'error');
+        errorType = 'http';
       }
       
     } catch (error) {
       if (error.name === 'AbortError') {
         this.log('❌ Timeout na conexão (5s)', 'error');
+        errorType = 'timeout';
       } else if (error.message.includes('fetch')) {
         this.log('❌ Não foi possível conectar ao endpoint', 'error');
         this.log('Verifique se o Chrome está rodando com --remote-debugging-port', 'info');
+        errorType = 'connection';
       } else {
         this.log(`❌ Erro na validação: ${error.message}`, 'error');
+        errorType = 'unknown';
       }
     } finally {
-      // Restaurar botão
+      // Remover estado de loading
       validateButton.disabled = false;
       validateButton.classList.remove('loading');
-      validateButton.innerHTML = originalContent;
-      lucide.createIcons();
+      
+      // Mostrar feedback visual baseado no resultado
+      if (isSuccess) {
+        this.showButtonSuccess(validateButton, originalContent);
+      } else {
+        this.showButtonError(validateButton, originalContent, errorType);
+      }
     }
+  }
+
+  showButtonSuccess(button, originalContent) {
+    // Mostrar estado de sucesso
+    button.classList.add('success');
+    button.innerHTML = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 12l2 2 4-4"></path><circle cx="12" cy="12" r="10"></circle></svg><span>Conectado!</span>';
+    
+    // Voltar ao estado original após 3 segundos
+    setTimeout(() => {
+      button.classList.remove('success');
+      button.innerHTML = originalContent;
+      lucide.createIcons();
+    }, 3000);
+  }
+
+  showButtonError(button, originalContent, errorType = 'connection') {
+    // Se originalContent é uma string simples (mensagem de erro), usar conteúdo padrão
+    const defaultContent = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 12l2 2 4-4"></path><circle cx="12" cy="12" r="10"></circle></svg><span>Validar conexão</span>';
+    const contentToRestore = typeof originalContent === 'string' && originalContent.includes('svg') ? originalContent : defaultContent;
+    
+    // Definir mensagem e ícone baseado no tipo de erro
+    let errorMessage, errorIcon;
+    
+    switch (errorType) {
+      case 'empty':
+        errorMessage = 'URL vazia';
+        errorIcon = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg>';
+        break;
+      case 'format':
+        errorMessage = 'URL inválida';
+        errorIcon = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg>';
+        break;
+      case 'timeout':
+        errorMessage = 'Timeout';
+        errorIcon = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><polyline points="12,6 12,12 16,14"></polyline></svg>';
+        break;
+      case 'http':
+        errorMessage = 'Sem resposta';
+        errorIcon = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="4.93" y1="4.93" x2="19.07" y2="19.07"></line></svg>';
+        break;
+      case 'connection':
+        errorMessage = 'Sem conexão';
+        errorIcon = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path><line x1="12" y1="9" x2="12" y2="13"></line><line x1="12" y1="17" x2="12.01" y2="17"></line></svg>';
+        break;
+      default:
+        errorMessage = 'Falha';
+        errorIcon = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>';
+    }
+    
+    // Mostrar estado de erro
+    button.classList.add('error');
+    button.innerHTML = `${errorIcon}<span>${errorMessage}</span>`;
+    
+    // Voltar ao estado original após 2.5 segundos
+    setTimeout(() => {
+      button.classList.remove('error');
+      button.innerHTML = contentToRestore;
+      lucide.createIcons();
+    }, 2500);
   }
 
   // Utilities
