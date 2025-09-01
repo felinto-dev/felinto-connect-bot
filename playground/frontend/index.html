@@ -271,31 +271,11 @@
                 Fechar Sessão
               </button>
             </div>
-            
-            <!-- Session Status -->
-            <div id="sessionStatus" class="session-status" style="margin-top: 10px; display: none;">
-              <div class="status-indicator">
-                <i data-lucide="circle" class="status-dot"></i>
-                <span class="status-text">Sessão Inativa</span>
-                <span class="session-id"></span>
-              </div>
-              <div class="session-info">
-                <span class="page-url">-</span>
-                <span class="execution-count">Execuções: 0</span>
-              </div>
-            </div>
-          </div>
-
-          <div class="execution-group">
-            <h3><i data-lucide="terminal" class="subsection-icon"></i> Console de Saída</h3>
-            <div id="logs" class="console-output">
-              <!-- Logs serão adicionados dinamicamente -->
-            </div>
           </div>
 
           <!-- Results Section -->
-          <div class="execution-group" id="resultsSection" style="display: none;">
-            <h3><i data-lucide="image" class="subsection-icon"></i> Resultados da Execução</h3>
+          <div class="execution-group" id="resultsSection">
+            <h3><i data-lucide="clipboard-list" class="subsection-icon"></i> Resultados da Execução</h3>
             
             <div class="results-tabs">
               <button class="tab-btn active" data-tab="screenshot">
@@ -303,8 +283,8 @@
                 Screenshot
               </button>
               <button class="tab-btn" data-tab="data">
-                <i data-lucide="database"></i>
-                Dados
+                <i data-lucide="download"></i>
+                Dados Extraídos
               </button>
               <button class="tab-btn" data-tab="pageinfo">
                 <i data-lucide="info"></i>
@@ -321,7 +301,7 @@
               
               <div id="dataTab" class="tab-content">
                 <div id="dataContainer" class="data-container">
-                  <pre class="code-output"><code>// Dados retornados pela execução aparecerão aqui...</code></pre>
+                  <pre class="code-output"><code>// Dados extraídos aparecerão aqui...</code></pre>
                 </div>
               </div>
               
@@ -341,6 +321,13 @@
                   </div>
                 </div>
               </div>
+            </div>
+          </div>
+
+          <div class="execution-group">
+            <h3><i data-lucide="terminal" class="subsection-icon"></i> Console de Saída</h3>
+            <div id="logs" class="console-output">
+              <!-- Logs serão adicionados dinamicamente -->
             </div>
           </div>
         </section>

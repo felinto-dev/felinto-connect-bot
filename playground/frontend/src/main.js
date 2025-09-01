@@ -24,6 +24,11 @@ class PlaygroundApp {
       executionCount: 0,
       pageInfo: null
     };
+    this.extractionData = {
+      hasData: false,
+      timestamp: null,
+      data: null
+    };
     
     this.init();
   }
@@ -36,6 +41,9 @@ class PlaygroundApp {
     this.initCodeEditors();
     this.checkChromeStatus();
     this.initializeIcons();
+    
+    // Initialize results section with empty state
+    this.clearResultsContent();
     
     // Gerar código inicial após tudo estar configurado
     // Pequeno delay para garantir que todos os elementos estejam prontos
@@ -623,6 +631,46 @@ class PlaygroundApp {
     this.setLoading(true);
 
     try {
+      // Executar código de extração de dados antes de fechar
+      const footerCode = this.editors.footer?.state.doc.toString();
+      
+      // Executar se há código (incluindo o código padrão)
+      if (footerCode && footerCode.trim() && !footerCode.trim().startsWith('//') || 
+          (footerCode && footerCode.includes('return'))) {
+        this.log('📊 Executando extração de dados antes do fechamento...', 'info');
+        
+        try {
+          const executeResponse = await fetch('/api/session/execute', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ 
+              sessionId: this.currentSession.id,
+              code: footerCode 
+            })
+          });
+
+          const executeResult = await executeResponse.json();
+          
+          if (executeResponse.ok) {
+            this.log('✅ Extração de dados concluída!', 'success');
+            if (executeResult.result) {
+              this.log(`📋 Dados extraídos: ${JSON.stringify(executeResult.result, null, 2)}`, 'info');
+              
+              // Exibir dados na aba "Dados" dos resultados
+              this.showExtractionData(executeResult.result);
+              this.switchResultsTab('data');
+            }
+          } else {
+            this.log(`⚠️ Erro na extração de dados: ${executeResult.error}`, 'warning');
+          }
+        } catch (extractError) {
+          this.log(`⚠️ Erro ao executar extração: ${extractError.message}`, 'warning');
+        }
+      }
+
+      // Fechar sessão
       const response = await fetch(`/api/session/${this.currentSession.id}`, {
         method: 'DELETE'
       });
@@ -638,7 +686,7 @@ class PlaygroundApp {
         };
         
         this.updateSessionStatus();
-        this.hideResults();
+        // NÃO limpar resultados - dados devem persistir após fechamento
         this.log(`✅ Sessão fechada com sucesso!`, 'success');
       } else {
         this.log(`❌ Erro ao fechar sessão: ${result.error}`, 'error');
@@ -651,15 +699,8 @@ class PlaygroundApp {
     }
   }
 
-  // Update session status UI
+  // Update session status UI (apenas controla botões)
   updateSessionStatus() {
-    const statusElement = document.getElementById('sessionStatus');
-    const statusDot = statusElement.querySelector('.status-dot');
-    const statusText = statusElement.querySelector('.status-text');
-    const sessionId = statusElement.querySelector('.session-id');
-    const pageUrl = statusElement.querySelector('.page-url');
-    const executionCount = statusElement.querySelector('.execution-count');
-    
     // Session control buttons
     const createBtn = document.getElementById('createSessionBtn');
     const executeBtn = document.getElementById('executeCodeBtn');
@@ -667,17 +708,6 @@ class PlaygroundApp {
     const closeBtn = document.getElementById('closeSessionBtn');
 
     if (this.currentSession.active) {
-      statusElement.style.display = 'block';
-      statusDot.classList.remove('inactive');
-      statusText.textContent = 'Sessão Ativa';
-      sessionId.textContent = `(${this.currentSession.id.substring(0, 8)}...)`;
-      
-      if (this.currentSession.pageInfo) {
-        pageUrl.textContent = this.currentSession.pageInfo.url || '-';
-      }
-      
-      executionCount.textContent = `Execuções: ${this.currentSession.executionCount}`;
-      
       // Enable session buttons
       createBtn.disabled = true;
       executeBtn.disabled = false;
@@ -685,8 +715,6 @@ class PlaygroundApp {
       closeBtn.disabled = false;
       
     } else {
-      statusElement.style.display = 'none';
-      
       // Disable session buttons
       createBtn.disabled = false;
       executeBtn.disabled = true;
@@ -697,30 +725,44 @@ class PlaygroundApp {
 
   // Show results section
   showResults(result) {
-    const resultsSection = document.getElementById('resultsSection');
-    resultsSection.style.display = 'block';
+    // A seção de resultados agora está sempre visível
+    // Apenas atualizar o conteúdo
     
     // Update page info
     this.updatePageInfo(result.pageInfo);
     
-    // Show data if available
-    if (result.result !== undefined) {
-      this.showExecutionData(result.result);
-    }
+    // NÃO mostrar dados de execução normal na aba "Dados"
+    // A aba "Dados" é reservada apenas para dados de extração
   }
 
-  // Hide results section
+  // Hide results section (agora apenas limpa o conteúdo)
   hideResults() {
-    const resultsSection = document.getElementById('resultsSection');
-    resultsSection.style.display = 'none';
+    // A seção permanece visível, apenas limpar conteúdo
+    this.clearResultsContent();
+  }
+
+  // Clear results content
+  clearResultsContent() {
+    // Limpar screenshot
+    const screenshotContainer = document.getElementById('screenshotContainer');
+    screenshotContainer.innerHTML = '<p class="empty-state">Nenhum screenshot capturado ainda</p>';
+    
+    // NÃO limpar dados de extração - eles devem persistir
+    // Apenas limpar se não houver dados de extração salvos
+    if (!this.extractionData.hasData) {
+      const dataContainer = document.getElementById('dataContainer');
+      dataContainer.innerHTML = '<pre class="code-output"><code>// Dados extraídos aparecerão aqui...</code></pre>';
+    }
+    
+    // Limpar info da página
+    document.getElementById('currentUrl').textContent = '-';
+    document.getElementById('currentTitle').textContent = '-';
+    document.getElementById('lastUpdate').textContent = '-';
   }
 
   // Show screenshot in results
   showScreenshot(screenshotDataUrl) {
-    const resultsSection = document.getElementById('resultsSection');
     const screenshotContainer = document.getElementById('screenshotContainer');
-    
-    resultsSection.style.display = 'block';
     
     screenshotContainer.innerHTML = `
       <img src="${screenshotDataUrl}" alt="Screenshot da página" />
@@ -733,13 +775,27 @@ class PlaygroundApp {
     this.switchResultsTab('screenshot');
   }
 
-  // Show execution data
+  // Show execution data (DEPRECATED - não usado mais)
   showExecutionData(data) {
+    // Este método não é mais usado - a aba "Dados" é reservada para extração
+    console.warn('showExecutionData is deprecated - use showExtractionData instead');
+  }
+
+  // Show extraction data (dados do código de extração)
+  showExtractionData(data) {
     const dataContainer = document.getElementById('dataContainer');
+    
+    // Salvar dados de extração com timestamp
+    this.extractionData = {
+      hasData: true,
+      timestamp: new Date(),
+      data: data
+    };
     
     let displayData;
     if (data === undefined || data === null) {
-      displayData = '// Nenhum dado retornado pela execução';
+      displayData = '// Nenhum dado extraído ainda';
+      this.extractionData.hasData = false;
     } else if (typeof data === 'object') {
       displayData = JSON.stringify(data, null, 2);
     } else {
@@ -747,6 +803,35 @@ class PlaygroundApp {
     }
     
     dataContainer.innerHTML = `<pre class="code-output"><code>${displayData}</code></pre>`;
+    
+    // Atualizar badge de timestamp
+    this.updateExtractionBadge();
+  }
+
+  // Update extraction badge with timestamp
+  updateExtractionBadge() {
+    let badgeElement = document.getElementById('extractionBadge');
+    
+    if (this.extractionData.hasData && this.extractionData.timestamp) {
+      const timeString = this.extractionData.timestamp.toLocaleTimeString('pt-BR', { 
+        hour: '2-digit', 
+        minute: '2-digit' 
+      });
+      
+      if (!badgeElement) {
+        // Criar badge se não existir
+        const resultsTitle = document.querySelector('#resultsSection h3');
+        badgeElement = document.createElement('span');
+        badgeElement.id = 'extractionBadge';
+        badgeElement.className = 'extraction-badge';
+        resultsTitle.appendChild(badgeElement);
+      }
+      
+      badgeElement.textContent = `Última extração: ${timeString}`;
+      badgeElement.style.display = 'inline-block';
+    } else if (badgeElement) {
+      badgeElement.style.display = 'none';
+    }
   }
 
   // Update page info in results
@@ -834,17 +919,11 @@ console.log('Links encontrados:', linksCount);`,
       footer: `// Capturar informações finais
 const finalUrl = await page.url();
 const finalTitle = await page.title();
-const pageContent = await page.content();
 
-// Exibir resultados
-console.log('📋 Informações finais:');
-console.log('  URL final:', finalUrl);
-console.log('  Título final:', finalTitle);
-console.log('  Tamanho do conteúdo:', pageContent.length, 'caracteres');
-
-// Fechar página
-await page.close();
-console.log('🔚 Sessão finalizada!');`
+return {
+  finalUrl,
+  finalTitle,
+}`
     };
   }
 
@@ -852,7 +931,14 @@ console.log('🔚 Sessão finalizada!');`
   initCodeEditors() {
     this.initSingleEditor('headerEditor', 'header', '// Configure os parâmetros acima para gerar o código automaticamente...', true); // readonly
     this.initSingleEditor('automationEditor', 'automation', '// Suas automações personalizadas aqui...');
-    this.initSingleEditor('footerEditor', 'footer', '// Extração de dados e encerramento da sessão...');
+    this.initSingleEditor('footerEditor', 'footer', `// Capturar informações finais
+const finalUrl = await page.url();
+const finalTitle = await page.title();
+
+return {
+  finalUrl,
+  finalTitle,
+}`);
   }
 
   // Initialize Single Editor

@@ -261,8 +261,11 @@ class SessionManager {
     
     if (session) {
       try {
-        // Fechar página
+        // Fechar página - sempre executar page.close()
         if (session.page && !session.page.isClosed()) {
+          if (broadcastFn) {
+            broadcastFn({ type: 'info', message: `🔒 Fechando página da sessão: ${sessionId}` });
+          }
           await session.page.close();
         }
         

@@ -977,6 +977,40 @@ body {
   overflow: hidden;
 }
 
+/* Results Section - sempre visível */
+#resultsSection {
+  display: block !important;
+}
+
+/* Empty state styling */
+.empty-state {
+  color: #718096;
+  font-style: italic;
+  text-align: center;
+  padding: 20px;
+  margin: 0;
+}
+
+/* Results section header with badge */
+#resultsSection h3 {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+/* Extraction badge */
+.extraction-badge {
+  background: #10b981;
+  color: white;
+  font-size: 11px;
+  font-weight: 500;
+  padding: 4px 8px;
+  border-radius: 12px;
+  display: none;
+  font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+  margin-left: auto;
+}
+
 
 
 
@@ -1045,55 +1079,7 @@ pre[class*="language-"] {
   outline: none;
 }
 
-/* Session Status */
-.session-status {
-  background: #2d3748;
-  border: 1px solid #4a5568;
-  border-radius: 6px;
-  padding: 12px;
-  font-size: 12px;
-}
 
-.status-indicator {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  margin-bottom: 8px;
-}
-
-.status-dot {
-  width: 8px;
-  height: 8px;
-  color: #68d391; /* Green when active */
-}
-
-.status-dot.inactive {
-  color: #fc8181; /* Red when inactive */
-}
-
-.status-text {
-  font-weight: 600;
-  color: #e2e8f0;
-}
-
-.session-id {
-  color: #a0aec0;
-  font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
-}
-
-.session-info {
-  display: flex;
-  justify-content: space-between;
-  color: #a0aec0;
-  font-size: 11px;
-}
-
-.page-url {
-  max-width: 300px;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
 
 /* Results Section */
 .results-tabs {

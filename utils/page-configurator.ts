@@ -86,12 +86,7 @@ export class PageConfigurator {
 		// Setup resource blocking
 		await this.setupResourceBlocking(page, browser, blockedResourcesTypes);
 
-		// Development mode page close override
-		if (process.env.NODE_ENV === 'development') {
-			page.close = async () => {
-				console.log('simulating the closing of the page...')
-			}
-		}
+
 
 		// Add screenshot functionality
 		this.addScreenshotFunctionality(page);
