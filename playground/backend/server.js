@@ -8,8 +8,11 @@ import { join, dirname } from 'path';
 import { fileURLToPath } from 'url';
 import { marked } from 'marked';
 import { newPage } from '@felinto-dev/felinto-connect-bot';
+import SessionManager from './session-manager.js';
 
 const app = express();
+// SessionManager será inicializado após a função broadcast estar disponível
+let sessionManager;
 const port = 3001;
 
 // Get current directory for ES modules
@@ -88,6 +91,9 @@ function broadcast(message) {
     }
   });
 }
+
+// Initialize SessionManager with broadcast function
+sessionManager = new SessionManager(broadcast);
 
 // Health check endpoint
 app.get('/api/health', (req, res) => {
@@ -303,7 +309,226 @@ app.post('/api/execute', async (req, res) => {
   }
 });
 
+// Create new session endpoint
+app.post('/api/session/create', async (req, res) => {
+  try {
+    const config = req.body;
+    
+    broadcast({ type: 'info', message: '🆔 Criando nova sessão...' });
+    
+    // Get the latest Chrome endpoint
+    let chromeEndpoint = detectedChromeEndpoint;
+    
+    // If not cached, try to detect again
+    if (!chromeEndpoint) {
+      broadcast({ type: 'info', message: '🔍 Detectando Chrome...' });
+      const endpoints = detectPossibleEndpoints();
+      
+      for (const endpoint of endpoints) {
+        try {
+          const response = await fetch(`http://${endpoint}/json/version`, {
+            signal: AbortSignal.timeout(2000)
+          });
+          if (response.ok) {
+            chromeEndpoint = `ws://${endpoint}`;
+            detectedChromeEndpoint = chromeEndpoint;
+            break;
+          }
+        } catch (error) {
+          continue;
+        }
+      }
+    }
+    
+    if (!chromeEndpoint) {
+      throw new Error('Chrome não detectado. Execute o comando de inicialização do Chrome no host.');
+    }
+    
+    // Force connection to detected Chrome endpoint
+    const sessionConfig = {
+      ...config,
+      browserWSEndpoint: chromeEndpoint,
+      $debug: true
+    };
 
+    const session = await sessionManager.createSession(sessionConfig, broadcast);
+    
+    // Get initial page info
+    const pageInfo = await sessionManager.getPageInfo(session.page);
+    
+    res.json({ 
+      success: true, 
+      sessionId: session.id,
+      message: 'Sessão criada com sucesso!',
+      pageInfo
+    });
+
+  } catch (error) {
+    console.error('Erro ao criar sessão:', error);
+    
+    broadcast({ 
+      type: 'error', 
+      message: `❌ Erro ao criar sessão: ${error.message}`
+    });
+    
+    res.status(500).json({ 
+      error: error.message,
+      stack: process.env.NODE_ENV === 'development' ? error.stack : undefined
+    });
+  }
+});
+
+// Execute code in existing session
+app.post('/api/session/execute', async (req, res) => {
+  try {
+    const { sessionId, code } = req.body;
+    
+    if (!sessionId) {
+      return res.status(400).json({ error: 'sessionId é obrigatório' });
+    }
+    
+    if (!code || typeof code !== 'string') {
+      return res.status(400).json({ error: 'code é obrigatório e deve ser uma string' });
+    }
+
+    broadcast({ type: 'info', message: `🚀 Executando código na sessão: ${sessionId}` });
+    
+    const result = await sessionManager.executeCode(sessionId, code, broadcast);
+    
+    res.json({ 
+      success: true, 
+      message: 'Código executado com sucesso!',
+      ...result
+    });
+
+  } catch (error) {
+    console.error('Erro ao executar código:', error);
+    
+    // Verificar se é erro de sessão não encontrada
+    if (error.message.includes('Sessão não encontrada')) {
+      broadcast({ 
+        type: 'session_expired', 
+        message: `❌ Sessão expirou ou foi removida. Crie uma nova sessão.`,
+        sessionId: sessionId
+      });
+      
+      res.status(404).json({ 
+        error: 'Sessão não encontrada',
+        sessionExpired: true,
+        message: 'A sessão expirou ou foi removida. Crie uma nova sessão.'
+      });
+    } else {
+      broadcast({ 
+        type: 'error', 
+        message: `❌ Erro na execução: ${error.message}`
+      });
+      
+      res.status(500).json({ 
+        error: error.message,
+        stack: process.env.NODE_ENV === 'development' ? error.stack : undefined
+      });
+    }
+  }
+});
+
+// Take screenshot of session
+app.post('/api/session/screenshot', async (req, res) => {
+  try {
+    const { sessionId, options = {} } = req.body;
+    
+    if (!sessionId) {
+      return res.status(400).json({ error: 'sessionId é obrigatório' });
+    }
+
+    broadcast({ type: 'info', message: `📸 Capturando screenshot da sessão: ${sessionId}` });
+    
+    const screenshot = await sessionManager.takeScreenshot(sessionId, options);
+    
+    broadcast({ type: 'success', message: '✅ Screenshot capturado!' });
+    
+    res.json({ 
+      success: true, 
+      screenshot: `data:image/png;base64,${screenshot}`,
+      message: 'Screenshot capturado com sucesso!'
+    });
+
+  } catch (error) {
+    console.error('Erro ao capturar screenshot:', error);
+    
+    // Verificar se é erro de sessão não encontrada
+    if (error.message.includes('Sessão não encontrada')) {
+      broadcast({ 
+        type: 'session_expired', 
+        message: `❌ Sessão expirou ou foi removida. Crie uma nova sessão.`,
+        sessionId: sessionId
+      });
+      
+      res.status(404).json({ 
+        error: 'Sessão não encontrada',
+        sessionExpired: true,
+        message: 'A sessão expirou ou foi removida. Crie uma nova sessão.'
+      });
+    } else {
+      broadcast({ 
+        type: 'error', 
+        message: `❌ Erro ao capturar screenshot: ${error.message}`
+      });
+      
+      res.status(500).json({ 
+        error: error.message,
+        stack: process.env.NODE_ENV === 'development' ? error.stack : undefined
+      });
+    }
+  }
+});
+
+// Remove session
+app.delete('/api/session/:sessionId', async (req, res) => {
+  try {
+    const { sessionId } = req.params;
+    
+    const removed = await sessionManager.removeSession(sessionId, broadcast);
+    
+    if (removed) {
+      res.json({ 
+        success: true, 
+        message: 'Sessão removida com sucesso!' 
+      });
+    } else {
+      res.status(404).json({ 
+        error: 'Sessão não encontrada' 
+      });
+    }
+
+  } catch (error) {
+    console.error('Erro ao remover sessão:', error);
+    
+    res.status(500).json({ 
+      error: error.message,
+      stack: process.env.NODE_ENV === 'development' ? error.stack : undefined
+    });
+  }
+});
+
+// Get session stats
+app.get('/api/sessions/stats', (req, res) => {
+  try {
+    const stats = sessionManager.getStats();
+    
+    res.json({ 
+      success: true, 
+      stats 
+    });
+
+  } catch (error) {
+    console.error('Erro ao obter estatísticas:', error);
+    
+    res.status(500).json({ 
+      error: error.message,
+      stack: process.env.NODE_ENV === 'development' ? error.stack : undefined
+    });
+  }
+});
 
 // Start server
 server.listen(port, () => {
@@ -313,7 +538,12 @@ server.listen(port, () => {
   console.log(`   GET  /api/health - Health check`);
   console.log(`   GET  /api/docs - Documentação (README.md)`);
   console.log(`   GET  /api/chrome/check - Verificar Chrome`);
-  console.log(`   POST /api/execute - Executar sessão`);
+  console.log(`   POST /api/execute - Executar sessão (legacy)`);
+  console.log(`   POST /api/session/create - Criar nova sessão`);
+  console.log(`   POST /api/session/execute - Executar código na sessão`);
+  console.log(`   POST /api/session/screenshot - Capturar screenshot`);
+  console.log(`   DELETE /api/session/:id - Remover sessão`);
+  console.log(`   GET  /api/sessions/stats - Estatísticas das sessões`);
 
   console.log(`\n💡 Para usar o playground:`);
   console.log(`   1. Execute no terminal do host:`);

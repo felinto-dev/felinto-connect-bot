@@ -246,10 +246,35 @@
                 <i data-lucide="x"></i>
                 Limpar Tudo
               </button>
-              <button id="executeBtn" class="btn btn-primary">
-                <i data-lucide="play"></i>
-                Executar
+              <button id="createSessionBtn" class="btn btn-success" title="Criar nova sessão Puppeteer">
+                <i data-lucide="plus-circle"></i>
+                Criar Sessão
               </button>
+              <button id="executeCodeBtn" class="btn btn-primary" title="Executar código na sessão ativa" disabled>
+                <i data-lucide="play"></i>
+                Executar Código
+              </button>
+              <button id="takeScreenshotBtn" class="btn btn-secondary" title="Capturar screenshot da página" disabled>
+                <i data-lucide="camera"></i>
+                Screenshot
+              </button>
+              <button id="closeSessionBtn" class="btn btn-danger" title="Fechar sessão ativa" disabled>
+                <i data-lucide="x-circle"></i>
+                Fechar Sessão
+              </button>
+            </div>
+            
+            <!-- Session Status -->
+            <div id="sessionStatus" class="session-status" style="margin-top: 10px; display: none;">
+              <div class="status-indicator">
+                <i data-lucide="circle" class="status-dot"></i>
+                <span class="status-text">Sessão Inativa</span>
+                <span class="session-id"></span>
+              </div>
+              <div class="session-info">
+                <span class="page-url">-</span>
+                <span class="execution-count">Execuções: 0</span>
+              </div>
             </div>
           </div>
 
@@ -257,6 +282,57 @@
             <h3><i data-lucide="terminal" class="subsection-icon"></i> Console de Saída</h3>
             <div id="logs" class="console-output">
               <!-- Logs serão adicionados dinamicamente -->
+            </div>
+          </div>
+
+          <!-- Results Section -->
+          <div class="execution-group" id="resultsSection" style="display: none;">
+            <h3><i data-lucide="image" class="subsection-icon"></i> Resultados da Execução</h3>
+            
+            <div class="results-tabs">
+              <button class="tab-btn active" data-tab="screenshot">
+                <i data-lucide="camera"></i>
+                Screenshot
+              </button>
+              <button class="tab-btn" data-tab="data">
+                <i data-lucide="database"></i>
+                Dados
+              </button>
+              <button class="tab-btn" data-tab="pageinfo">
+                <i data-lucide="info"></i>
+                Info da Página
+              </button>
+            </div>
+            
+            <div class="results-content">
+              <div id="screenshotTab" class="tab-content active">
+                <div id="screenshotContainer" class="screenshot-container">
+                  <p class="empty-state">Nenhum screenshot capturado ainda</p>
+                </div>
+              </div>
+              
+              <div id="dataTab" class="tab-content">
+                <div id="dataContainer" class="data-container">
+                  <pre class="code-output"><code>// Dados retornados pela execução aparecerão aqui...</code></pre>
+                </div>
+              </div>
+              
+              <div id="pageinfoTab" class="tab-content">
+                <div id="pageInfoContainer" class="page-info-container">
+                  <div class="info-item">
+                    <label>URL:</label>
+                    <span id="currentUrl">-</span>
+                  </div>
+                  <div class="info-item">
+                    <label>Título:</label>
+                    <span id="currentTitle">-</span>
+                  </div>
+                  <div class="info-item">
+                    <label>Última atualização:</label>
+                    <span id="lastUpdate">-</span>
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
         </section>

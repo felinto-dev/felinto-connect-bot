@@ -18,6 +18,12 @@ class PlaygroundApp {
       automation: null,
       footer: null
     };
+    this.currentSession = {
+      id: null,
+      active: false,
+      executionCount: 0,
+      pageInfo: null
+    };
     
     this.init();
   }
@@ -76,6 +82,12 @@ class PlaygroundApp {
       this.ws.onmessage = (event) => {
         try {
           const data = JSON.parse(event.data);
+          
+          // Tratar mensagem de sessão expirada
+          if (data.type === 'session_expired') {
+            this.handleSessionExpired(data.sessionId);
+          }
+          
           this.log(data.message, data.type);
         } catch (error) {
           this.log(`${event.data}`, 'info');
@@ -114,6 +126,25 @@ class PlaygroundApp {
           this.executeSession();
           break;
           
+        case 'createSessionBtn':
+          e.preventDefault();
+          this.createSession();
+          break;
+          
+        case 'executeCodeBtn':
+          e.preventDefault();
+          this.executeCode();
+          break;
+          
+        case 'takeScreenshotBtn':
+          e.preventDefault();
+          this.takeScreenshot();
+          break;
+          
+        case 'closeSessionBtn':
+          e.preventDefault();
+          this.closeSession();
+          break;
 
         case 'importConfig':
           e.preventDefault();
@@ -173,6 +204,15 @@ class PlaygroundApp {
         const template = e.target.dataset.uaTemplate;
         this.applyUserAgentTemplate(template);
       });
+    });
+
+    // Results tabs event listeners
+    document.addEventListener('click', (e) => {
+      if (e.target.closest('.tab-btn')) {
+        const tabBtn = e.target.closest('.tab-btn');
+        const tabName = tabBtn.dataset.tab;
+        this.switchResultsTab(tabName);
+      }
     });
 
     this.setupAutoSave();
@@ -423,7 +463,344 @@ class PlaygroundApp {
     }
   }
 
+  // Create new session
+  async createSession() {
+    const config = this.getConfigFromForm();
+    
+    if (!this.validateConfig(config)) {
+      return;
+    }
 
+    this.log('🆔 Criando nova sessão...', 'info');
+    this.setLoading(true);
+
+    try {
+      const response = await fetch('/api/session/create', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(config)
+      });
+
+      const result = await response.json();
+
+      if (response.ok) {
+        this.currentSession = {
+          id: result.sessionId,
+          active: true,
+          executionCount: 0,
+          pageInfo: result.pageInfo
+        };
+        
+        this.updateSessionStatus();
+        this.log(`✅ Sessão criada: ${result.sessionId}`, 'success');
+        
+        if (result.pageInfo) {
+          this.log(`📍 Página: ${result.pageInfo.title} - ${result.pageInfo.url}`, 'info');
+        }
+      } else {
+        this.log(`❌ Erro ao criar sessão: ${result.error}`, 'error');
+      }
+
+    } catch (error) {
+      this.log(`Erro ao criar sessão: ${error.message}`, 'error');
+    } finally {
+      this.setLoading(false);
+    }
+  }
+
+  // Execute code in current session
+  async executeCode() {
+    if (!this.currentSession.active) {
+      this.log('❌ Nenhuma sessão ativa. Crie uma sessão primeiro.', 'error');
+      return;
+    }
+
+    // Get code from automation editor
+    const code = this.editors.automation ? this.editors.automation.state.doc.toString() : '';
+    
+    // Remove comments and whitespace to check if there's actual code
+    const codeWithoutComments = code
+      .replace(/\/\/.*$/gm, '') // Remove single line comments
+      .replace(/\/\*[\s\S]*?\*\//g, '') // Remove multi-line comments
+      .trim();
+    
+    if (!codeWithoutComments) {
+      this.log('❌ Escreva algum código na seção "Código da Automação" primeiro.', 'error');
+      return;
+    }
+
+    this.log('🚀 Executando código na sessão ativa...', 'info');
+    this.setLoading(true);
+
+    try {
+      const response = await fetch('/api/session/execute', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          sessionId: this.currentSession.id,
+          code: code
+        })
+      });
+
+      const result = await response.json();
+
+      if (response.ok) {
+        this.currentSession.executionCount++;
+        this.currentSession.pageInfo = result.pageInfo;
+        
+        this.updateSessionStatus();
+        this.log(`✅ Código executado com sucesso!`, 'success');
+        
+        // Show results section
+        this.showResults(result);
+        
+      } else {
+        // Verificar se é erro de sessão expirada
+        if (result.sessionExpired) {
+          this.handleSessionExpired(this.currentSession.id);
+        }
+        this.log(`❌ Erro na execução: ${result.error}`, 'error');
+      }
+
+    } catch (error) {
+      this.log(`Erro na execução: ${error.message}`, 'error');
+    } finally {
+      this.setLoading(false);
+    }
+  }
+
+  // Take screenshot of current session
+  async takeScreenshot() {
+    if (!this.currentSession.active) {
+      this.log('❌ Nenhuma sessão ativa. Crie uma sessão primeiro.', 'error');
+      return;
+    }
+
+    this.log('📸 Capturando screenshot...', 'info');
+    this.setLoading(true);
+
+    try {
+      const response = await fetch('/api/session/screenshot', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          sessionId: this.currentSession.id,
+          options: {
+            fullPage: false
+          }
+        })
+      });
+
+      const result = await response.json();
+
+      if (response.ok) {
+        this.log(`✅ Screenshot capturado!`, 'success');
+        this.showScreenshot(result.screenshot);
+      } else {
+        // Verificar se é erro de sessão expirada
+        if (result.sessionExpired) {
+          this.handleSessionExpired(this.currentSession.id);
+        }
+        this.log(`❌ Erro ao capturar screenshot: ${result.error}`, 'error');
+      }
+
+    } catch (error) {
+      this.log(`Erro ao capturar screenshot: ${error.message}`, 'error');
+    } finally {
+      this.setLoading(false);
+    }
+  }
+
+  // Close current session
+  async closeSession() {
+    if (!this.currentSession.active) {
+      this.log('❌ Nenhuma sessão ativa.', 'error');
+      return;
+    }
+
+    this.log('🗑️ Fechando sessão...', 'info');
+    this.setLoading(true);
+
+    try {
+      const response = await fetch(`/api/session/${this.currentSession.id}`, {
+        method: 'DELETE'
+      });
+
+      const result = await response.json();
+
+      if (response.ok) {
+        this.currentSession = {
+          id: null,
+          active: false,
+          executionCount: 0,
+          pageInfo: null
+        };
+        
+        this.updateSessionStatus();
+        this.hideResults();
+        this.log(`✅ Sessão fechada com sucesso!`, 'success');
+      } else {
+        this.log(`❌ Erro ao fechar sessão: ${result.error}`, 'error');
+      }
+
+    } catch (error) {
+      this.log(`Erro ao fechar sessão: ${error.message}`, 'error');
+    } finally {
+      this.setLoading(false);
+    }
+  }
+
+  // Update session status UI
+  updateSessionStatus() {
+    const statusElement = document.getElementById('sessionStatus');
+    const statusDot = statusElement.querySelector('.status-dot');
+    const statusText = statusElement.querySelector('.status-text');
+    const sessionId = statusElement.querySelector('.session-id');
+    const pageUrl = statusElement.querySelector('.page-url');
+    const executionCount = statusElement.querySelector('.execution-count');
+    
+    // Session control buttons
+    const createBtn = document.getElementById('createSessionBtn');
+    const executeBtn = document.getElementById('executeCodeBtn');
+    const screenshotBtn = document.getElementById('takeScreenshotBtn');
+    const closeBtn = document.getElementById('closeSessionBtn');
+
+    if (this.currentSession.active) {
+      statusElement.style.display = 'block';
+      statusDot.classList.remove('inactive');
+      statusText.textContent = 'Sessão Ativa';
+      sessionId.textContent = `(${this.currentSession.id.substring(0, 8)}...)`;
+      
+      if (this.currentSession.pageInfo) {
+        pageUrl.textContent = this.currentSession.pageInfo.url || '-';
+      }
+      
+      executionCount.textContent = `Execuções: ${this.currentSession.executionCount}`;
+      
+      // Enable session buttons
+      createBtn.disabled = true;
+      executeBtn.disabled = false;
+      screenshotBtn.disabled = false;
+      closeBtn.disabled = false;
+      
+    } else {
+      statusElement.style.display = 'none';
+      
+      // Disable session buttons
+      createBtn.disabled = false;
+      executeBtn.disabled = true;
+      screenshotBtn.disabled = true;
+      closeBtn.disabled = true;
+    }
+  }
+
+  // Show results section
+  showResults(result) {
+    const resultsSection = document.getElementById('resultsSection');
+    resultsSection.style.display = 'block';
+    
+    // Update page info
+    this.updatePageInfo(result.pageInfo);
+    
+    // Show data if available
+    if (result.result !== undefined) {
+      this.showExecutionData(result.result);
+    }
+  }
+
+  // Hide results section
+  hideResults() {
+    const resultsSection = document.getElementById('resultsSection');
+    resultsSection.style.display = 'none';
+  }
+
+  // Show screenshot in results
+  showScreenshot(screenshotDataUrl) {
+    const resultsSection = document.getElementById('resultsSection');
+    const screenshotContainer = document.getElementById('screenshotContainer');
+    
+    resultsSection.style.display = 'block';
+    
+    screenshotContainer.innerHTML = `
+      <img src="${screenshotDataUrl}" alt="Screenshot da página" />
+      <p style="margin-top: 10px; font-size: 12px; color: #a0aec0;">
+        Screenshot capturado em ${new Date().toLocaleString()}
+      </p>
+    `;
+    
+    // Switch to screenshot tab
+    this.switchResultsTab('screenshot');
+  }
+
+  // Show execution data
+  showExecutionData(data) {
+    const dataContainer = document.getElementById('dataContainer');
+    
+    let displayData;
+    if (data === undefined || data === null) {
+      displayData = '// Nenhum dado retornado pela execução';
+    } else if (typeof data === 'object') {
+      displayData = JSON.stringify(data, null, 2);
+    } else {
+      displayData = String(data);
+    }
+    
+    dataContainer.innerHTML = `<pre class="code-output"><code>${displayData}</code></pre>`;
+  }
+
+  // Update page info in results
+  updatePageInfo(pageInfo) {
+    if (!pageInfo) return;
+    
+    const currentUrl = document.getElementById('currentUrl');
+    const currentTitle = document.getElementById('currentTitle');
+    const lastUpdate = document.getElementById('lastUpdate');
+    
+    currentUrl.textContent = pageInfo.url || '-';
+    currentTitle.textContent = pageInfo.title || '-';
+    lastUpdate.textContent = pageInfo.timestamp ? new Date(pageInfo.timestamp).toLocaleString() : '-';
+  }
+
+  // Switch results tab
+  switchResultsTab(tabName) {
+    // Update tab buttons
+    document.querySelectorAll('.tab-btn').forEach(btn => {
+      btn.classList.remove('active');
+    });
+    document.querySelector(`[data-tab="${tabName}"]`).classList.add('active');
+    
+    // Update tab content
+    document.querySelectorAll('.tab-content').forEach(content => {
+      content.classList.remove('active');
+    });
+    document.getElementById(`${tabName}Tab`).classList.add('active');
+  }
+
+  // Handle session expired
+  handleSessionExpired(sessionId) {
+    // Verificar se é a sessão atual
+    if (this.currentSession.id === sessionId) {
+      // Resetar estado da sessão
+      this.currentSession = {
+        id: null,
+        active: false,
+        executionCount: 0,
+        pageInfo: null
+      };
+      
+      // Atualizar interface
+      this.updateSessionStatus();
+      this.hideResults();
+      
+      this.log('🔄 Sessão resetada automaticamente devido à expiração.', 'warning');
+    }
+  }
 
   // Generate Code Automatically (local generation)
   generateCodeAutomatically() {
@@ -450,13 +827,20 @@ class PlaygroundApp {
 // Criar página
 const page = await newPage(${configJson});`,
 
-      automation: `// Exemplos de automações:
+      automation: `// Exemplo prático - navegação e captura de informações
+await page.goto('https://example.com');
+await page.waitForLoadState('networkidle');
+
+// Capturar título da página
+const title = await page.title();
+console.log('Título da página:', title);
+
+// Outros exemplos que você pode usar:
 // await page.click('#botao');
 // await page.type('#input', 'texto');
 // await page.waitForSelector('.elemento');
-// await page.screenshot({ path: 'screenshot.png' });
-
-// Suas automações personalizadas aqui...`,
+// const text = await page.textContent('h1');
+// console.log('Texto do H1:', text);`,
 
       footer: `// Capturar informações finais
 const finalUrl = await page.url();
