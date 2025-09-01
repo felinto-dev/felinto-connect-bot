@@ -420,11 +420,7 @@ class PlaygroundApp {
       header: `import { newPage } from '@felinto-dev/felinto-connect-bot';
 
 // Criar página
-const page = await newPage(${configJson});
-
-console.log('✅ Sessão iniciada!');
-console.log('🌐 URL atual:', await page.url());
-console.log('📄 Título:', await page.title());`,
+const page = await newPage(${configJson});`,
 
       automation: `// Exemplos de automações:
 // await page.click('#botao');
@@ -520,7 +516,7 @@ console.log('🔚 Sessão finalizada!');`
           },
           '.cm-content': {
             padding: '16px 16px 16px 4px',
-            minHeight: '200px'
+            minHeight: '120px'
           }
         })
       ]
