@@ -1,0 +1,9 @@
+---
+description:
+globs:
+alwaysApply: true
+---
+
+- Sempre use o pnpm para instalar/gerenciar pacotes. Nunca o NPM, Yarn ou outro instalador de pacotes.
+- Nunca execute o comando pnpm dev. Somente o desenvolvedor pode executar este comando. Se for necessário executar, sempre sugira ao desenvolvedor e aguarde a resposta.
+- Evite colocar console.log, ou logs em geral no projeto. Apenas para fins de debug e após identificado o problema, corrigido e testado pelo desenvolvedor e validado a correção, apague os logs logo em seguida.

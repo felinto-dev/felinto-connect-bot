@@ -125,6 +125,9 @@ class PlaygroundApp {
 
   // Event Listeners
   setupEventListeners() {
+    // Setup dropdown functionality
+    this.setupDropdownListeners();
+    
     // Usar event delegation para garantir que funcionará mesmo se elementos ainda não existirem
     document.body.addEventListener('click', (e) => {
       const target = e.target.closest('button');
@@ -156,6 +159,11 @@ class PlaygroundApp {
         case 'importConfig':
           e.preventDefault();
           this.importConfig();
+          break;
+          
+        case 'importPuppeteerCookies':
+          e.preventDefault();
+          this.importPuppeteerCookies();
           break;
           
         case 'exportConfig':
@@ -1519,6 +1527,34 @@ return {
 
 
 
+  // Dropdown functionality
+  setupDropdownListeners() {
+    const dropdownBtn = document.getElementById('importDropdownBtn');
+    const dropdownMenu = document.getElementById('importDropdownMenu');
+    const dropdown = dropdownBtn?.closest('.dropdown');
+    
+    if (!dropdownBtn || !dropdownMenu || !dropdown) return;
+    
+    // Toggle dropdown on button click
+    dropdownBtn.addEventListener('click', (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      dropdown.classList.toggle('open');
+    });
+    
+    // Close dropdown when clicking outside
+    document.addEventListener('click', (e) => {
+      if (!dropdown.contains(e.target)) {
+        dropdown.classList.remove('open');
+      }
+    });
+    
+    // Close dropdown when clicking on menu items
+    dropdownMenu.addEventListener('click', () => {
+      dropdown.classList.remove('open');
+    });
+  }
+
   // Import/Export Configuration
   async exportConfig() {
     const exportBtn = document.getElementById('exportConfig');
@@ -1623,6 +1659,112 @@ return {
       
     } catch (error) {
       this.log(`❌ Erro ao importar configurações: ${error.message}`, 'error');
+    }
+  }
+
+  async importPuppeteerCookies() {
+    const importBtn = document.getElementById('importPuppeteerCookies');
+    const originalHTML = importBtn.innerHTML;
+    
+    try {
+      let cookiesText = '';
+      
+      if (navigator.clipboard) {
+        cookiesText = await navigator.clipboard.readText();
+      } else {
+        // Fallback para browsers mais antigos - solicitar que o usuário cole
+        cookiesText = prompt('Cole aqui o array de cookies do Puppeteer:');
+      }
+      
+      if (!cookiesText || !cookiesText.trim()) {
+        this.log('⚠️ Clipboard vazio ou operação cancelada', 'warning');
+        return;
+      }
+      
+      // Validar e parsear JSON dos cookies
+      let cookies;
+      try {
+        cookies = JSON.parse(cookiesText.trim());
+      } catch (parseError) {
+        this.log('❌ JSON inválido no clipboard. Verifique o formato dos cookies.', 'error');
+        return;
+      }
+      
+      // Validar se é um array de cookies válido
+      if (!Array.isArray(cookies)) {
+        this.log('❌ O formato deve ser um array de cookies do Puppeteer.', 'error');
+        return;
+      }
+      
+      // Validar estrutura básica dos cookies
+      const isValidCookieArray = cookies.every(cookie => 
+        typeof cookie === 'object' && 
+        cookie.name && 
+        cookie.value !== undefined
+      );
+      
+      if (!isValidCookieArray) {
+        this.log('❌ Formato de cookies inválido. Cada cookie deve ter pelo menos "name" e "value".', 'error');
+        return;
+      }
+      
+      // Converter cookies do Puppeteer para o formato do playground
+      const sessionData = {
+        cookies: cookies
+      };
+      
+      // Aplicar apenas os cookies ao editor de dados de sessão
+      if (this.editors.sessionData) {
+        const currentSessionData = this.editors.sessionData.state.doc.toString();
+        let currentData = {};
+        
+        try {
+          if (currentSessionData.trim()) {
+            currentData = JSON.parse(currentSessionData);
+          }
+        } catch (e) {
+          // Se não conseguir parsear, começar com objeto vazio
+        }
+        
+        // Mesclar cookies com dados existentes
+        const mergedData = {
+          ...currentData,
+          cookies: sessionData.cookies
+        };
+        
+        // Atualizar editor
+        this.editors.sessionData.dispatch({
+          changes: {
+            from: 0,
+            to: this.editors.sessionData.state.doc.length,
+            insert: JSON.stringify(mergedData, null, 2)
+          }
+        });
+      }
+      
+      this.log(`✅ ${cookies.length} cookies importados com sucesso!`, 'success');
+      
+      // Alterar ícone e texto do botão para indicar sucesso
+      importBtn.innerHTML = '<i data-lucide="check"></i> Sucesso!';
+      
+      // Recriar ícones do Lucide após mudança do HTML
+      if (typeof lucide !== 'undefined') {
+        lucide.createIcons();
+      }
+      
+      // Restaurar texto original após 3 segundos
+      setTimeout(() => {
+        importBtn.innerHTML = originalHTML;
+        if (typeof lucide !== 'undefined') {
+          lucide.createIcons();
+        }
+      }, 3000);
+      
+      // Salvar configurações
+      this.saveConfig();
+      
+    } catch (error) {
+      this.log(`❌ Erro ao importar cookies: ${error.message}`, 'error');
     }
   }
 
