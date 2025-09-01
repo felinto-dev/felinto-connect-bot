@@ -65,7 +65,6 @@ class PlaygroundApp {
       if (typeof lucide !== 'undefined') {
         try {
           lucide.createIcons();
-          console.log('Ícones Lucide inicializados com sucesso');
         } catch (error) {
           console.error('Erro ao inicializar ícones Lucide:', error);
         }
@@ -987,40 +986,27 @@ class PlaygroundApp {
 
   // Generate Code Automatically (local generation)
   generateCodeAutomatically() {
-    console.log('⚡ generateCodeAutomatically iniciado');
-    
     // Não gerar código automaticamente se houver configuração salva para os editores
     const savedConfig = this.loadConfig();
-    console.log('📖 Config salvo verificado:', savedConfig);
-    console.log('🔍 Tem automationCode?', savedConfig.automationCode !== undefined);
-    console.log('🔍 Tem footerCode?', savedConfig.footerCode !== undefined);
     
     if (savedConfig.automationCode !== undefined || savedConfig.footerCode !== undefined) {
-      console.log('📝 Código personalizado encontrado, pulando geração automática para automação/footer.');
+      // Código personalizado encontrado, pular geração automática para automação/footer
     }
 
     const config = this.getConfigFromForm();
-    console.log('📋 Config do formulário:', config);
     
     // Gerar código localmente sem requisição HTTP
-    console.log('🏗️ Gerando seções de código...');
     const codeSections = this.generateCodeSections(config);
-    console.log('📝 Seções geradas:', Object.keys(codeSections));
 
     // Se houver código salvo (incluindo vazio), não sobrescrever
     if (savedConfig.automationCode !== undefined) {
-      console.log('🚫 Removendo seção automation (código salvo existe)');
       delete codeSections.automation;
     }
     if (savedConfig.footerCode !== undefined) {
-      console.log('🚫 Removendo seção footer (código salvo existe)');
       delete codeSections.footer;
     }
 
-    console.log('📤 Seções finais para exibir:', Object.keys(codeSections));
-    console.log('🎨 Chamando displayGeneratedCodeSections...');
     this.displayGeneratedCodeSections(codeSections);
-    console.log('✅ generateCodeAutomatically concluído');
   }
 
   // Generate Code Sections (local generation)
@@ -1443,22 +1429,12 @@ return {
 
   // Display Generated Code Sections
   displayGeneratedCodeSections(codeSections) {
-    console.log('🎨 displayGeneratedCodeSections iniciado');
-    console.log('📥 Seções recebidas:', codeSections);
-    console.log('🎛️ Status dos editores:', {
-      header: !!this.editors.header,
-      automation: !!this.editors.automation,
-      footer: !!this.editors.footer
-    });
-    
     if (!this.editors.header || !this.editors.automation || !this.editors.footer) {
-      console.log('❌ Editores não inicializados, saindo...');
       return;
     }
     
     // Atualizar conteúdo dos editores CodeMirror se a seção existir no objeto
     if (codeSections.header) {
-      console.log('📝 Atualizando editor header...');
       const headerTransaction = this.editors.header.state.update({
         changes: {
           from: 0,
@@ -1467,13 +1443,9 @@ return {
         }
       });
       this.editors.header.dispatch(headerTransaction);
-      console.log('✅ Editor header atualizado');
-    } else {
-      console.log('⚠️ Seção header não encontrada');
     }
 
     if (codeSections.automation) {
-      console.log('📝 Atualizando editor automation...');
       const automationTransaction = this.editors.automation.state.update({
         changes: {
           from: 0,
@@ -1482,13 +1454,9 @@ return {
         }
       });
       this.editors.automation.dispatch(automationTransaction);
-      console.log('✅ Editor automation atualizado');
-    } else {
-      console.log('⚠️ Seção automation não encontrada');
     }
 
     if (codeSections.footer) {
-      console.log('📝 Atualizando editor footer...');
       const footerTransaction = this.editors.footer.state.update({
         changes: {
           from: 0,
@@ -1497,12 +1465,7 @@ return {
         }
       });
       this.editors.footer.dispatch(footerTransaction);
-      console.log('✅ Editor footer atualizado');
-    } else {
-      console.log('⚠️ Seção footer não encontrada');
     }
-    
-    console.log('✅ displayGeneratedCodeSections concluído');
   }
 
   // Copy Generated Code
@@ -1875,7 +1838,6 @@ return {
           // Verificar se é um objeto vazio {} - tratar como "limpar tudo"
           const keys = Object.keys(parsedSessionData);
           if (keys.length === 0) {
-            console.log('🧹 Frontend detectou {} vazio - interpretando como limpar tudo');
             config.sessionData = {
               cookies: [],
               localStorage: {},
@@ -1903,13 +1865,6 @@ return {
                 parsedSessionData.localStorage !== undefined || 
                 parsedSessionData.sessionStorage !== undefined) {
               config.sessionData = sessionDataObj;
-              
-              // Log de debug para confirmar processamento
-              console.log('✅ Session Data processado:', {
-                cookies: sessionDataObj.cookies?.length || 0,
-                localStorage: Object.keys(sessionDataObj.localStorage || {}).length,
-                sessionStorage: Object.keys(sessionDataObj.sessionStorage || {}).length
-              });
             }
           }
       } catch (error) {
@@ -2018,33 +1973,23 @@ return {
   }
 
   applyTemplate(templateName) {
-    console.log('🎯 applyTemplate iniciado:', templateName);
     const template = this.templates[templateName];
     if (!template) {
-      console.log('❌ Template não encontrado:', templateName);
       return;
     }
 
-    console.log('📋 Template encontrado:', template);
     this.log(`Aplicando template: ${template.name}`, 'info');
     
     // Limpar código personalizado salvo para forçar regeneração
-    console.log('🧹 Limpando código personalizado do localStorage...');
     const currentConfig = this.loadConfig();
-    console.log('📖 Config atual antes da limpeza:', currentConfig);
     delete currentConfig.automationCode;
     delete currentConfig.footerCode;
     localStorage.setItem('playground-config', JSON.stringify(currentConfig));
     
     // Atualizar cache da instância também
     this.config = currentConfig;
-    console.log('✅ Código personalizado limpo do localStorage e cache da instância');
     
-    console.log('🔧 Chamando setConfigToForm com:', template.config);
     this.setConfigToForm(template.config, true); // true = aplicando template
-    
-    // Não precisa chamar generateCodeAutomatically aqui pois setConfigToForm já chama
-    console.log('✅ applyTemplate concluído');
   }
 
   applySessionTemplate(templateName) {
@@ -2168,15 +2113,6 @@ return {
   }
 
   setConfigToForm(config, isApplyingTemplate = false) {
-    console.log('🔧 setConfigToForm iniciado');
-    console.log('📥 Config recebido:', config);
-    console.log('🎯 Aplicando template?', isApplyingTemplate);
-    console.log('🎛️ Editores disponíveis:', {
-      header: !!this.editors.header,
-      automation: !!this.editors.automation,
-      footer: !!this.editors.footer,
-      sessionData: !!this.editors.sessionData
-    });
     
     const slowMoEl = document.getElementById('slowMo');
     if (slowMoEl && config.slowMo !== undefined) {
@@ -2199,42 +2135,26 @@ return {
     // Construir o sessionData combinando cookies e sessionData
     const sessionDataObj = {};
     
-    console.log('🔍 Config recebido - cookies:', config.cookies);
-    console.log('🔍 Config recebido - sessionData:', config.sessionData);
-    
     // Incluir cookies - verificar tanto config.cookies quanto config.sessionData.cookies
     if (config.cookies !== undefined) {
       sessionDataObj.cookies = config.cookies;
-      console.log('✅ Cookies (direto) adicionados ao sessionDataObj');
     } else if (config.sessionData?.cookies !== undefined) {
       sessionDataObj.cookies = config.sessionData.cookies;
-      console.log('✅ Cookies (sessionData) adicionados ao sessionDataObj');
     }
     
     if (config.sessionData?.localStorage !== undefined) {
       sessionDataObj.localStorage = config.sessionData.localStorage;
-      console.log('✅ localStorage adicionado ao sessionDataObj');
     }
     
     if (config.sessionData?.sessionStorage !== undefined) {
       sessionDataObj.sessionStorage = config.sessionData.sessionStorage;
-      console.log('✅ sessionStorage adicionado ao sessionDataObj');
     }
-    
-    // Atualizar sessionData usando o editor CodeMirror se disponível
-    console.log('🔍 Verificando editor sessionData:', !!this.editors.sessionData);
-    console.log('🔍 SessionData para carregar:', sessionDataObj);
     
     // Verificar se há dados para carregar (incluindo arrays/objetos vazios)
     const hasSessionData = Object.keys(sessionDataObj).length > 0;
-    console.log('🔍 Tem dados para carregar:', hasSessionData);
-    console.log('🔍 Chaves do sessionDataObj:', Object.keys(sessionDataObj));
-    console.log('🔍 SessionDataObj completo:', sessionDataObj);
     
     if (this.editors.sessionData && hasSessionData) {
       const jsonString = JSON.stringify(sessionDataObj, null, 2);
-      
-      console.log('🔄 Carregando sessionData no editor CodeMirror:', jsonString);
       
       const transaction = this.editors.sessionData.state.update({
         changes: {
@@ -2246,16 +2166,10 @@ return {
       this.editors.sessionData.dispatch(transaction);
     } else {
       // Fallback para textarea se editor não estiver disponível
-      console.log('⚠️ Editor não disponível, usando fallback para textarea');
       const sessionDataEl = document.getElementById('sessionData');
       if (sessionDataEl && hasSessionData) {
         const jsonString = JSON.stringify(sessionDataObj, null, 2);
         sessionDataEl.value = jsonString;
-        console.log('🔄 SessionData carregado no textarea:', jsonString);
-      } else if (!sessionDataEl) {
-        console.log('❌ Textarea sessionData não encontrado');
-      } else {
-        console.log('ℹ️ Nenhum sessionData para carregar no textarea');
       }
     }
 
@@ -2296,12 +2210,9 @@ return {
     // Só salvar se não estiver aplicando template (para evitar re-salvar código dos editores)
     if (!isApplyingTemplate) {
       this.saveConfig();
-    } else {
-      console.log('⏸️ Salvamento ignorado durante aplicação de template');
     }
     
     // Gerar código automaticamente após carregar configuração
-    console.log('⚡ Chamando generateCodeAutomatically de setConfigToForm...');
     this.generateCodeAutomatically();
   }
 
@@ -2487,12 +2398,10 @@ return {
   saveConfig() {
     // Evitar salvamento durante carregamento inicial
     if (this.isLoadingConfig) {
-      console.log('⏸️ Salvamento ignorado durante carregamento');
       return;
     }
     
     const config = this.getConfigFromForm();
-    console.log('💾 Salvando configuração:', config);
     localStorage.setItem('playground-config', JSON.stringify(config));
   }
 
@@ -2500,7 +2409,6 @@ return {
     try {
       const saved = localStorage.getItem('playground-config');
       const parsed = saved ? JSON.parse(saved) : {};
-      console.log('📖 Dados carregados do localStorage:', parsed);
       return parsed;
     } catch (error) {
       console.error('❌ Erro ao carregar config do localStorage:', error);
@@ -2509,8 +2417,6 @@ return {
   }
 
   loadSavedConfig() {
-    console.log('📂 Carregando configuração salva:', this.config);
-    
     // Ativar flag para evitar loops de salvamento
     this.isLoadingConfig = true;
     
@@ -2523,7 +2429,6 @@ return {
     // Desativar flag após um pequeno delay
     setTimeout(() => {
       this.isLoadingConfig = false;
-      console.log('✅ Carregamento de configuração concluído');
     }, 500);
     
     // Nota: Se não há config salva, os campos HTML já têm valores padrão
