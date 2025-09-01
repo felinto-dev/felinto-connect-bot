@@ -987,26 +987,40 @@ class PlaygroundApp {
 
   // Generate Code Automatically (local generation)
   generateCodeAutomatically() {
+    console.log('⚡ generateCodeAutomatically iniciado');
+    
     // Não gerar código automaticamente se houver configuração salva para os editores
     const savedConfig = this.loadConfig();
+    console.log('📖 Config salvo verificado:', savedConfig);
+    console.log('🔍 Tem automationCode?', savedConfig.automationCode !== undefined);
+    console.log('🔍 Tem footerCode?', savedConfig.footerCode !== undefined);
+    
     if (savedConfig.automationCode !== undefined || savedConfig.footerCode !== undefined) {
       console.log('📝 Código personalizado encontrado, pulando geração automática para automação/footer.');
     }
 
     const config = this.getConfigFromForm();
+    console.log('📋 Config do formulário:', config);
     
     // Gerar código localmente sem requisição HTTP
+    console.log('🏗️ Gerando seções de código...');
     const codeSections = this.generateCodeSections(config);
+    console.log('📝 Seções geradas:', Object.keys(codeSections));
 
     // Se houver código salvo (incluindo vazio), não sobrescrever
     if (savedConfig.automationCode !== undefined) {
+      console.log('🚫 Removendo seção automation (código salvo existe)');
       delete codeSections.automation;
     }
     if (savedConfig.footerCode !== undefined) {
+      console.log('🚫 Removendo seção footer (código salvo existe)');
       delete codeSections.footer;
     }
 
+    console.log('📤 Seções finais para exibir:', Object.keys(codeSections));
+    console.log('🎨 Chamando displayGeneratedCodeSections...');
     this.displayGeneratedCodeSections(codeSections);
+    console.log('✅ generateCodeAutomatically concluído');
   }
 
   // Generate Code Sections (local generation)
@@ -1429,10 +1443,22 @@ return {
 
   // Display Generated Code Sections
   displayGeneratedCodeSections(codeSections) {
-    if (!this.editors.header || !this.editors.automation || !this.editors.footer) return;
+    console.log('🎨 displayGeneratedCodeSections iniciado');
+    console.log('📥 Seções recebidas:', codeSections);
+    console.log('🎛️ Status dos editores:', {
+      header: !!this.editors.header,
+      automation: !!this.editors.automation,
+      footer: !!this.editors.footer
+    });
+    
+    if (!this.editors.header || !this.editors.automation || !this.editors.footer) {
+      console.log('❌ Editores não inicializados, saindo...');
+      return;
+    }
     
     // Atualizar conteúdo dos editores CodeMirror se a seção existir no objeto
     if (codeSections.header) {
+      console.log('📝 Atualizando editor header...');
       const headerTransaction = this.editors.header.state.update({
         changes: {
           from: 0,
@@ -1441,9 +1467,13 @@ return {
         }
       });
       this.editors.header.dispatch(headerTransaction);
+      console.log('✅ Editor header atualizado');
+    } else {
+      console.log('⚠️ Seção header não encontrada');
     }
 
     if (codeSections.automation) {
+      console.log('📝 Atualizando editor automation...');
       const automationTransaction = this.editors.automation.state.update({
         changes: {
           from: 0,
@@ -1452,9 +1482,13 @@ return {
         }
       });
       this.editors.automation.dispatch(automationTransaction);
+      console.log('✅ Editor automation atualizado');
+    } else {
+      console.log('⚠️ Seção automation não encontrada');
     }
 
     if (codeSections.footer) {
+      console.log('📝 Atualizando editor footer...');
       const footerTransaction = this.editors.footer.state.update({
         changes: {
           from: 0,
@@ -1463,7 +1497,12 @@ return {
         }
       });
       this.editors.footer.dispatch(footerTransaction);
+      console.log('✅ Editor footer atualizado');
+    } else {
+      console.log('⚠️ Seção footer não encontrada');
     }
+    
+    console.log('✅ displayGeneratedCodeSections concluído');
   }
 
   // Copy Generated Code
@@ -1979,14 +2018,33 @@ return {
   }
 
   applyTemplate(templateName) {
+    console.log('🎯 applyTemplate iniciado:', templateName);
     const template = this.templates[templateName];
-    if (!template) return;
+    if (!template) {
+      console.log('❌ Template não encontrado:', templateName);
+      return;
+    }
 
+    console.log('📋 Template encontrado:', template);
     this.log(`Aplicando template: ${template.name}`, 'info');
-    this.setConfigToForm(template.config);
     
-    // Gerar código automaticamente após aplicar template
-    this.generateCodeAutomatically();
+    // Limpar código personalizado salvo para forçar regeneração
+    console.log('🧹 Limpando código personalizado do localStorage...');
+    const currentConfig = this.loadConfig();
+    console.log('📖 Config atual antes da limpeza:', currentConfig);
+    delete currentConfig.automationCode;
+    delete currentConfig.footerCode;
+    localStorage.setItem('playground-config', JSON.stringify(currentConfig));
+    
+    // Atualizar cache da instância também
+    this.config = currentConfig;
+    console.log('✅ Código personalizado limpo do localStorage e cache da instância');
+    
+    console.log('🔧 Chamando setConfigToForm com:', template.config);
+    this.setConfigToForm(template.config, true); // true = aplicando template
+    
+    // Não precisa chamar generateCodeAutomatically aqui pois setConfigToForm já chama
+    console.log('✅ applyTemplate concluído');
   }
 
   applySessionTemplate(templateName) {
@@ -2109,8 +2167,16 @@ return {
     this.generateCodeAutomatically();
   }
 
-  setConfigToForm(config) {
-    console.log('🔧 setConfigToForm chamado com:', config);
+  setConfigToForm(config, isApplyingTemplate = false) {
+    console.log('🔧 setConfigToForm iniciado');
+    console.log('📥 Config recebido:', config);
+    console.log('🎯 Aplicando template?', isApplyingTemplate);
+    console.log('🎛️ Editores disponíveis:', {
+      header: !!this.editors.header,
+      automation: !!this.editors.automation,
+      footer: !!this.editors.footer,
+      sessionData: !!this.editors.sessionData
+    });
     
     const slowMoEl = document.getElementById('slowMo');
     if (slowMoEl && config.slowMo !== undefined) {
@@ -2227,9 +2293,15 @@ return {
       waitUntilEl.value = config.navigationOptions.waitUntil;
     }
 
-    this.saveConfig();
+    // Só salvar se não estiver aplicando template (para evitar re-salvar código dos editores)
+    if (!isApplyingTemplate) {
+      this.saveConfig();
+    } else {
+      console.log('⏸️ Salvamento ignorado durante aplicação de template');
+    }
     
     // Gerar código automaticamente após carregar configuração
+    console.log('⚡ Chamando generateCodeAutomatically de setConfigToForm...');
     this.generateCodeAutomatically();
   }
 
