@@ -168,6 +168,11 @@ class PlaygroundApp {
           this.copyGeneratedCode();
           break;
           
+        case 'validateWSEndpoint':
+          e.preventDefault();
+          this.validateWebSocketEndpoint();
+          break;
+          
 
           
         case 'toggleAdvancedConfig':
@@ -283,6 +288,69 @@ class PlaygroundApp {
 
 
 
+
+  async validateWebSocketEndpoint() {
+    const endpointInput = document.getElementById('browserWSEndpoint');
+    const validateButton = document.getElementById('validateWSEndpoint');
+    
+    if (!endpointInput || !validateButton) return;
+    
+    const endpoint = endpointInput.value.trim();
+    
+    if (!endpoint) {
+      this.log('Por favor, insira uma URL WebSocket para validar', 'error');
+      return;
+    }
+    
+    // Validar formato básico da URL
+    if (!endpoint.startsWith('ws://') && !endpoint.startsWith('wss://')) {
+      this.log('URL deve começar com ws:// ou wss://', 'error');
+      return;
+    }
+    
+    // Feedback visual no botão
+    const originalContent = validateButton.innerHTML;
+    validateButton.disabled = true;
+    validateButton.classList.add('loading');
+    validateButton.innerHTML = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="animation: spin 1s linear infinite;"><path d="M21 12a9 9 0 11-6.219-8.56"></path></svg><span>Validando...</span>';
+    
+    this.log(`Validando conexão com ${endpoint}...`, 'info');
+    
+    try {
+      // Extrair host e porta da URL WebSocket
+      const wsUrl = new URL(endpoint);
+      const httpUrl = `http://${wsUrl.host}/json/version`;
+      
+      // Tentar conectar ao endpoint HTTP do Chrome DevTools
+      const response = await fetch(httpUrl, {
+        signal: AbortSignal.timeout(5000)
+      });
+      
+      if (response.ok) {
+        const data = await response.json();
+        this.log(`✅ Conexão válida! Chrome ${data.Browser || 'versão desconhecida'}`, 'success');
+        this.log(`WebSocket URL: ${data.webSocketDebuggerUrl || 'N/A'}`, 'info');
+      } else {
+        this.log(`❌ Endpoint não respondeu (HTTP ${response.status})`, 'error');
+      }
+      
+    } catch (error) {
+      if (error.name === 'AbortError') {
+        this.log('❌ Timeout na conexão (5s)', 'error');
+      } else if (error.message.includes('fetch')) {
+        this.log('❌ Não foi possível conectar ao endpoint', 'error');
+        this.log('Verifique se o Chrome está rodando com --remote-debugging-port', 'info');
+      } else {
+        this.log(`❌ Erro na validação: ${error.message}`, 'error');
+      }
+    } finally {
+      // Restaurar botão
+      validateButton.disabled = false;
+      validateButton.classList.remove('loading');
+      validateButton.innerHTML = originalContent;
+      lucide.createIcons();
+    }
+  }
 
   // Utilities
   log(message, type = 'info') {

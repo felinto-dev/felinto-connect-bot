@@ -46,7 +46,16 @@
                 <i data-lucide="link" class="field-icon"></i>
                 Browser WebSocket URL
               </label>
-              <input type="url" id="browserWSEndpoint" value="ws://localhost:9222">
+              <div class="input-with-inline-button">
+                <input type="url" id="browserWSEndpoint" value="ws://localhost:9222">
+                <button type="button" id="validateWSEndpoint" class="inline-badge-button" title="Validar conexão com o endpoint WebSocket">
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M9 12l2 2 4-4"></path>
+                    <circle cx="12" cy="12" r="10"></circle>
+                  </svg>
+                  <span>Validar conexão</span>
+                </button>
+              </div>
               <small>URL do navegador WebSocket</small>
             </div>
 
