@@ -42,6 +42,15 @@
           
           <div class="config-group">
             <div class="field">
+              <label for="browserWSEndpoint">
+                <i data-lucide="link" class="field-icon"></i>
+                Browser WebSocket URL
+              </label>
+              <input type="url" id="browserWSEndpoint" value="ws://localhost:9222">
+              <small>URL do navegador WebSocket</small>
+            </div>
+
+            <div class="field">
               <label for="initialUrl">
                 <i data-lucide="globe" class="field-icon"></i>
                 URL Inicial
@@ -201,14 +210,8 @@
         <section class="execution-section">
           <div class="section-header">
             <h2><i data-lucide="play" class="section-icon"></i> Execução</h2>
-            <div class="connection-status">
-              <i data-lucide="wifi" class="status-icon connected"></i>
-              <span class="status-text">Chrome Conectado</span>
-              <button id="checkChrome" class="btn btn-secondary btn-small" style="margin-left: 10px;" title="Verificar se o Chrome está conectado e disponível para automação">
-                <i data-lucide="refresh-cw"></i>
-                Testar Conexão
-              </button>
-              <button id="copyCodeBtn" class="btn btn-secondary btn-small" style="margin-left: 8px;" title="Copiar código completo para clipboard">
+            <div class="header-actions">
+              <button id="copyCodeBtn" class="btn btn-secondary btn-small" title="Copiar código completo para clipboard">
                 <i data-lucide="copy"></i>
                 Copiar Código
               </button>

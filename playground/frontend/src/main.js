@@ -116,10 +116,7 @@ class PlaygroundApp {
       if (!target) return;
       
       switch (target.id) {
-        case 'checkChrome':
-          e.preventDefault();
-          this.checkChromeConnection();
-          break;
+
           
         case 'executeBtn':
           e.preventDefault();
@@ -255,11 +252,10 @@ class PlaygroundApp {
       const result = await response.json();
       
       if (result.available) {
-        this.updateStatus('Chrome conectado', 'connected');
         const executeBtn = document.getElementById('executeBtn');
         if (executeBtn) executeBtn.disabled = false;
+        this.log('Chrome conectado e disponível', 'success');
       } else {
-        this.updateStatus('Chrome não encontrado', 'warning');
         const executeBtn = document.getElementById('executeBtn');
         if (executeBtn) executeBtn.disabled = true;
         this.log(`${result.error}`, 'warning');
@@ -280,79 +276,13 @@ class PlaygroundApp {
         }
       }
     } catch (error) {
-      this.updateStatus('Erro na verificação', 'error');
       this.log(`Erro ao verificar Chrome: ${error.message}`, 'error');
     }
   }
 
-  async checkChromeConnection() {
-    const checkButton = document.getElementById('checkChrome');
-    const originalIcon = checkButton?.querySelector('i');
-    const originalText = checkButton?.textContent?.trim();
-    
-    // Feedback visual no botão
-    if (checkButton) {
-      checkButton.disabled = true;
-      checkButton.classList.add('loading');
-      if (originalIcon) {
-        originalIcon.setAttribute('data-lucide', 'loader');
-        // Recriar ícone para aplicar a mudança
-        lucide.createIcons();
-      }
-      checkButton.innerHTML = '<i data-lucide="loader"></i> Verificando...';
-      lucide.createIcons();
-    }
-    
-    this.log('Verificando conexão com Chrome...', 'info');
-    
-    try {
-      await this.checkChromeStatus();
-    } finally {
-      // Restaurar botão ao estado original
-      if (checkButton) {
-        checkButton.disabled = false;
-        checkButton.classList.remove('loading');
-        checkButton.innerHTML = '<i data-lucide="refresh-cw"></i> Testar Conexão';
-        lucide.createIcons();
-      }
-    }
-  }
 
-  updateStatus(text, status = 'checking') {
-    const statusElement = document.querySelector('.connection-status');
-    if (statusElement) {
-      const iconElement = statusElement.querySelector('.status-icon');
-      const textElement = statusElement.querySelector('.status-text');
-      
-      if (textElement) textElement.textContent = text;
-      
-      if (iconElement) {
-        // Usar setAttribute para compatibilidade com SVG
-        iconElement.setAttribute('class', 'status-icon');
-        
-        // Mudar ícone baseado no status
-        if (status === 'connected') {
-          iconElement.setAttribute('class', 'status-icon connected');
-          iconElement.setAttribute('data-lucide', 'wifi');
-        } else if (status === 'warning') {
-          iconElement.setAttribute('class', 'status-icon warning');
-          iconElement.setAttribute('data-lucide', 'wifi-off');
-        } else {
-          iconElement.setAttribute('class', 'status-icon');
-          iconElement.setAttribute('data-lucide', 'loader');
-        }
-        
-        // Re-inicializar ícones após mudança
-        try {
-          if (typeof lucide !== 'undefined') {
-            lucide.createIcons();
-          }
-        } catch (error) {
-          console.warn('Erro ao re-inicializar ícones:', error);
-        }
-      }
-    }
-  }
+
+
 
   // Utilities
   log(message, type = 'info') {
@@ -810,10 +740,10 @@ class PlaygroundApp {
 
   // Generate Code Sections (local generation)
   generateCodeSections(config) {
-    // Add browserWSEndpoint directly to config for cleaner code
+    // Use user-defined browserWSEndpoint or fallback to default
     const configWithEndpoint = {
       ...config,
-      browserWSEndpoint: 'ws://host.docker.internal:9222' // Chrome no host
+      browserWSEndpoint: config.browserWSEndpoint || 'ws://host.docker.internal:9222' // Use user-defined or default
     };
     
     const configJson = JSON.stringify(configWithEndpoint, null, 2);
@@ -1163,6 +1093,12 @@ console.log('🔚 Sessão finalizada!');`
       if (userAgent) config.userAgent = userAgent;
     }
 
+    const browserWSEndpointEl = document.getElementById('browserWSEndpoint');
+    if (browserWSEndpointEl) {
+      const browserWSEndpoint = browserWSEndpointEl.value.trim();
+      if (browserWSEndpoint) config.browserWSEndpoint = browserWSEndpoint;
+    }
+
     const initialUrlEl = document.getElementById('initialUrl');
     if (initialUrlEl) {
       const initialUrl = initialUrlEl.value.trim();
@@ -1434,6 +1370,9 @@ console.log('🔚 Sessão finalizada!');`
     
     const userAgentEl = document.getElementById('userAgent');
     if (userAgentEl && config.userAgent) userAgentEl.value = config.userAgent;
+    
+    const browserWSEndpointEl = document.getElementById('browserWSEndpoint');
+    if (browserWSEndpointEl && config.browserWSEndpoint) browserWSEndpointEl.value = config.browserWSEndpoint;
     
     const initialUrlEl = document.getElementById('initialUrl');
     if (initialUrlEl && config.initialUrl) initialUrlEl.value = config.initialUrl;
