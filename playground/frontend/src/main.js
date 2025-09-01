@@ -8,6 +8,7 @@ import { defaultKeymap, history, historyKeymap } from '@codemirror/commands'
 import { searchKeymap } from '@codemirror/search'
 import { autocompletion, completionKeymap, closeBrackets, closeBracketsKeymap } from '@codemirror/autocomplete'
 import { foldGutter, indentOnInput, indentUnit, bracketMatching } from '@codemirror/language'
+import { linter, lintGutter } from '@codemirror/lint'
 
 class PlaygroundApp {
   constructor() {
@@ -992,6 +993,10 @@ return {
       autocompletion(),
       rectangularSelection(),
       
+      // Linting para JSON
+      lintGutter(),
+      this.createJsonLinter(),
+      
       // Keymaps
       keymap.of([
         ...closeBracketsKeymap,
@@ -999,6 +1004,14 @@ return {
         ...searchKeymap,
         ...historyKeymap,
         ...completionKeymap,
+        // Adicionar comando para formatação manual (Ctrl+Shift+F)
+        {
+          key: 'Ctrl-Shift-f',
+          run: (view) => {
+            this.formatJsonInEditor(view);
+            return true;
+          }
+        }
       ]),
       
       // Linguagem JSON e tema
@@ -1024,12 +1037,21 @@ return {
         }
       }),
       
-      // Listener para sincronizar com textarea
+      // Listener para sincronizar com textarea e formatar JSON apenas ao colar
       EditorView.updateListener.of((update) => {
         if (update.docChanged) {
           textarea.value = update.state.doc.toString();
           // Disparar evento change para manter compatibilidade
           textarea.dispatchEvent(new Event('change', { bubbles: true }));
+          
+          // Detectar se foi uma operação de cola (mudança grande de uma vez)
+          const isLargeChange = update.changes.desc.length > 50;
+          
+          if (isLargeChange) {
+            // Formatar imediatamente apenas se foi uma cola
+            setTimeout(() => this.formatJsonInEditor(update.view), 100);
+          }
+          // Removido: formatação automática durante digitação
         }
       })
     ];
@@ -1045,6 +1067,129 @@ return {
       state: startState,
       parent: editorContainer
     });
+  }
+
+  // JSON Linter function for CodeMirror
+  createJsonLinter() {
+    return linter((view) => {
+      const diagnostics = [];
+      const content = view.state.doc.toString();
+      
+      if (!content.trim()) {
+        return diagnostics; // Não mostrar erros para conteúdo vazio
+      }
+      
+      try {
+        // Tentar corrigir JSON comum com chaves sem aspas
+        let correctedJson = content;
+        const needsCorrection = correctedJson.includes('cookies:') || 
+                               correctedJson.includes('localStorage:') || 
+                               correctedJson.includes('sessionStorage:');
+        
+        if (needsCorrection) {
+          correctedJson = correctedJson
+            .replace(/(\s*)cookies(\s*):/g, '$1"cookies"$2:')
+            .replace(/(\s*)localStorage(\s*):/g, '$1"localStorage"$2:')
+            .replace(/(\s*)sessionStorage(\s*):/g, '$1"sessionStorage"$2:');
+        }
+        
+        // Tentar fazer parse do JSON
+        JSON.parse(correctedJson);
+        
+        // Se chegou aqui, o JSON é válido
+        if (needsCorrection) {
+          // Mostrar aviso sobre correção automática disponível
+          diagnostics.push({
+            from: 0,
+            to: content.length,
+            severity: 'info',
+            message: '💡 JSON pode ser corrigido automaticamente. Cole novamente ou use Ctrl+Shift+F para formatar.'
+          });
+        }
+        
+      } catch (error) {
+        // JSON inválido - mostrar erro
+        let errorMessage = error.message;
+        let errorPosition = 0;
+        
+        // Tentar extrair posição do erro se disponível
+        const positionMatch = errorMessage.match(/position (\d+)/);
+        if (positionMatch) {
+          errorPosition = parseInt(positionMatch[1]);
+        }
+        
+        // Melhorar mensagens de erro comuns
+        if (errorMessage.includes('Unexpected token')) {
+          if (content.includes('cookies:')) {
+            errorMessage = 'Chaves devem estar entre aspas. Use "cookies" ao invés de cookies';
+          } else if (content.includes('localStorage:')) {
+            errorMessage = 'Chaves devem estar entre aspas. Use "localStorage" ao invés de localStorage';
+          } else if (content.includes('sessionStorage:')) {
+            errorMessage = 'Chaves devem estar entre aspas. Use "sessionStorage" ao invés de sessionStorage';
+          }
+        }
+        
+        diagnostics.push({
+          from: Math.max(0, errorPosition - 1),
+          to: Math.min(content.length, errorPosition + 10),
+          severity: 'error',
+          message: `❌ JSON inválido: ${errorMessage}`
+        });
+      }
+      
+      return diagnostics;
+    });
+  }
+
+  // Format JSON in CodeMirror editor
+  formatJsonInEditor(editorView) {
+    try {
+      const currentContent = editorView.state.doc.toString().trim();
+      
+      // Não formatar se estiver vazio
+      if (!currentContent) return;
+      
+      // Tentar corrigir JSON comum com chaves sem aspas
+      let correctedJson = currentContent;
+      
+      // Detectar e corrigir chaves sem aspas
+      const needsCorrection = correctedJson.includes('cookies:') || 
+                             correctedJson.includes('localStorage:') || 
+                             correctedJson.includes('sessionStorage:');
+      
+      if (needsCorrection) {
+        correctedJson = correctedJson
+          .replace(/(\s*)cookies(\s*):/g, '$1"cookies"$2:')
+          .replace(/(\s*)localStorage(\s*):/g, '$1"localStorage"$2:')
+          .replace(/(\s*)sessionStorage(\s*):/g, '$1"sessionStorage"$2:');
+      }
+      
+      // Tentar fazer parse e formatar
+      const parsed = JSON.parse(correctedJson);
+      const formatted = JSON.stringify(parsed, null, 2);
+      
+      // Só atualizar se o conteúdo mudou (evitar loops)
+      if (formatted !== currentContent) {
+        const transaction = editorView.state.update({
+          changes: {
+            from: 0,
+            to: editorView.state.doc.length,
+            insert: formatted
+          }
+        });
+        
+        editorView.dispatch(transaction);
+        
+        // Mostrar feedback visual se houve correção
+        if (needsCorrection) {
+          this.log('🔧 JSON formatado e corrigido automaticamente', 'success');
+        }
+      }
+      
+    } catch (error) {
+      // Silenciosamente ignorar erros de formatação durante a digitação
+      // O usuário verá o erro quando tentar usar o JSON
+    }
   }
 
   // Initialize Single Editor
@@ -1392,7 +1537,21 @@ return {
     
     if (sessionDataValue) {
       try {
-        const parsedSessionData = JSON.parse(sessionDataValue);
+        // Tentar corrigir JSON comum com chaves sem aspas
+        let correctedJson = sessionDataValue;
+        
+        // Detectar se há chaves sem aspas (padrão comum)
+        if (correctedJson.includes('cookies:') || correctedJson.includes('localStorage:') || correctedJson.includes('sessionStorage:')) {
+          // Corrigir chaves comuns sem aspas
+          correctedJson = correctedJson
+            .replace(/(\s*)cookies(\s*):/g, '$1"cookies"$2:')
+            .replace(/(\s*)localStorage(\s*):/g, '$1"localStorage"$2:')
+            .replace(/(\s*)sessionStorage(\s*):/g, '$1"sessionStorage"$2:');
+          
+          this.log('🔧 JSON corrigido automaticamente (adicionadas aspas nas chaves)', 'info');
+        }
+        
+        const parsedSessionData = JSON.parse(correctedJson);
           
           // Verificar se é um objeto vazio {} - tratar como "limpar tudo"
           const keys = Object.keys(parsedSessionData);
@@ -1425,10 +1584,20 @@ return {
                 parsedSessionData.localStorage !== undefined || 
                 parsedSessionData.sessionStorage !== undefined) {
               config.sessionData = sessionDataObj;
+              
+              // Log de debug para confirmar processamento
+              console.log('✅ Session Data processado:', {
+                cookies: sessionDataObj.cookies?.length || 0,
+                localStorage: Object.keys(sessionDataObj.localStorage || {}).length,
+                sessionStorage: Object.keys(sessionDataObj.sessionStorage || {}).length
+              });
             }
           }
       } catch (error) {
-        this.log('Erro no JSON do session data', 'warning');
+        this.log(`❌ Erro no JSON do Session Data: ${error.message}`, 'error');
+        this.log('💡 Dica: Verifique se as chaves estão entre aspas (ex: "cookies" ao invés de cookies)', 'warning');
+        console.error('Session Data JSON Error:', error);
+        console.log('Valor problemático:', sessionDataValue);
       }
     }
 
