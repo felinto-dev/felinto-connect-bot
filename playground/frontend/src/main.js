@@ -33,15 +33,19 @@ class PlaygroundApp {
       data: null
     };
     
+    // Flag para evitar loops de salvamento durante carregamento
+    this.isLoadingConfig = false;
+    
     this.init();
   }
 
   init() {
     this.setupWebSocket();
     this.setupEventListeners();
-    this.loadSavedConfig();
     this.loadAdvancedConfigState();
     this.initCodeEditors();
+    // Carregar configuração APÓS inicializar editores
+    this.loadSavedConfig();
     this.checkChromeStatus();
     this.initializeIcons();
     
@@ -256,7 +260,7 @@ class PlaygroundApp {
 
   // Chrome Status
   async checkChromeStatus() {
-    this.updateStatus('Verificando Chrome...', 'checking');
+    this.log('Verificando Chrome...', 'info');
     
     try {
       const response = await fetch('/api/chrome/check');
@@ -959,6 +963,9 @@ return {
     
     // Inicializar editor JSON para sessionData
     this.initSessionDataEditor();
+    
+    // Garantir que auto-save funcione com editores CodeMirror
+    this.setupCodeMirrorAutoSave();
   }
 
   // Initialize Session Data Editor (JSON)
@@ -1041,8 +1048,8 @@ return {
       EditorView.updateListener.of((update) => {
         if (update.docChanged) {
           textarea.value = update.state.doc.toString();
-          // Disparar evento change para manter compatibilidade
-          textarea.dispatchEvent(new Event('change', { bubbles: true }));
+          // Disparar evento input para auto-save funcionar
+          textarea.dispatchEvent(new Event('input', { bubbles: true }));
           
           // Detectar se foi uma operação de cola (mudança grande de uma vez)
           const isLargeChange = update.changes.desc.length > 50;
@@ -1067,6 +1074,27 @@ return {
       state: startState,
       parent: editorContainer
     });
+  }
+
+  // Setup auto-save for CodeMirror editors
+  setupCodeMirrorAutoSave() {
+    // O editor sessionData já dispara eventos 'input' no textarea oculto
+    // que são capturados pelo setupAutoSave() existente.
+    // Este método é para garantir que funcione e para futuras extensões.
+    
+    // Verificar se o textarea sessionData está sendo monitorado
+    const sessionDataTextarea = document.getElementById('sessionData');
+    if (sessionDataTextarea) {
+      // Garantir que o listener de input está ativo
+      const hasListener = sessionDataTextarea.getAttribute('data-autosave-setup');
+      if (!hasListener) {
+        sessionDataTextarea.addEventListener('input', () => {
+          this.saveConfig();
+          this.generateCodeAutomatically();
+        });
+        sessionDataTextarea.setAttribute('data-autosave-setup', 'true');
+      }
+    }
   }
 
   // JSON Linter function for CodeMirror
@@ -1822,6 +1850,8 @@ return {
   }
 
   setConfigToForm(config) {
+    console.log('🔧 setConfigToForm chamado com:', config);
+    
     const slowMoEl = document.getElementById('slowMo');
     if (slowMoEl && config.slowMo !== undefined) {
       // Se slowMo é 0, pode mostrar como vazio (equivalente)
@@ -1843,24 +1873,43 @@ return {
     // Construir o sessionData combinando cookies e sessionData
     const sessionDataObj = {};
     
-    // Incluir SEMPRE que definido (mesmo se vazio)
+    console.log('🔍 Config recebido - cookies:', config.cookies);
+    console.log('🔍 Config recebido - sessionData:', config.sessionData);
+    
+    // Incluir cookies - verificar tanto config.cookies quanto config.sessionData.cookies
     if (config.cookies !== undefined) {
       sessionDataObj.cookies = config.cookies;
+      console.log('✅ Cookies (direto) adicionados ao sessionDataObj');
+    } else if (config.sessionData?.cookies !== undefined) {
+      sessionDataObj.cookies = config.sessionData.cookies;
+      console.log('✅ Cookies (sessionData) adicionados ao sessionDataObj');
     }
     
     if (config.sessionData?.localStorage !== undefined) {
       sessionDataObj.localStorage = config.sessionData.localStorage;
+      console.log('✅ localStorage adicionado ao sessionDataObj');
     }
     
     if (config.sessionData?.sessionStorage !== undefined) {
       sessionDataObj.sessionStorage = config.sessionData.sessionStorage;
+      console.log('✅ sessionStorage adicionado ao sessionDataObj');
     }
     
     // Atualizar sessionData usando o editor CodeMirror se disponível
-    if (this.editors.sessionData && (config.cookies !== undefined || 
-                          config.sessionData?.localStorage !== undefined ||
-                          config.sessionData?.sessionStorage !== undefined)) {
+    console.log('🔍 Verificando editor sessionData:', !!this.editors.sessionData);
+    console.log('🔍 SessionData para carregar:', sessionDataObj);
+    
+    // Verificar se há dados para carregar (incluindo arrays/objetos vazios)
+    const hasSessionData = Object.keys(sessionDataObj).length > 0;
+    console.log('🔍 Tem dados para carregar:', hasSessionData);
+    console.log('🔍 Chaves do sessionDataObj:', Object.keys(sessionDataObj));
+    console.log('🔍 SessionDataObj completo:', sessionDataObj);
+    
+    if (this.editors.sessionData && hasSessionData) {
       const jsonString = JSON.stringify(sessionDataObj, null, 2);
+      
+      console.log('🔄 Carregando sessionData no editor CodeMirror:', jsonString);
+      
       const transaction = this.editors.sessionData.state.update({
         changes: {
           from: 0,
@@ -1871,11 +1920,16 @@ return {
       this.editors.sessionData.dispatch(transaction);
     } else {
       // Fallback para textarea se editor não estiver disponível
+      console.log('⚠️ Editor não disponível, usando fallback para textarea');
       const sessionDataEl = document.getElementById('sessionData');
-      if (sessionDataEl && (config.cookies !== undefined || 
-                            config.sessionData?.localStorage !== undefined ||
-                            config.sessionData?.sessionStorage !== undefined)) {
-        sessionDataEl.value = JSON.stringify(sessionDataObj, null, 2);
+      if (sessionDataEl && hasSessionData) {
+        const jsonString = JSON.stringify(sessionDataObj, null, 2);
+        sessionDataEl.value = jsonString;
+        console.log('🔄 SessionData carregado no textarea:', jsonString);
+      } else if (!sessionDataEl) {
+        console.log('❌ Textarea sessionData não encontrado');
+      } else {
+        console.log('ℹ️ Nenhum sessionData para carregar no textarea');
       }
     }
 
@@ -2076,23 +2130,47 @@ return {
 
   // Config Persistence
   saveConfig() {
+    // Evitar salvamento durante carregamento inicial
+    if (this.isLoadingConfig) {
+      console.log('⏸️ Salvamento ignorado durante carregamento');
+      return;
+    }
+    
     const config = this.getConfigFromForm();
+    console.log('💾 Salvando configuração:', config);
     localStorage.setItem('playground-config', JSON.stringify(config));
   }
 
   loadConfig() {
     try {
       const saved = localStorage.getItem('playground-config');
-      return saved ? JSON.parse(saved) : {};
-    } catch {
+      const parsed = saved ? JSON.parse(saved) : {};
+      console.log('📖 Dados carregados do localStorage:', parsed);
+      return parsed;
+    } catch (error) {
+      console.error('❌ Erro ao carregar config do localStorage:', error);
       return {};
     }
   }
 
   loadSavedConfig() {
+    console.log('📂 Carregando configuração salva:', this.config);
+    
+    // Ativar flag para evitar loops de salvamento
+    this.isLoadingConfig = true;
+    
     if (Object.keys(this.config).length > 0) {
       this.setConfigToForm(this.config);
+    } else {
+      console.log('📂 Nenhuma configuração salva encontrada');
     }
+    
+    // Desativar flag após um pequeno delay
+    setTimeout(() => {
+      this.isLoadingConfig = false;
+      console.log('✅ Carregamento de configuração concluído');
+    }, 500);
+    
     // Nota: Se não há config salva, os campos HTML já têm valores padrão
     // O código será gerado automaticamente no final do init()
   }
