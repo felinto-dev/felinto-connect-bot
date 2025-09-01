@@ -822,20 +822,14 @@ class PlaygroundApp {
 // Criar página
 const page = await newPage(${configJson});`,
 
-      automation: `// Exemplo prático - navegação e captura de informações
-await page.goto('https://example.com');
-await page.waitForLoadState('networkidle');
-
-// Capturar título da página
+      automation: `// Testes básicos na página atual
 const title = await page.title();
-console.log('Título da página:', title);
+const h1Text = await page.$eval('h1', el => el.textContent);
+const linksCount = await page.$$eval('a', links => links.length);
 
-// Outros exemplos que você pode usar:
-// await page.click('#botao');
-// await page.type('#input', 'texto');
-// await page.waitForSelector('.elemento');
-// const text = await page.textContent('h1');
-// console.log('Texto do H1:', text);`,
+console.log('Título:', title);
+console.log('H1:', h1Text);
+console.log('Links encontrados:', linksCount);`,
 
       footer: `// Capturar informações finais
 const finalUrl = await page.url();
