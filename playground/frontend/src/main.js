@@ -1111,15 +1111,7 @@ return {
         ...defaultKeymap,
         ...searchKeymap,
         ...historyKeymap,
-        ...completionKeymap,
-        // Adicionar comando para formatação manual (Ctrl+Shift+F)
-        {
-          key: 'Ctrl-Shift-f',
-          run: (view) => {
-            this.formatJsonInEditor(view);
-            return true;
-          }
-        }
+        ...completionKeymap
       ]),
       
       // Linguagem JSON e tema
@@ -1145,6 +1137,15 @@ return {
         }
       }),
       
+      // Formatação automática quando perde o foco
+      EditorView.domEventHandlers({
+        blur: (event, view) => {
+          // Formatar JSON quando o editor perde o foco
+          setTimeout(() => this.formatJsonInEditor(view), 50);
+          return false;
+        }
+      }),
+      
       // Listener para sincronizar com textarea e formatar JSON apenas ao colar
       EditorView.updateListener.of((update) => {
         if (update.docChanged) {
@@ -1152,10 +1153,19 @@ return {
           // Disparar evento input para auto-save funcionar
           textarea.dispatchEvent(new Event('input', { bubbles: true }));
           
-          // Detectar se foi uma operação de cola (mudança grande de uma vez)
-          const isLargeChange = update.changes.desc.length > 50;
+          // Detectar se foi uma operação de cola (mudança grande de caracteres inseridos)
+          let totalInserted = 0;
+          update.changes.iterChanges((fromA, toA, fromB, toB, inserted) => {
+            totalInserted += inserted.length;
+          });
           
-          if (isLargeChange) {
+          // Só formatar se foram inseridos muitos caracteres de uma vez (provável cola)
+          // E se não foi apenas uma quebra de linha ou caractere único
+          const isProbablePaste = totalInserted > 20 && !update.transactions.some(tr => 
+            tr.isUserEvent('input.type') || tr.isUserEvent('input.complete')
+          );
+          
+          if (isProbablePaste) {
             // Formatar imediatamente apenas se foi uma cola
             setTimeout(() => this.formatJsonInEditor(update.view), 100);
           }
