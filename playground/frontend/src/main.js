@@ -905,10 +905,25 @@ class PlaygroundApp {
 
   // Generate Code Automatically (local generation)
   generateCodeAutomatically() {
+    // Não gerar código automaticamente se houver configuração salva para os editores
+    const savedConfig = this.loadConfig();
+    if (savedConfig.automationCode !== undefined || savedConfig.footerCode !== undefined) {
+      console.log('📝 Código personalizado encontrado, pulando geração automática para automação/footer.');
+    }
+
     const config = this.getConfigFromForm();
     
     // Gerar código localmente sem requisição HTTP
     const codeSections = this.generateCodeSections(config);
+
+    // Se houver código salvo (incluindo vazio), não sobrescrever
+    if (savedConfig.automationCode !== undefined) {
+      delete codeSections.automation;
+    }
+    if (savedConfig.footerCode !== undefined) {
+      delete codeSections.footer;
+    }
+
     this.displayGeneratedCodeSections(codeSections);
   }
 
@@ -919,6 +934,10 @@ class PlaygroundApp {
       ...config,
       browserWSEndpoint: config.browserWSEndpoint || 'ws://host.docker.internal:9222' // Use user-defined or default
     };
+    
+    // Remover propriedades que são apenas para persistência da UI, não para a execução do bot
+    delete configWithEndpoint.automationCode;
+    delete configWithEndpoint.footerCode;
     
     const configJson = JSON.stringify(configWithEndpoint, null, 2);
     
@@ -1292,6 +1311,17 @@ return {
       })
     ];
 
+    // Adicionar listener de atualização para auto-save nos editores editáveis
+    if (!readonly) {
+      extensions.push(EditorView.updateListener.of((update) => {
+        if (update.docChanged) {
+          // Apenas salva a configuração, não regenera o código para não sobrescrever
+          // o que o usuário está digitando.
+          this.saveConfig();
+        }
+      }));
+    }
+
     // Adicionar extensão readonly se necessário
     if (readonly) {
       extensions.push(EditorState.readOnly.of(true));
@@ -1319,33 +1349,39 @@ return {
   displayGeneratedCodeSections(codeSections) {
     if (!this.editors.header || !this.editors.automation || !this.editors.footer) return;
     
-    // Atualizar conteúdo dos editores CodeMirror
-    const headerTransaction = this.editors.header.state.update({
-      changes: {
-        from: 0,
-        to: this.editors.header.state.doc.length,
-        insert: codeSections.header
-      }
-    });
-    this.editors.header.dispatch(headerTransaction);
+    // Atualizar conteúdo dos editores CodeMirror se a seção existir no objeto
+    if (codeSections.header) {
+      const headerTransaction = this.editors.header.state.update({
+        changes: {
+          from: 0,
+          to: this.editors.header.state.doc.length,
+          insert: codeSections.header
+        }
+      });
+      this.editors.header.dispatch(headerTransaction);
+    }
 
-    const automationTransaction = this.editors.automation.state.update({
-      changes: {
-        from: 0,
-        to: this.editors.automation.state.doc.length,
-        insert: codeSections.automation
-      }
-    });
-    this.editors.automation.dispatch(automationTransaction);
+    if (codeSections.automation) {
+      const automationTransaction = this.editors.automation.state.update({
+        changes: {
+          from: 0,
+          to: this.editors.automation.state.doc.length,
+          insert: codeSections.automation
+        }
+      });
+      this.editors.automation.dispatch(automationTransaction);
+    }
 
-    const footerTransaction = this.editors.footer.state.update({
-      changes: {
-        from: 0,
-        to: this.editors.footer.state.doc.length,
-        insert: codeSections.footer
-      }
-    });
-    this.editors.footer.dispatch(footerTransaction);
+    if (codeSections.footer) {
+      const footerTransaction = this.editors.footer.state.update({
+        changes: {
+          from: 0,
+          to: this.editors.footer.state.doc.length,
+          insert: codeSections.footer
+        }
+      });
+      this.editors.footer.dispatch(footerTransaction);
+    }
   }
 
   // Copy Generated Code
@@ -1627,6 +1663,14 @@ return {
         console.error('Session Data JSON Error:', error);
         console.log('Valor problemático:', sessionDataValue);
       }
+    }
+
+    // Salvar conteúdo dos editores de automação e footer
+    if (this.editors.automation) {
+      config.automationCode = this.editors.automation.state.doc.toString();
+    }
+    if (this.editors.footer) {
+      config.footerCode = this.editors.footer.state.doc.toString();
     }
 
     // Campos opcionais que podem não existir no HTML atual
@@ -1931,6 +1975,29 @@ return {
       } else {
         console.log('ℹ️ Nenhum sessionData para carregar no textarea');
       }
+    }
+
+    // Carregar código personalizado dos editores, se existir (incluindo string vazia)
+    if (this.editors.automation && config.automationCode !== undefined) {
+      const automationTransaction = this.editors.automation.state.update({
+        changes: {
+          from: 0,
+          to: this.editors.automation.state.doc.length,
+          insert: config.automationCode
+        }
+      });
+      this.editors.automation.dispatch(automationTransaction);
+    }
+
+    if (this.editors.footer && config.footerCode !== undefined) {
+      const footerTransaction = this.editors.footer.state.update({
+        changes: {
+          from: 0,
+          to: this.editors.footer.state.doc.length,
+          insert: config.footerCode
+        }
+      });
+      this.editors.footer.dispatch(footerTransaction);
     }
 
     // Campos opcionais que podem não existir
