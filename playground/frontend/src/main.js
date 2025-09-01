@@ -249,8 +249,36 @@ class PlaygroundApp {
   }
 
   async checkChromeConnection() {
+    const checkButton = document.getElementById('checkChrome');
+    const originalIcon = checkButton?.querySelector('i');
+    const originalText = checkButton?.textContent?.trim();
+    
+    // Feedback visual no botão
+    if (checkButton) {
+      checkButton.disabled = true;
+      checkButton.classList.add('loading');
+      if (originalIcon) {
+        originalIcon.setAttribute('data-lucide', 'loader');
+        // Recriar ícone para aplicar a mudança
+        lucide.createIcons();
+      }
+      checkButton.innerHTML = '<i data-lucide="loader"></i> Verificando...';
+      lucide.createIcons();
+    }
+    
     this.log('Verificando conexão com Chrome...', 'info');
-    await this.checkChromeStatus();
+    
+    try {
+      await this.checkChromeStatus();
+    } finally {
+      // Restaurar botão ao estado original
+      if (checkButton) {
+        checkButton.disabled = false;
+        checkButton.classList.remove('loading');
+        checkButton.innerHTML = '<i data-lucide="refresh-cw"></i> Testar Conexão';
+        lucide.createIcons();
+      }
+    }
   }
 
   updateStatus(text, status = 'checking') {
