@@ -856,77 +856,92 @@ console.log('🔚 Sessão finalizada!');`
 
   // Initialize Code Editors
   initCodeEditors() {
-    this.initSingleEditor('headerEditor', 'header', '// Configure os parâmetros acima para gerar o código automaticamente...');
+    this.initSingleEditor('headerEditor', 'header', '// Configure os parâmetros acima para gerar o código automaticamente...', true); // readonly
     this.initSingleEditor('automationEditor', 'automation', '// Suas automações personalizadas aqui...');
     this.initSingleEditor('footerEditor', 'footer', '// Extração de dados e encerramento da sessão...');
   }
 
   // Initialize Single Editor
-  initSingleEditor(containerId, editorKey, placeholder) {
+  initSingleEditor(containerId, editorKey, placeholder, readonly = false) {
     const container = document.getElementById(containerId);
     if (!container) return;
     
     // Limpar container
     container.innerHTML = '';
     
+    // Configurar extensões base
+    const extensions = [
+      // Funcionalidades básicas
+      lineNumbers(),
+      highlightActiveLineGutter(),
+      highlightSpecialChars(),
+      history(),
+      foldGutter(),
+      drawSelection(),
+      indentOnInput(),
+      bracketMatching(),
+      closeBrackets(),
+      autocompletion(),
+      rectangularSelection(),
+
+      
+      // Keymaps
+      keymap.of([
+        ...closeBracketsKeymap,
+        ...defaultKeymap,
+        ...searchKeymap,
+        ...historyKeymap,
+        ...completionKeymap,
+      ]),
+      
+      // Linguagem e tema
+      javascript({ typescript: true }),
+      oneDark,
+      
+      // Configurações customizadas
+      indentUnit.of('  '), // 2 espaços para indentação
+      EditorView.lineWrapping,
+      EditorView.theme({
+        '&': {
+          fontSize: '12px',
+          fontFamily: "'Monaco', 'Menlo', 'Ubuntu Mono', monospace"
+        },
+        '.cm-focused': {
+          outline: 'none'
+        },
+        '.cm-editor': {
+          borderRadius: '6px'
+        },
+        '.cm-scroller': {
+          fontFamily: "'Monaco', 'Menlo', 'Ubuntu Mono', monospace"
+        },
+        '.cm-gutters': {
+          paddingRight: '2px',
+          marginRight: '2px'
+        },
+        '.cm-content': {
+          padding: '16px 16px 16px 4px',
+          minHeight: '120px'
+        },
+        // Estilo para editor readonly
+        '&.cm-readonly .cm-cursor': {
+          display: 'none'
+        },
+        '&.cm-readonly .cm-content': {
+          cursor: 'default'
+        }
+      })
+    ];
+
+    // Adicionar extensão readonly se necessário
+    if (readonly) {
+      extensions.push(EditorState.readOnly.of(true));
+    }
+
     // Configurar estado inicial do editor
     const startState = EditorState.create({
       doc: placeholder,
-      extensions: [
-        // Funcionalidades básicas
-        lineNumbers(),
-        highlightActiveLineGutter(),
-        highlightSpecialChars(),
-        history(),
-        foldGutter(),
-        drawSelection(),
-        indentOnInput(),
-        bracketMatching(),
-        closeBrackets(),
-        autocompletion(),
-        rectangularSelection(),
-
-        
-        // Keymaps
-        keymap.of([
-          ...closeBracketsKeymap,
-          ...defaultKeymap,
-          ...searchKeymap,
-          ...historyKeymap,
-          ...completionKeymap,
-        ]),
-        
-        // Linguagem e tema
-        javascript({ typescript: true }),
-        oneDark,
-        
-        // Configurações customizadas
-        indentUnit.of('  '), // 2 espaços para indentação
-        EditorView.lineWrapping,
-        EditorView.theme({
-          '&': {
-            fontSize: '12px',
-            fontFamily: "'Monaco', 'Menlo', 'Ubuntu Mono', monospace"
-          },
-          '.cm-focused': {
-            outline: 'none'
-          },
-          '.cm-editor': {
-            borderRadius: '6px'
-          },
-          '.cm-scroller': {
-            fontFamily: "'Monaco', 'Menlo', 'Ubuntu Mono', monospace"
-          },
-          '.cm-gutters': {
-            paddingRight: '2px',
-            marginRight: '2px'
-          },
-          '.cm-content': {
-            padding: '16px 16px 16px 4px',
-            minHeight: '120px'
-          }
-        })
-      ]
+      extensions: extensions
     });
     
     // Criar instância do editor
@@ -934,6 +949,11 @@ console.log('🔚 Sessão finalizada!');`
       state: startState,
       parent: container
     });
+
+    // Adicionar classe CSS para readonly
+    if (readonly) {
+      this.editors[editorKey].dom.classList.add('cm-readonly');
+    }
   }
 
   // Display Generated Code Sections
