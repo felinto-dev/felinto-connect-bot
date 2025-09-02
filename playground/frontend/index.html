@@ -89,11 +89,17 @@
             </div>
 
             <div class="field">
-              <label>
-                <i data-lucide="database" class="field-icon"></i>
-                Session Data (JSON)
-              </label>
-              <textarea id="sessionData" rows="6">{
+              <div class="field-header-with-toggle">
+                <label>
+                  <i data-lucide="database" class="field-icon"></i>
+                  Session Data (JSON)
+                </label>
+                <button type="button" id="sessionDataToggle" class="editor-toggle-btn-discrete" data-editor-toggle="sessionData" title="Expandir editor (Ctrl+Shift+E)">
+                  <span class="toggle-text">expandir</span>
+                  <span class="toggle-icon">⤢</span>
+                </button>
+              </div>
+              <textarea id="sessionData" data-editor-id="sessionData" rows="6">{
   "localStorage": {
     "userPreferred_language": "pt-BR",
     "currency": "BRL"
@@ -244,9 +250,15 @@
 
           <!-- Código Gerado -->
           <div class="config-group" id="headerCodeGroup">
-            <h3><i data-lucide="code" class="subsection-icon"></i> Código Gerado</h3>
+            <div class="field-header-with-toggle">
+              <h3><i data-lucide="code" class="subsection-icon"></i> Código Gerado</h3>
+              <button type="button" id="headerToggle" class="editor-toggle-btn-discrete" data-editor-toggle="header" title="Expandir editor (Ctrl+Shift+E)">
+                <span class="toggle-text">expandir</span>
+                <span class="toggle-icon">⤢</span>
+              </button>
+            </div>
             <div class="code-section">
-              <div id="headerEditor" class="code-editor-container"></div>
+              <div id="headerEditor" class="code-editor-container" data-editor-id="header"></div>
             </div>
           </div>
 
@@ -290,17 +302,29 @@
 
           <!-- Código da Automação -->
           <div class="execution-group" id="automationCodeGroup">
-            <h3><i data-lucide="bot" class="subsection-icon"></i> Código da Automação</h3>
+            <div class="field-header-with-toggle">
+              <h3><i data-lucide="bot" class="subsection-icon"></i> Código da Automação</h3>
+              <button type="button" id="automationToggle" class="editor-toggle-btn-discrete" data-editor-toggle="automation" title="Expandir editor (Ctrl+Shift+E)">
+                <span class="toggle-text">expandir</span>
+                <span class="toggle-icon">⤢</span>
+              </button>
+            </div>
             <div class="code-section">
-              <div id="automationEditor" class="code-editor-container"></div>
+              <div id="automationEditor" class="code-editor-container" data-editor-id="automation"></div>
             </div>
           </div>
 
           <!-- Extração de dados e encerramento da sessão -->
           <div class="execution-group" id="footerCodeGroup">
-            <h3><i data-lucide="database" class="subsection-icon"></i> Extração de dados e encerramento da sessão</h3>
+            <div class="field-header-with-toggle">
+              <h3><i data-lucide="database" class="subsection-icon"></i> Extração de dados e encerramento da sessão</h3>
+              <button type="button" id="footerToggle" class="editor-toggle-btn-discrete" data-editor-toggle="footer" title="Expandir editor (Ctrl+Shift+E)">
+                <span class="toggle-text">expandir</span>
+                <span class="toggle-icon">⤢</span>
+              </button>
+            </div>
             <div class="code-section">
-              <div id="footerEditor" class="code-editor-container"></div>
+              <div id="footerEditor" class="code-editor-container" data-editor-id="footer"></div>
             </div>
             <div class="action-buttons" style="margin-top: 15px;">
               <button id="sessionToggleBtn" class="btn btn-success" title="Criar nova sessão Puppeteer">

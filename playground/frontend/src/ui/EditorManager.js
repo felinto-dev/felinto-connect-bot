@@ -8,6 +8,8 @@ import { searchKeymap } from '@codemirror/search'
 import { autocompletion, completionKeymap, closeBrackets, closeBracketsKeymap } from '@codemirror/autocomplete'
 import { foldGutter, indentOnInput, indentUnit, bracketMatching } from '@codemirror/language'
 import { linter, lintGutter } from '@codemirror/lint'
+import { EditorExpansionManager } from '../services/EditorExpansionManager.js'
+import { CodeMirrorEditorStrategy, SessionDataEditorStrategy } from '../services/EditorStrategies.js'
 
 export default class EditorManager {
   constructor(app) {
@@ -18,11 +20,67 @@ export default class EditorManager {
       footer: null,
       sessionData: null
     };
+    
+    // Inicializar sistema de expansão
+    this.expansionManager = new EditorExpansionManager();
+    this.setupExpansionStrategies();
   }
 
   init() {
     this.initCodeEditors();
     this.setupCodeMirrorAutoSave();
+    this.setupEditorExpansion();
+  }
+
+  setupExpansionStrategies() {
+    // Registrar estratégias para diferentes tipos de editores
+    this.expansionManager.registerEditorStrategy('sessionData', new SessionDataEditorStrategy());
+    this.expansionManager.registerEditorStrategy('automation', new CodeMirrorEditorStrategy());
+    this.expansionManager.registerEditorStrategy('footer', new CodeMirrorEditorStrategy());
+    this.expansionManager.registerEditorStrategy('header', new CodeMirrorEditorStrategy());
+  }
+
+  setupEditorExpansion() {
+    // Configurar expansão para cada editor após serem criados
+    setTimeout(() => {
+      this.setupEditorExpansionForEditor('sessionData');
+      this.setupEditorExpansionForEditor('automation');
+      this.setupEditorExpansionForEditor('footer');
+      this.setupEditorExpansionForEditor('header');
+    }, 100);
+  }
+
+  setupEditorExpansionForEditor(editorType) {
+    const container = document.querySelector(`[data-editor-id="${editorType}"]`);
+    const toggleButton = document.querySelector(`[data-editor-toggle="${editorType}"]`);
+    
+    if (!container || !toggleButton) {
+      console.warn(`Elementos não encontrados para editor: ${editorType}`);
+      return;
+    }
+
+    // Para sessionData, o container é diferente (será criado dinamicamente)
+    let actualContainer = container;
+    if (editorType === 'sessionData') {
+      // Aguardar a criação do container do CodeMirror
+      setTimeout(() => {
+        actualContainer = document.querySelector('.session-data-editor');
+        if (actualContainer) {
+          this.expansionManager.setupEditor(editorType, editorType, {
+            container: actualContainer,
+            toggleButton: toggleButton,
+            codeMirrorInstance: this.editors.sessionData
+          });
+        }
+      }, 200);
+      return;
+    }
+
+    this.expansionManager.setupEditor(editorType, editorType, {
+      container: actualContainer,
+      toggleButton: toggleButton,
+      codeMirrorInstance: this.editors[editorType]
+    });
   }
 
   initCodeEditors() {
@@ -51,6 +109,7 @@ return {
     
     textarea.parentNode.insertBefore(editorContainer, textarea);
     textarea.style.display = 'none';
+
     
     const extensions = [
       lineNumbers(),
@@ -106,6 +165,8 @@ return {
           if (isProbablePaste) {
             setTimeout(() => this.formatJsonInEditor(update.view), 100);
           }
+          
+
         }
       })
     ];
@@ -119,6 +180,7 @@ return {
       state: startState,
       parent: editorContainer
     });
+
   }
 
   setupCodeMirrorAutoSave() {
@@ -163,7 +225,6 @@ return {
             message: '💡 JSON pode ser corrigido automaticamente. Cole novamente ou use Ctrl+Shift+F para formatar.'
           });
         }
-        
       } catch (error) {
         let errorMessage = error.message;
         let errorPosition = 0;
@@ -320,4 +381,21 @@ return {
       this.editors.footer.dispatch(footerTransaction);
     }
   }
+
+  // Método de debug para testar a funcionalidade
+  debugExpansion() {
+    console.log('=== DEBUG: Editor Expansion System ===');
+    console.log('Expansion Manager:', this.expansionManager);
+    console.log('Registered Strategies:', this.expansionManager.editorStrategies);
+    console.log('Expanded Editors:', this.expansionManager.expandedEditors);
+    
+    // Testar se todos os botões estão presentes
+    const buttons = ['sessionData', 'automation', 'footer', 'header'];
+    buttons.forEach(editorType => {
+      const button = document.querySelector(`[data-editor-toggle="${editorType}"]`);
+      const container = document.querySelector(`[data-editor-id="${editorType}"]`);
+      console.log(`${editorType}:`, { button: !!button, container: !!container });
+    });
+  }
+
 }
