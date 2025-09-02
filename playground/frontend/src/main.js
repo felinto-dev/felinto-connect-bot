@@ -402,7 +402,6 @@ class PlaygroundApp {
       return;
     }
 
-    this.uiManager.log('🆔 Criando nova sessão...', 'info');
     this.uiManager.setLoading(true);
 
     try {
@@ -415,7 +414,6 @@ class PlaygroundApp {
       };
       
       this.uiManager.updateSessionStatus();
-      this.uiManager.log(`✅ Sessão criada: ${result.sessionId}`, 'success');
       
       if (result.pageInfo) {
         this.uiManager.log(`📍 Página: ${result.pageInfo.title} - ${result.pageInfo.url}`, 'info');
@@ -448,7 +446,6 @@ class PlaygroundApp {
       return;
     }
 
-    this.uiManager.log('🚀 Executando código na sessão ativa...', 'info');
     this.uiManager.setLoading(true);
 
     try {
@@ -457,7 +454,6 @@ class PlaygroundApp {
       this.currentSession.pageInfo = result.pageInfo;
       
       this.uiManager.updateSessionStatus();
-      this.uiManager.log(`✅ Código executado com sucesso!`, 'success');
       
       // Show results section
       this.uiManager.showResults(result);
@@ -504,7 +500,6 @@ class PlaygroundApp {
       return;
     }
 
-    this.uiManager.log('🗑️ Fechando sessão...', 'info');
     this.uiManager.setLoading(true);
 
     try {
@@ -514,11 +509,9 @@ class PlaygroundApp {
       // Executar se há código (incluindo o código padrão)
       if (footerCode && footerCode.trim() && !footerCode.trim().startsWith('//') || 
           (footerCode && footerCode.includes('return'))) {
-        this.uiManager.log('📊 Executando extração de dados antes do fechamento...', 'info');
         
         try {
           const executeResult = await this.apiService.executeCode(this.currentSession.id, footerCode);
-          this.uiManager.log('✅ Extração de dados concluída!', 'success');
           if (executeResult.result) {
             this.uiManager.log(`📋 Dados extraídos: ${JSON.stringify(executeResult.result, null, 2)}`, 'info');
             
@@ -543,7 +536,6 @@ class PlaygroundApp {
         };
         
         this.uiManager.updateSessionStatus();
-        this.uiManager.log(`✅ Sessão fechada com sucesso!`, 'success');
       } catch (error) {
         this.uiManager.log(`❌ Erro ao fechar sessão: ${error.details.error || error.message}`, 'error');
       }

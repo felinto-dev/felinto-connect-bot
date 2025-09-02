@@ -314,8 +314,6 @@ app.post('/api/session/create', async (req, res) => {
   try {
     const config = req.body;
     
-    broadcast({ type: 'info', message: '🆔 Criando nova sessão...' });
-    
     // Get the latest Chrome endpoint
     let chromeEndpoint = detectedChromeEndpoint;
     
@@ -391,8 +389,6 @@ app.post('/api/session/execute', async (req, res) => {
       return res.status(400).json({ error: 'code é obrigatório e deve ser uma string' });
     }
 
-    broadcast({ type: 'info', message: `🚀 Executando código na sessão: ${sessionId}` });
-    
     const result = await sessionManager.executeCode(sessionId, code, broadcast);
     
     res.json({ 
