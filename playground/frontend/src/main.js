@@ -1789,7 +1789,8 @@ return {
       const slowMoValue = slowMoEl.value.trim();
       // Valor vazio ou "0" = sem slow motion
       const slowMo = slowMoValue === '' ? 0 : parseInt(slowMoValue);
-      if (!isNaN(slowMo) && slowMo >= 0) config.slowMo = slowMo;
+      // Só adicionar slowMo ao config se for maior que 0
+      if (!isNaN(slowMo) && slowMo > 0) config.slowMo = slowMo;
     }
 
     const timeoutEl = document.getElementById('timeout');
