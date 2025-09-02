@@ -72,12 +72,21 @@ export class SessionDataApplier {
 				
 			} else {
 				// Apply provided cookies with proper field sanitization for Chrome compatibility
-				const validCookies = sessionData.cookies.map(cookie => {
+				const validCookies = sessionData.cookies.map((cookie: any) => {
 					// Create a clean cookie object with only Chrome-compatible fields
-					const cleanCookie: any = {
+					const cleanCookie: {
+						name: string;
+						value: string;
+						domain: string;
+						path: string;
+						secure: boolean;
+						httpOnly: boolean;
+						sameSite?: 'Strict' | 'Lax' | 'None';
+						expires?: number;
+					} = {
 						name: cookie.name,
 						value: cookie.value,
-						domain: cookie.domain,
+						domain: cookie.domain || '',
 						path: cookie.path || '/',
 						secure: cookie.secure || false,
 						httpOnly: cookie.httpOnly || false
@@ -85,11 +94,11 @@ export class SessionDataApplier {
 
 					// Handle sameSite - convert null to undefined (Chrome doesn't accept null)
 					if (cookie.sameSite && cookie.sameSite !== null) {
-						cleanCookie.sameSite = cookie.sameSite;
+						cleanCookie.sameSite = cookie.sameSite as 'Strict' | 'Lax' | 'None';
 					}
 
 					// Handle expiration - only add if it's not a session cookie
-					if (!cookie.session && cookie.expirationDate) {
+					if (cookie.session === false && cookie.expirationDate) {
 						cleanCookie.expires = cookie.expirationDate;
 					}
 
