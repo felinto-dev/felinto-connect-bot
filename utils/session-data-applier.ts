@@ -71,8 +71,13 @@ export class SessionDataApplier {
 				}
 				
 			} else {
-				// Apply provided cookies
-				await page.setCookie(...sessionData.cookies);
+				// Apply provided cookies with proper sameSite handling
+				const validCookies = sessionData.cookies.map(cookie => ({
+					...cookie,
+					// Convert null sameSite to undefined (Chrome doesn't accept null)
+					sameSite: cookie.sameSite === null ? undefined : cookie.sameSite
+				}));
+				await page.setCookie(...validCookies);
 			}
 		}
 	}

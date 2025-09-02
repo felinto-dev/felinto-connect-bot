@@ -349,6 +349,8 @@ app.post('/api/session/create', async (req, res) => {
       $debug: true
     };
 
+
+
     const session = await sessionManager.createSession(sessionConfig, broadcast);
     
     // Get initial page info

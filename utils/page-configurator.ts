@@ -86,8 +86,6 @@ export class PageConfigurator {
 		// Setup resource blocking
 		await this.setupResourceBlocking(page, browser, blockedResourcesTypes);
 
-
-
 		// Add screenshot functionality
 		this.addScreenshotFunctionality(page);
 		

@@ -93,6 +93,8 @@ export const newPage = async (params: NewPageParams = {}): Promise<ExtendedPage>
 	// Extract initialUrl to handle it separately when sessionData is provided
 	const initialUrl = getJson('productPageUrl') || params.initialUrl;
 	
+
+	
 	// Create and configure page WITHOUT navigation if sessionData is provided
 	const page = await PageConfigurator.createAndConfigurePage(browser, {
 		timeout: params.timeout,
