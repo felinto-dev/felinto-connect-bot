@@ -1561,8 +1561,16 @@ return {
       }
     });
     
-    // Close dropdown when clicking on menu items
-    dropdownMenu.addEventListener('click', () => {
+    // Close dropdown when clicking on menu items (except submenu items)
+    dropdownMenu.addEventListener('click', (e) => {
+      // Não fechar se clicou no submenu ou em seus filhos
+      if (e.target.closest('.dropdown-submenu-content') || e.target.closest('.dropdown-submenu')) {
+        // Se clicou em um botão dentro do submenu, fechar o dropdown
+        if (e.target.tagName === 'BUTTON') {
+          dropdown.classList.remove('open');
+        }
+        return;
+      }
       dropdown.classList.remove('open');
     });
   }

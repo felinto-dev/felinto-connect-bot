@@ -74,7 +74,7 @@ body {
   background: white;
   border-radius: 8px;
   border: 1px solid #e2e8f0;
-  overflow: hidden;
+  overflow: visible;
 }
 
 /* Section Headers */
@@ -509,6 +509,50 @@ body {
   width: 14px;
   height: 14px;
   flex-shrink: 0;
+}
+
+/* Submenu Styles */
+.dropdown-submenu {
+  position: relative;
+  cursor: pointer;
+}
+
+.dropdown-submenu .submenu-arrow {
+  margin-left: auto;
+  width: 12px !important;
+  height: 12px !important;
+  transition: transform 0.2s ease;
+}
+
+.dropdown-submenu-content {
+  position: absolute;
+  top: 0;
+  left: 100%;
+  background: white;
+  border: 1px solid #e2e8f0;
+  border-radius: 6px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  min-width: 180px;
+  z-index: 1001;
+  opacity: 0;
+  visibility: hidden;
+  transform: translateX(-10px);
+  transition: all 0.2s ease;
+}
+
+.dropdown-submenu:hover .dropdown-submenu-content {
+  opacity: 1;
+  visibility: visible;
+  transform: translateX(0);
+}
+
+.dropdown-submenu-content .dropdown-item {
+  padding: 8px 12px;
+  font-size: 12px;
+}
+
+.dropdown-submenu-content .dropdown-item:hover {
+  background: #f7fafc;
 }
 
 /* Header Actions */

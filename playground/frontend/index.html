@@ -40,10 +40,17 @@
                     <i data-lucide="settings"></i>
                     Configuração Completa
                   </button>
-                  <button class="dropdown-item" id="importPuppeteerCookies" title="Importar apenas cookies no formato Puppeteer">
+                  <div class="dropdown-item dropdown-submenu" id="cookiesSubmenu">
                     <i data-lucide="cookie"></i>
-                    Cookies Puppeteer
-                  </button>
+                    Cookies
+                    <i data-lucide="chevron-right" class="submenu-arrow"></i>
+                    <div class="dropdown-submenu-content">
+                      <button class="dropdown-item" id="importPuppeteerCookies" title="Importar apenas cookies no formato Puppeteer">
+                        <i data-lucide="cookie"></i>
+                        Puppeteer
+                      </button>
+                    </div>
+                  </div>
                 </div>
               </div>
               <button id="exportConfig" class="btn btn-secondary btn-small" title="Exportar configurações para clipboard">
