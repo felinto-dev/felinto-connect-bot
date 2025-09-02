@@ -1797,8 +1797,8 @@ return {
       const slowMoValue = slowMoEl.value.trim();
       // Valor vazio ou "0" = sem slow motion
       const slowMo = slowMoValue === '' ? 0 : parseInt(slowMoValue);
-      // Só adicionar slowMo ao config se for maior que 0
-      if (!isNaN(slowMo) && slowMo > 0) config.slowMo = slowMo;
+      // Sempre salvar slowMo, incluindo 0 (vazio) para manter persistência
+      if (!isNaN(slowMo)) config.slowMo = slowMo;
     }
 
     const timeoutEl = document.getElementById('timeout');
@@ -2106,8 +2106,8 @@ return {
   setConfigToForm(config, isApplyingTemplate = false) {
     
     const slowMoEl = document.getElementById('slowMo');
-    if (slowMoEl && config.slowMo !== undefined) {
-      // Se slowMo é 0, pode mostrar como vazio (equivalente)
+    if (slowMoEl && config.hasOwnProperty('slowMo')) {
+      // Se slowMo é 0, mostrar como vazio (equivalente)
       slowMoEl.value = config.slowMo === 0 ? '' : config.slowMo;
     }
     
