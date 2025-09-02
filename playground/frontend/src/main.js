@@ -13,6 +13,7 @@ import ConfigService from './services/ConfigService.js';
 import UIManager from './ui/UIManager.js';
 import ApiService from './services/ApiService.js';
 import EditorManager from './ui/EditorManager.js';
+import ConstantsManager from './services/ConstantsManager.js';
 
 class PlaygroundApp {
   constructor() {
@@ -47,7 +48,11 @@ class PlaygroundApp {
     this.setupEventListeners();
     this.configService.loadAdvancedConfigState();
     this.editorManager.init();
-    // Carregar configuração APÓS inicializar editores
+    
+    // Inicializar ConstantsManager APÓS os editores estarem prontos
+    this.constantsManager = new ConstantsManager(this);
+    
+    // Carregar configuração APÓS inicializar editores e constantes
     this.configService.loadSavedConfig();
     this.checkChromeStatus();
     this.initializeIcons();
@@ -373,9 +378,27 @@ class PlaygroundApp {
       customCode = `${headerCode}\n\n${automationCode}\n\n${footerCode}`;
     }
     
-    // Adicionar código customizado à configuração se disponível
+    // Processar constantes no código customizado se disponível
     if (customCode && customCode.trim() && !customCode.includes('// Configure os parâmetros acima')) {
-      config.customCode = customCode;
+      // Obter constantes definidas
+      const constants = this.constantsManager.getConstants();
+      
+      // Validar uso de constantes
+      const validation = ConstantsManager.validateConstantUsage(customCode, constants);
+      
+      if (!validation.isValid) {
+        this.uiManager.log(`❌ Constantes não definidas: ${validation.undefinedConstants.join(', ')}`, 'error');
+        return;
+      }
+      
+      // Processar constantes no código
+      const processedCode = ConstantsManager.processConstants(customCode, constants);
+      config.customCode = processedCode;
+      
+      // Log das constantes utilizadas
+      if (validation.usedConstants.length > 0) {
+        this.uiManager.log(`🔑 Constantes utilizadas: ${validation.usedConstants.join(', ')}`, 'info');
+      }
     }
 
     this.uiManager.log('🚀 Executando sessão...', 'info');
@@ -433,7 +456,7 @@ class PlaygroundApp {
     }
 
     // Get code from automation editor
-    const code = this.editors.automation ? this.editors.automation.state.doc.toString() : '';
+    let code = this.editors.automation ? this.editors.automation.state.doc.toString() : '';
     
     // Remove comments and whitespace to check if there's actual code
     const codeWithoutComments = code
@@ -446,10 +469,27 @@ class PlaygroundApp {
       return;
     }
 
+    // Processar constantes no código
+    const constants = this.constantsManager.getConstants();
+    const validation = ConstantsManager.validateConstantUsage(code, constants);
+    
+    if (!validation.isValid) {
+      this.uiManager.log(`❌ Constantes não definidas: ${validation.undefinedConstants.join(', ')}`, 'error');
+      return;
+    }
+    
+    // Aplicar constantes ao código
+    const processedCode = ConstantsManager.processConstants(code, constants);
+    
+    // Log das constantes utilizadas
+    if (validation.usedConstants.length > 0) {
+      this.uiManager.log(`🔑 Constantes utilizadas: ${validation.usedConstants.join(', ')}`, 'info');
+    }
+
     this.uiManager.setLoading(true);
 
     try {
-      const result = await this.apiService.executeCode(this.currentSession.id, code);
+      const result = await this.apiService.executeCode(this.currentSession.id, processedCode);
       this.currentSession.executionCount++;
       this.currentSession.pageInfo = result.pageInfo;
       
@@ -899,7 +939,18 @@ return {
         config: {
           slowMo: 0,
           timeout: 60,
-          initialUrl: 'https://example.com'
+          initialUrl: 'https://example.com',
+          constants: {
+            baseUrl: 'https://example.com',
+            timeout: '5000'
+          },
+          automationCode: `// Exemplo usando constantes
+await page.goto('{{ $baseUrl }}');
+await page.waitForTimeout({{ $timeout }});
+
+// Capturar título da página
+const title = await page.title();
+console.log('Título:', title);`
         }
       },
       ecommerce: {
@@ -908,12 +959,36 @@ return {
           slowMo: 0,
           timeout: 90,
           initialUrl: 'https://shopee.com.br',
+          constants: {
+            searchTerm: 'smartphone',
+            maxPrice: '1000',
+            category: 'eletrônicos'
+          },
           sessionData: {
             localStorage: {
               preferred_language: 'pt-BR',
               currency: 'BRL'
             }
-          }
+          },
+          automationCode: `// Buscar produtos usando constantes
+await page.type('#search-input', '{{ $searchTerm }}');
+await page.click('#search-button');
+
+// Filtrar por preço máximo
+await page.type('#max-price', '{{ $maxPrice }}');
+
+// Aguardar resultados
+await page.waitForSelector('.product-item');
+
+// Capturar produtos encontrados
+const products = await page.$$eval('.product-item', items => 
+  items.map(item => ({
+    name: item.querySelector('.product-name')?.textContent,
+    price: item.querySelector('.product-price')?.textContent
+  }))
+);
+
+console.log('Produtos encontrados:', products.length);`
         }
       },
       social: {
@@ -923,11 +998,29 @@ return {
           timeout: 120,
           initialUrl: 'https://twitter.com/login',
           userAgent: 'Mozilla/5.0 (iPhone; CPU iPhone OS 14_7_1 like Mac OS X) AppleWebKit/605.1.15',
+          constants: {
+            username: 'seu_usuario',
+            password: 'sua_senha',
+            tweetText: 'Olá mundo! 🚀'
+          },
           sessionData: {
             cookies: [
               {"name": "logged_in", "value": "yes", "domain": ".twitter.com"}
             ]
-          }
+          },
+          automationCode: `// Login usando constantes
+await page.type('[name="session[username_or_email]"]', '{{ $username }}');
+await page.type('[name="session[password]"]', '{{ $password }}');
+await page.click('[data-testid="LoginForm_Login_Button"]');
+
+// Aguardar login
+await page.waitForSelector('[data-testid="SideNav_NewTweet_Button"]');
+
+// Criar novo tweet
+await page.click('[data-testid="SideNav_NewTweet_Button"]');
+await page.type('[data-testid="tweetTextarea_0"]', '{{ $tweetText }}');
+
+console.log('Tweet preparado:', '{{ $tweetText }}');`
         }
       },
       scraping: {
@@ -936,7 +1029,45 @@ return {
           slowMo: 0,
           timeout: 45,
           blockedResourcesTypes: ['image', 'stylesheet', 'font'],
-          navigationOptions: { waitUntil: 'networkidle0' }
+          navigationOptions: { waitUntil: 'networkidle0' },
+          constants: {
+            targetUrl: 'https://quotes.toscrape.com',
+            maxPages: '3',
+            selector: '.quote'
+          },
+          automationCode: `// Scraping usando constantes
+await page.goto('{{ $targetUrl }}');
+
+const quotes = [];
+let currentPage = 1;
+const maxPages = parseInt('{{ $maxPages }}');
+
+while (currentPage <= maxPages) {
+  console.log(\`Processando página \${currentPage}...\`);
+  
+  // Extrair quotes da página atual
+  const pageQuotes = await page.$$eval('{{ $selector }}', elements =>
+    elements.map(el => ({
+      text: el.querySelector('.text')?.textContent,
+      author: el.querySelector('.author')?.textContent,
+      tags: Array.from(el.querySelectorAll('.tag')).map(tag => tag.textContent)
+    }))
+  );
+  
+  quotes.push(...pageQuotes);
+  
+  // Tentar ir para próxima página
+  const nextButton = await page.$('.next > a');
+  if (nextButton && currentPage < maxPages) {
+    await nextButton.click();
+    await page.waitForSelector('{{ $selector }}');
+    currentPage++;
+  } else {
+    break;
+  }
+}
+
+console.log(\`Total de quotes coletadas: \${quotes.length}\`);`
         }
       }
     };

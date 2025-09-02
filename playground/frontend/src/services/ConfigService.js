@@ -102,8 +102,16 @@ export default class ConfigService {
       if (waitUntil !== 'domcontentloaded') {
         config.navigationOptions = { waitUntil };
       }
+        }
+    
+    // Adicionar constantes se disponíveis
+    if (this.app.constantsManager) {
+      const constants = this.app.constantsManager.getConstantsForConfig();
+      if (Object.keys(constants).length > 0) {
+        config.constants = constants;
+      }
     }
-
+    
     return config;
   }
 
@@ -203,6 +211,11 @@ export default class ConfigService {
     const waitUntilEl = document.getElementById('waitUntil');
     if (waitUntilEl && config.navigationOptions?.waitUntil) {
       waitUntilEl.value = config.navigationOptions.waitUntil;
+    }
+
+    // Carregar constantes se disponíveis
+    if (config.constants && this.app.constantsManager) {
+      this.app.constantsManager.setConstants(config.constants);
     }
 
     if (!isApplyingTemplate) {

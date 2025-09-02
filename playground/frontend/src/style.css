@@ -1581,3 +1581,250 @@ pre[class*="language-"] {
     gap: 12px;
   }
 }
+
+/* ===== CONSTANTS SECTION ===== */
+
+/* Container principal das constantes */
+.constants-container {
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  padding: 16px;
+  margin-bottom: 8px;
+}
+
+/* Lista de constantes */
+.constants-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-bottom: 16px;
+  min-height: 20px;
+}
+
+/* Item individual de constante */
+.constant-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px;
+  background: white;
+  border: 1px solid #e2e8f0;
+  border-radius: 6px;
+  transition: all 0.2s ease;
+}
+
+.constant-item:hover {
+  border-color: #cbd5e0;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+}
+
+/* Label da constante */
+.constant-label {
+  font-size: 13px;
+  font-weight: 500;
+  color: #4a5568;
+  min-width: 80px;
+  flex-shrink: 0;
+}
+
+/* Inputs das constantes */
+.constant-inputs {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex: 1;
+}
+
+.constant-name {
+  flex: 0 0 140px;
+  padding: 8px 12px;
+  border: 1px solid #e2e8f0;
+  border-radius: 4px;
+  font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+  font-size: 12px;
+  font-weight: 600;
+  color: #2d3748;
+  background: white;
+  transition: all 0.2s ease;
+}
+
+.constant-name:focus {
+  outline: none;
+  border-color: #667eea;
+  box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+}
+
+.constant-separator {
+  color: #718096;
+  font-weight: bold;
+  font-size: 14px;
+  margin: 0 4px;
+}
+
+.constant-value {
+  flex: 1;
+  padding: 8px 12px;
+  border: 1px solid #e2e8f0;
+  border-radius: 4px;
+  font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+  font-size: 12px;
+  color: #2d3748;
+  background: white;
+  transition: all 0.2s ease;
+}
+
+.constant-value:focus {
+  outline: none;
+  border-color: #667eea;
+  box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+}
+
+/* Botão de remover constante */
+.remove-constant-btn {
+  padding: 8px;
+  background: #fed7d7;
+  color: #e53e3e;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  z-index: 10;
+  min-width: 32px;
+  min-height: 32px;
+}
+
+.remove-constant-btn:hover {
+  background: #feb2b2;
+  transform: scale(1.05);
+}
+
+.remove-constant-btn i {
+  width: 14px;
+  height: 14px;
+  pointer-events: none;
+}
+
+/* Ações das constantes */
+.constants-actions {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 12px;
+  flex-wrap: wrap;
+}
+
+.add-constant-btn,
+.clear-constants-btn,
+.example-constants-btn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 12px;
+  border: none;
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.add-constant-btn {
+  background: #667eea;
+  color: white;
+}
+
+.add-constant-btn:hover {
+  background: #5a67d8;
+  transform: translateY(-1px);
+}
+
+.clear-constants-btn {
+  background: #fed7d7;
+  color: #e53e3e;
+}
+
+.clear-constants-btn:hover {
+  background: #feb2b2;
+  transform: translateY(-1px);
+}
+
+.example-constants-btn {
+  background: #e2e8f0;
+  color: #4a5568;
+}
+
+.example-constants-btn:hover {
+  background: #cbd5e0;
+  transform: translateY(-1px);
+}
+
+.btn-icon {
+  width: 14px;
+  height: 14px;
+}
+
+/* Ajuda das constantes */
+.constants-help {
+  padding-top: 8px;
+  border-top: 1px solid #e2e8f0;
+}
+
+.constants-help small {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: #718096;
+  font-size: 12px;
+}
+
+.help-icon {
+  width: 12px;
+  height: 12px;
+  color: #9ca3af;
+}
+
+.constants-help code {
+  background: #edf2f7;
+  color: #667eea;
+  padding: 2px 4px;
+  border-radius: 3px;
+  font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+  font-size: 11px;
+  font-weight: 600;
+}
+
+/* Estados de validação */
+.constant-item.error {
+  border-color: #e53e3e;
+  background: #fed7d7;
+}
+
+.constant-item.success {
+  border-color: #38a169;
+  background: #c6f6d5;
+}
+
+.constant-name.invalid,
+.constant-value.invalid {
+  border-color: #e53e3e;
+  background: #fed7d7;
+}
+
+/* Estado vazio */
+.constants-list:empty::before {
+  content: "Nenhuma constante definida. Clique em 'Adicionar' para começar.";
+  display: block;
+  text-align: center;
+  color: #9ca3af;
+  font-style: italic;
+  font-size: 13px;
+  padding: 20px;
+  border: 2px dashed #e2e8f0;
+  border-radius: 6px;
+  background: white;
+}

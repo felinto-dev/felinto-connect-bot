@@ -134,6 +134,35 @@
           </div>
 
           <div class="config-group">
+            <h3><i data-lucide="key" class="subsection-icon"></i> Constantes</h3>
+            
+            <div class="constants-container">
+              <div class="constants-list" id="constantsList">
+                <!-- Constantes serão inseridas dinamicamente aqui -->
+              </div>
+              
+              <div class="constants-actions">
+                <button type="button" class="add-constant-btn" id="addConstantBtn">
+                  <i data-lucide="plus" class="btn-icon"></i>
+                  Adicionar
+                </button>
+                <button type="button" class="clear-constants-btn" id="clearConstantsBtn">
+                  <i data-lucide="trash-2" class="btn-icon"></i>
+                  Limpar Tudo
+                </button>
+                <button type="button" class="example-constants-btn" id="exampleConstantsBtn">
+                  <i data-lucide="file-text" class="btn-icon"></i>
+                  Exemplo
+                </button>
+              </div>
+              
+              <div class="constants-help">
+                <small><i data-lucide="info" class="help-icon"></i> Sintaxe: Use <code>{{ $nome }}</code> no seu código</small>
+              </div>
+            </div>
+          </div>
+
+          <div class="config-group">
             <div class="advanced-main-header">
               <h3><i data-lucide="settings" class="subsection-icon"></i> Configurações Avançadas</h3>
               <button id="toggleAdvancedConfig" class="advanced-toggle-btn" title="Mostrar/Ocultar configurações avançadas">
