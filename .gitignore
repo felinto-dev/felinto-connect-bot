@@ -2,3 +2,4 @@ dist
 node_modules
 .pnpm-store
 .env
+# Keep .npmrc for pnpm configuration

@@ -1,32 +1,31 @@
 {
 	"name": "@felinto-dev/felinto-connect-bot",
 	"version": "2.4.0",
-	"main": "dist/index.js",
-	"module": "dist/index.mjs",
-	"types": "dist/index.d.ts",
+	"main": "lib/dist/index.js",
+	"module": "lib/dist/index.mjs",
+	"types": "lib/dist/index.d.ts",
 	"private": false,
 	"license": "MIT",
 	"scripts": {
-		"dev": "tsup index.ts --format cjs,esm --dts --watch",
-		"build": "tsup index.ts --format cjs,esm --dts",
+		"dev": "cd lib && pnpm dev",
+		"build": "cd lib && pnpm build",
+		"test": "cd lib && pnpm test",
+		"lint": "cd lib && pnpm lint",
 		"release": "pnpm run build && changeset publish",
-		"lint": "tsc"
+		"clean": "rm -rf lib/dist node_modules playground/node_modules playground/backend/node_modules playground/frontend/node_modules",
+		"setup": "pnpm install && pnpm playground:install",
+		"playground:install": "cd playground && pnpm install && cd backend && pnpm install && cd ../frontend && pnpm install",
+		"playground:dev": "cd playground && pnpm dev",
+		"playground:backend": "cd playground/backend && pnpm dev",
+		"playground:frontend": "cd playground/frontend && pnpm dev",
+		"playground:server": "cd playground/backend && pnpm start",
+		"lib:build": "pnpm build",
+		"lib:dev": "pnpm dev",
+		"lib:test": "pnpm test",
+		"lib:install": "cd lib && pnpm install",
+		"lib:publish": "cd lib && npm publish"
 	},
 	"devDependencies": {
-		"@changesets/cli": "^2.27.9",
-		"@jest/globals": "^29.7.0",
-		"@types/node": "^22.10.2",
-		"@types/tough-cookie": "^4.0.5",
-		"jest": "^29.7.0",
-		"ts-jest": "^29.2.5",
-		"tsup": "^8.3.5",
-		"typescript": "^5.7.2"
-	},
-	"dependencies": {
-		"puppeteer-core": "^24.15.0",
-		"puppeteer-extra": "^3.3.6",
-		"puppeteer-extra-plugin-recaptcha": "^3.6.8",
-		"puppeteer-extra-plugin-session": "^1.0.1",
-		"tough-cookie": "^5.1.2"
+		"@changesets/cli": "^2.27.9"
 	}
 }

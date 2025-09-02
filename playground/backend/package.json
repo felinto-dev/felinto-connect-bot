@@ -18,7 +18,7 @@
   "license": "ISC",
   "packageManager": "pnpm@10.10.0",
   "dependencies": {
-    "@felinto-dev/felinto-connect-bot": "link:../..",
+    "@felinto-dev/felinto-connect-bot": "link:../../lib",
     "cors": "^2.8.5",
     "express": "^5.1.0",
     "marked": "^16.2.1",

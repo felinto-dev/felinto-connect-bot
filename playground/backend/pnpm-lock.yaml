@@ -9,8 +9,8 @@ importers:
   .:
     dependencies:
       '@felinto-dev/felinto-connect-bot':
-        specifier: link:../..
-        version: link:../..
+        specifier: link:../../lib
+        version: link:../../lib
       cors:
         specifier: ^2.8.5
         version: 2.8.5
