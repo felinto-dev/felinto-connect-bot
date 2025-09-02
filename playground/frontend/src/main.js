@@ -985,7 +985,7 @@ class PlaygroundApp {
   }
 
   // Generate Code Automatically (local generation)
-  generateCodeAutomatically() {
+  generateCodeAutomatically(forceOverwrite = false) {
     // Não gerar código automaticamente se houver configuração salva para os editores
     const savedConfig = this.loadConfig();
     
@@ -998,11 +998,11 @@ class PlaygroundApp {
     // Gerar código localmente sem requisição HTTP
     const codeSections = this.generateCodeSections(config);
 
-    // Se houver código salvo (incluindo vazio), não sobrescrever
-    if (savedConfig.automationCode !== undefined) {
+    // Se houver código salvo (incluindo vazio), não sobrescrever, a menos que seja forçado
+    if (savedConfig.automationCode !== undefined && !forceOverwrite) {
       delete codeSections.automation;
     }
-    if (savedConfig.footerCode !== undefined) {
+    if (savedConfig.footerCode !== undefined && !forceOverwrite) {
       delete codeSections.footer;
     }
 
@@ -1979,16 +1979,8 @@ return {
 
     this.log(`Aplicando template: ${template.name}`, 'info');
     
-    // Limpar código personalizado salvo para forçar regeneração
-    const currentConfig = this.loadConfig();
-    delete currentConfig.automationCode;
-    delete currentConfig.footerCode;
-    localStorage.setItem('playground-config', JSON.stringify(currentConfig));
-    
-    // Atualizar cache da instância também
-    this.config = currentConfig;
-    
-    this.setConfigToForm(template.config, true); // true = aplicando template
+    // Aplicar configuração do template e forçar a sobrescrita dos editores
+    this.setConfigToForm(template.config, true);
   }
 
   applySessionTemplate(templateName) {
@@ -2056,8 +2048,8 @@ return {
       }
     }
     
-    // Gerar código automaticamente após template
-    this.generateCodeAutomatically();
+    // Gerar código automaticamente após carregar configuração
+    this.generateCodeAutomatically(true);
   }
 
   applyUserAgentTemplate(templateName) {
@@ -2211,7 +2203,7 @@ return {
     }
     
     // Gerar código automaticamente após carregar configuração
-    this.generateCodeAutomatically();
+    this.generateCodeAutomatically(isApplyingTemplate);
   }
 
   // Documentation Modal
