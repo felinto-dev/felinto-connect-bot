@@ -486,7 +486,7 @@ class PlaygroundApp {
       this.uiManager.log(`🔑 Constantes utilizadas: ${validation.usedConstants.join(', ')}`, 'info');
     }
 
-    this.uiManager.setLoading(true);
+    this.uiManager.setExecuteCodeLoading(true);
 
     try {
       const result = await this.apiService.executeCode(this.currentSession.id, processedCode);
@@ -504,7 +504,7 @@ class PlaygroundApp {
       }
       this.uiManager.log(`❌ Erro na execução: ${details.error || error.message}`, 'error');
     } finally {
-      this.uiManager.setLoading(false);
+      this.uiManager.setExecuteCodeLoading(false);
     }
   }
 

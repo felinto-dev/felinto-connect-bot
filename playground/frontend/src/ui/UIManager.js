@@ -52,6 +52,22 @@ export default class UIManager {
     }
   }
 
+  setExecuteCodeLoading(loading) {
+    const executeCodeBtn = document.getElementById('executeCodeBtn');
+    if (!executeCodeBtn) return;
+    
+    if (loading) {
+      executeCodeBtn.disabled = true;
+      executeCodeBtn.innerHTML = '<div class="spinner"></div> Executando Automação...';
+      executeCodeBtn.classList.add('loading');
+    } else {
+      executeCodeBtn.disabled = false;
+      executeCodeBtn.innerHTML = '<i data-lucide="play"></i> Executar Automação';
+      executeCodeBtn.classList.remove('loading');
+      this.app.initializeIcons();
+    }
+  }
+
   updateSessionStatus() {
     const sessionToggleBtn = document.getElementById('sessionToggleBtn');
     const executeBtn = document.getElementById('executeCodeBtn');
