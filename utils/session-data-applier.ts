@@ -71,12 +71,35 @@ export class SessionDataApplier {
 				}
 				
 			} else {
-				// Apply provided cookies with proper sameSite handling
-				const validCookies = sessionData.cookies.map(cookie => ({
-					...cookie,
-					// Convert null sameSite to undefined (Chrome doesn't accept null)
-					sameSite: cookie.sameSite === null ? undefined : cookie.sameSite
-				}));
+				// Apply provided cookies with proper field sanitization for Chrome compatibility
+				const validCookies = sessionData.cookies.map(cookie => {
+					// Create a clean cookie object with only Chrome-compatible fields
+					const cleanCookie: any = {
+						name: cookie.name,
+						value: cookie.value,
+						domain: cookie.domain,
+						path: cookie.path || '/',
+						secure: cookie.secure || false,
+						httpOnly: cookie.httpOnly || false
+					};
+
+					// Handle sameSite - convert null to undefined (Chrome doesn't accept null)
+					if (cookie.sameSite && cookie.sameSite !== null) {
+						cleanCookie.sameSite = cookie.sameSite;
+					}
+
+					// Handle expiration - only add if it's not a session cookie
+					if (!cookie.session && cookie.expirationDate) {
+						cleanCookie.expires = cookie.expirationDate;
+					}
+
+					// Remove Firefox-specific fields that Chrome doesn't understand:
+					// - hostOnly, firstPartyDomain, partitionKey, storeId, session
+					// These fields are automatically removed by only including the fields above
+
+					return cleanCookie;
+				});
+
 				await page.setCookie(...validCookies);
 			}
 		}
