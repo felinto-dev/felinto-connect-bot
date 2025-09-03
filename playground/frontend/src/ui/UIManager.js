@@ -68,9 +68,26 @@ export default class UIManager {
     }
   }
 
+  setExecuteExtractionLoading(loading) {
+    const executeExtractionBtn = document.getElementById('executeExtractionBtn');
+    if (!executeExtractionBtn) return;
+    
+    if (loading) {
+      executeExtractionBtn.disabled = true;
+      executeExtractionBtn.innerHTML = '<div class="spinner"></div> Executando Extração...';
+      executeExtractionBtn.classList.add('loading');
+    } else {
+      executeExtractionBtn.disabled = false;
+      executeExtractionBtn.innerHTML = '<i data-lucide="database"></i> Executar Extração';
+      executeExtractionBtn.classList.remove('loading');
+      this.app.initializeIcons();
+    }
+  }
+
   updateSessionStatus() {
     const sessionToggleBtn = document.getElementById('sessionToggleBtn');
     const executeBtn = document.getElementById('executeCodeBtn');
+    const executeExtractionBtn = document.getElementById('executeExtractionBtn');
     const screenshotBtn = document.getElementById('takeScreenshotBtn');
 
     if (this.app.currentSession.active) {
@@ -78,16 +95,18 @@ export default class UIManager {
       sessionToggleBtn.title = 'Fechar sessão ativa';
       sessionToggleBtn.innerHTML = '<i data-lucide="x-circle"></i>Fechar Sessão';
       
-      executeBtn.disabled = false;
-      screenshotBtn.disabled = false;
+      if (executeBtn) executeBtn.disabled = false;
+      if (executeExtractionBtn) executeExtractionBtn.disabled = false;
+      if (screenshotBtn) screenshotBtn.disabled = false;
       
     } else {
       sessionToggleBtn.className = 'btn btn-success';
       sessionToggleBtn.title = 'Criar nova sessão Puppeteer';
       sessionToggleBtn.innerHTML = '<i data-lucide="plus-circle"></i>Criar Sessão';
       
-      executeBtn.disabled = true;
-      screenshotBtn.disabled = true;
+      if (executeBtn) executeBtn.disabled = true;
+      if (executeExtractionBtn) executeExtractionBtn.disabled = true;
+      if (screenshotBtn) screenshotBtn.disabled = true;
     }
     
     this.app.initializeIcons();

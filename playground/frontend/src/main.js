@@ -14,6 +14,7 @@ import UIManager from './ui/UIManager.js';
 import ApiService from './services/ApiService.js';
 import EditorManager from './ui/EditorManager.js';
 import ConstantsManager from './services/ConstantsManager.js';
+import CodeProcessingService from './services/CodeProcessingService.js';
 
 class PlaygroundApp {
   constructor() {
@@ -22,6 +23,8 @@ class PlaygroundApp {
     this.uiManager = new UIManager(this);
     this.apiService = new ApiService();
     this.editorManager = new EditorManager(this);
+    this.constantsManager = new ConstantsManager(this);
+    this.codeProcessingService = new CodeProcessingService(this.constantsManager);
     this.config = this.configService.loadConfig();
     this.templates = this.getTemplates();
     this.editors = this.editorManager.editors; // Shortcut
@@ -48,9 +51,6 @@ class PlaygroundApp {
     this.setupEventListeners();
     this.configService.loadAdvancedConfigState();
     this.editorManager.init();
-    
-    // Inicializar ConstantsManager APÓS os editores estarem prontos
-    this.constantsManager = new ConstantsManager(this);
     
     // Carregar configuração APÓS inicializar editores e constantes
     this.configService.loadSavedConfig();
@@ -156,6 +156,11 @@ class PlaygroundApp {
         case 'executeCodeBtn':
           e.preventDefault();
           this.executeCode();
+          break;
+          
+        case 'executeExtractionBtn':
+          e.preventDefault();
+          this.executeExtraction();
           break;
           
         case 'takeScreenshotBtn':
@@ -368,37 +373,26 @@ class PlaygroundApp {
       return;
     }
 
-    // Verificar se há código editado para incluir na execução
-    let customCode = '';
-    if (this.editors.header && this.editors.automation && this.editors.footer) {
-      const headerCode = this.editors.header.state.doc.toString();
-      const automationCode = this.editors.automation.state.doc.toString();
-      const footerCode = this.editors.footer.state.doc.toString();
-      
-      customCode = `${headerCode}\n\n${automationCode}\n\n${footerCode}`;
+    // Processar código da sessão completa usando o novo serviço
+    const codeBlocks = {
+      header: this.editors.header?.state.doc.toString() || '',
+      automation: this.editors.automation?.state.doc.toString() || '',
+      footer: this.editors.footer?.state.doc.toString() || ''
+    };
+    
+    const processingResult = this.codeProcessingService.processSessionCode(codeBlocks);
+    
+    if (!processingResult.isValid) {
+      this.uiManager.log(`❌ ${processingResult.getErrorMessage()}`, 'error');
+      return;
     }
     
-    // Processar constantes no código customizado se disponível
-    if (customCode && customCode.trim() && !customCode.includes('// Configure os parâmetros acima')) {
-      // Obter constantes definidas
-      const constants = this.constantsManager.getConstants();
-      
-      // Validar uso de constantes
-      const validation = ConstantsManager.validateConstantUsage(customCode, constants);
-      
-      if (!validation.isValid) {
-        this.uiManager.log(`❌ Constantes não definidas: ${validation.undefinedConstants.join(', ')}`, 'error');
-        return;
-      }
-      
-      // Processar constantes no código
-      const processedCode = ConstantsManager.processConstants(customCode, constants);
-      config.customCode = processedCode;
-      
-      // Log das constantes utilizadas
-      if (validation.usedConstants.length > 0) {
-        this.uiManager.log(`🔑 Constantes utilizadas: ${validation.usedConstants.join(', ')}`, 'info');
-      }
+    // Adicionar código processado à configuração
+    config.customCode = processingResult.processedCode;
+    
+    // Log das constantes utilizadas
+    if (processingResult.hasUsedConstants()) {
+      this.uiManager.log(`🔑 Constantes utilizadas: ${processingResult.usedConstants.join(', ')}`, 'info');
     }
 
     this.uiManager.log('🚀 Executando sessão...', 'info');
@@ -456,40 +450,25 @@ class PlaygroundApp {
     }
 
     // Get code from automation editor
-    let code = this.editors.automation ? this.editors.automation.state.doc.toString() : '';
+    const code = this.editors.automation ? this.editors.automation.state.doc.toString() : '';
     
-    // Remove comments and whitespace to check if there's actual code
-    const codeWithoutComments = code
-      .replace(/\/\/.*$/gm, '') // Remove single line comments
-      .replace(/\/\*[\s\S]*?\*\//g, '') // Remove multi-line comments
-      .trim();
+    // Processar código usando o novo serviço
+    const processingResult = this.codeProcessingService.processCode(code, 'automation');
     
-    if (!codeWithoutComments) {
-      this.uiManager.log('❌ Escreva algum código na seção "Código da Automação" primeiro.', 'error');
+    if (!processingResult.isValid) {
+      this.uiManager.log(`❌ ${processingResult.getErrorMessage()}`, 'error');
       return;
     }
-
-    // Processar constantes no código
-    const constants = this.constantsManager.getConstants();
-    const validation = ConstantsManager.validateConstantUsage(code, constants);
-    
-    if (!validation.isValid) {
-      this.uiManager.log(`❌ Constantes não definidas: ${validation.undefinedConstants.join(', ')}`, 'error');
-      return;
-    }
-    
-    // Aplicar constantes ao código
-    const processedCode = ConstantsManager.processConstants(code, constants);
     
     // Log das constantes utilizadas
-    if (validation.usedConstants.length > 0) {
-      this.uiManager.log(`🔑 Constantes utilizadas: ${validation.usedConstants.join(', ')}`, 'info');
+    if (processingResult.hasUsedConstants()) {
+      this.uiManager.log(`🔑 Constantes utilizadas: ${processingResult.usedConstants.join(', ')}`, 'info');
     }
 
     this.uiManager.setExecuteCodeLoading(true);
 
     try {
-      const result = await this.apiService.executeCode(this.currentSession.id, processedCode);
+      const result = await this.apiService.executeCode(this.currentSession.id, processingResult.processedCode);
       this.currentSession.executionCount++;
       this.currentSession.pageInfo = result.pageInfo;
       
@@ -505,6 +484,60 @@ class PlaygroundApp {
       this.uiManager.log(`❌ Erro na execução: ${details.error || error.message}`, 'error');
     } finally {
       this.uiManager.setExecuteCodeLoading(false);
+    }
+  }
+
+  // Execute extraction code only
+  async executeExtraction() {
+    if (!this.currentSession.active) {
+      this.uiManager.log('❌ Nenhuma sessão ativa. Crie uma sessão primeiro.', 'error');
+      return;
+    }
+
+    // Get code from footer editor
+    const footerCode = this.editors.footer ? this.editors.footer.state.doc.toString() : '';
+    
+    // Processar código usando o novo serviço
+    const processingResult = this.codeProcessingService.processCode(footerCode, 'footer');
+    
+    if (!processingResult.isValid) {
+      this.uiManager.log(`❌ ${processingResult.getErrorMessage()}`, 'error');
+      return;
+    }
+    
+    // Log das constantes utilizadas
+    if (processingResult.hasUsedConstants()) {
+      this.uiManager.log(`🔑 Constantes utilizadas na extração: ${processingResult.usedConstants.join(', ')}`, 'info');
+    }
+
+    this.uiManager.setExecuteExtractionLoading(true);
+
+    try {
+      const result = await this.apiService.executeCode(this.currentSession.id, processingResult.processedCode);
+      
+      if (result.result) {
+        this.uiManager.log(`📋 Dados extraídos: ${JSON.stringify(result.result, null, 2)}`, 'info');
+        
+        // Exibir dados na aba "Dados" dos resultados
+        this.uiManager.showExtractionData(result.result);
+        this.uiManager.switchResultsTab('data');
+      } else {
+        this.uiManager.log('✅ Extração executada com sucesso (sem dados retornados)', 'success');
+      }
+      
+      // Atualizar informações da página se disponível
+      if (result.pageInfo) {
+        this.currentSession.pageInfo = result.pageInfo;
+        this.uiManager.updateSessionStatus();
+      }
+    } catch (error) {
+      const details = error.details || {};
+      if (details.sessionExpired) {
+        this.handleSessionExpired(this.currentSession.id);
+      }
+      this.uiManager.log(`❌ Erro na extração: ${details.error || error.message}`, 'error');
+    } finally {
+      this.uiManager.setExecuteExtractionLoading(false);
     }
   }
 
@@ -546,18 +579,32 @@ class PlaygroundApp {
       // Executar código de extração de dados antes de fechar
       const footerCode = this.editors.footer?.state.doc.toString();
       
-      // Executar se há código (incluindo o código padrão)
-      if (footerCode && footerCode.trim() && !footerCode.trim().startsWith('//') || 
-          (footerCode && footerCode.includes('return'))) {
+      // Verificar se há código de extração para executar
+      if (this.codeProcessingService.hasExecutableContent(footerCode)) {
+        this.uiManager.log('🔍 Executando extração de dados...', 'info');
         
         try {
-          const executeResult = await this.apiService.executeCode(this.currentSession.id, footerCode);
-          if (executeResult.result) {
-            this.uiManager.log(`📋 Dados extraídos: ${JSON.stringify(executeResult.result, null, 2)}`, 'info');
+          // Processar constantes no código de extração usando o novo serviço
+          const processingResult = this.codeProcessingService.processCode(footerCode, 'footer');
+          
+          if (!processingResult.isValid) {
+            this.uiManager.log(`⚠️ Erro no código de extração: ${processingResult.getErrorMessage()}`, 'warning');
+          } else {
+            // Log das constantes utilizadas na extração
+            if (processingResult.hasUsedConstants()) {
+              this.uiManager.log(`🔑 Constantes utilizadas na extração: ${processingResult.usedConstants.join(', ')}`, 'info');
+            }
             
-            // Exibir dados na aba "Dados" dos resultados
-            this.uiManager.showExtractionData(executeResult.result);
-            this.uiManager.switchResultsTab('data');
+            // Executar código processado
+            const executeResult = await this.apiService.executeCode(this.currentSession.id, processingResult.processedCode);
+            
+            if (executeResult.result) {
+              this.uiManager.log(`📋 Dados extraídos: ${JSON.stringify(executeResult.result, null, 2)}`, 'info');
+              
+              // Exibir dados na aba "Dados" dos resultados
+              this.uiManager.showExtractionData(executeResult.result);
+              this.uiManager.switchResultsTab('data');
+            }
           }
         } catch (extractError) {
           const details = extractError.details || {};

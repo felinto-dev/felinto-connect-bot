@@ -439,6 +439,18 @@ body {
   min-width: 0;
 }
 
+/* Estado desabilitado geral para todos os botões */
+.btn:disabled {
+  cursor: not-allowed !important;
+  opacity: 0.6;
+  /* Remover pointer-events: none para permitir hover do cursor */
+}
+
+/* Garantir que o cursor apareça no hover de botões desabilitados */
+.btn:disabled:hover {
+  cursor: not-allowed !important;
+}
+
 .btn i {
   width: 16px;
   height: 16px;
@@ -470,6 +482,25 @@ body {
 .btn-secondary:hover {
   background: #f7fafc;
   border-color: #cbd5e0;
+}
+
+.btn-info {
+  background: #3182ce;
+  color: white;
+  border-color: #3182ce;
+}
+
+.btn-info:hover:not(:disabled) {
+  background: #2c5aa0;
+  border-color: #2c5aa0;
+}
+
+.btn-info:disabled {
+  background: #6b7280 !important;
+  border-color: #6b7280 !important;
+  color: #f9fafb !important;
+  opacity: 0.6 !important;
+  cursor: not-allowed !important;
 }
 
 

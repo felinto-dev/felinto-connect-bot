@@ -276,20 +276,29 @@ export default class ConstantsManager {
     
     let processedCode = code;
     
-    // Regex para encontrar padrões {{ $variavel }}
-    const constantPattern = /\{\{\s*\$([a-zA-Z_][a-zA-Z0-9_]*)\s*\}\}/g;
+    // Regex para encontrar padrões {{ $variavel }} - incluindo contexto de aspas
+    const constantPattern = /(['"]?)\{\{\s*\$([a-zA-Z_][a-zA-Z0-9_]*)\s*\}\}(['"]?)/g;
     
-    processedCode = processedCode.replace(constantPattern, (match, variableName) => {
+    processedCode = processedCode.replace(constantPattern, (match, openQuote, variableName, closeQuote) => {
       if (constants.hasOwnProperty(variableName)) {
         const value = constants[variableName];
         
-        // Determinar se o valor precisa de aspas (string) ou não (número/boolean)
-        if (typeof value === 'string') {
-          // Escapar aspas e caracteres especiais na string
-          return JSON.stringify(value);
+        // Se já está entre aspas, substituir apenas o valor
+        if (openQuote && closeQuote) {
+          if (typeof value === 'string') {
+            // Escapar aspas internas se necessário
+            return openQuote + value.replace(/"/g, '\\"').replace(/'/g, "\\'") + closeQuote;
+          } else {
+            // Para números/booleans em contexto de string, converter para string
+            return openQuote + String(value) + closeQuote;
+          }
         } else {
-          // Números, booleans, etc. - inserir diretamente
-          return String(value);
+          // Se não está entre aspas, aplicar formatação adequada
+          if (typeof value === 'string') {
+            return JSON.stringify(value);
+          } else {
+            return String(value);
+          }
         }
       } else {
         // Constante não encontrada - manter original
