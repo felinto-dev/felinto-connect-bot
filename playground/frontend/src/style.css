@@ -380,8 +380,8 @@ body {
 
 /* Template Buttons */
 .template-buttons {
-  display: grid;
-  grid-template-columns: repeat(2, 1fr);
+  display: flex;
+  flex-wrap: wrap;
   gap: 12px;
 }
 
@@ -399,6 +399,8 @@ body {
   align-items: center;
   justify-content: center;
   gap: 6px;
+  flex: 1;
+  min-width: 0;
 }
 
 .template-btn:hover {
