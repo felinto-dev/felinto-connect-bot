@@ -50,6 +50,7 @@ class PlaygroundApp {
     this.setupWebSocket();
     this.setupEventListeners();
     this.configService.loadAdvancedConfigState();
+    this.configService.loadSectionStates();
     this.editorManager.init();
     
     // Carregar configuração APÓS inicializar editores e constantes
@@ -208,6 +209,16 @@ class PlaygroundApp {
         case 'toggleAdvancedConfig':
           e.preventDefault();
           this.uiManager.toggleAdvancedConfig();
+          break;
+          
+        case 'toggleConfigSection':
+          e.preventDefault();
+          this.uiManager.toggleConfigSection();
+          break;
+          
+        case 'toggleExecutionSection':
+          e.preventDefault();
+          this.uiManager.toggleExecutionSection();
           break;
       }
     });

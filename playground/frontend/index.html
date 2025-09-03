@@ -29,6 +29,10 @@
           <div class="section-header">
             <h2><i data-lucide="settings" class="section-icon"></i> Configurações da sessão</h2>
             <div class="header-actions">
+              <button id="toggleConfigSection" class="section-toggle-btn" title="Expandir/Recolher seção">
+                <i data-lucide="chevron-up" class="toggle-icon"></i>
+                <span class="toggle-text">Recolher</span>
+              </button>
               <div class="dropdown">
                 <button id="importDropdownBtn" class="btn btn-secondary btn-small dropdown-toggle" title="Importar configurações">
                   <i data-lucide="upload"></i>
@@ -60,6 +64,7 @@
             </div>
           </div>
           
+          <div id="configSectionContent" class="section-content">
           <div class="config-group">
             <div class="field">
               <label for="browserWSEndpoint">
@@ -283,12 +288,17 @@
               </button>
             </div>
           </div>
+          </div>
         </section>
 
         <section class="execution-section">
           <div class="section-header">
             <h2><i data-lucide="play" class="section-icon"></i> Execução</h2>
             <div class="header-actions">
+              <button id="toggleExecutionSection" class="section-toggle-btn" title="Expandir/Recolher seção">
+                <i data-lucide="chevron-up" class="toggle-icon"></i>
+                <span class="toggle-text">Recolher</span>
+              </button>
               <button id="copyCodeBtn" class="btn btn-secondary btn-small" title="Copiar código completo para clipboard">
                 <i data-lucide="copy"></i>
                 Copiar Código
@@ -296,9 +306,7 @@
             </div>
           </div>
           
-
-
-
+          <div id="executionSectionContent" class="section-content">
 
           <!-- Código da Automação -->
           <div class="execution-group" id="automationCodeGroup">
@@ -402,6 +410,7 @@
             <div id="logs" class="console-output">
               <!-- Logs serão adicionados dinamicamente -->
             </div>
+          </div>
           </div>
         </section>
       </main>

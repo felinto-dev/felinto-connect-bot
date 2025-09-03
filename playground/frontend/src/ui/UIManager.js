@@ -417,4 +417,60 @@ export default class UIManager {
       this.app.initializeIcons();
     }, duration);
   }
+
+  toggleConfigSection() {
+    const toggleBtn = document.getElementById('toggleConfigSection');
+    const content = document.getElementById('configSectionContent');
+    const toggleIcon = toggleBtn.querySelector('.toggle-icon');
+    const toggleText = toggleBtn.querySelector('.toggle-text');
+    
+    if (!toggleBtn || !content || !toggleIcon || !toggleText) return;
+    
+    const isExpanded = !content.classList.contains('collapsed');
+    
+    if (isExpanded) {
+      content.classList.add('collapsed');
+      toggleBtn.classList.add('collapsed');
+      toggleText.textContent = 'Expandir';
+    } else {
+      content.classList.remove('collapsed');
+      toggleBtn.classList.remove('collapsed');
+      toggleText.textContent = 'Recolher';
+    }
+    
+    // Salvar estado no localStorage
+    localStorage.setItem('playground-config-section-collapsed', JSON.stringify(!isExpanded));
+    
+    setTimeout(() => {
+      this.app.initializeIcons();
+    }, 100);
+  }
+
+  toggleExecutionSection() {
+    const toggleBtn = document.getElementById('toggleExecutionSection');
+    const content = document.getElementById('executionSectionContent');
+    const toggleIcon = toggleBtn.querySelector('.toggle-icon');
+    const toggleText = toggleBtn.querySelector('.toggle-text');
+    
+    if (!toggleBtn || !content || !toggleIcon || !toggleText) return;
+    
+    const isExpanded = !content.classList.contains('collapsed');
+    
+    if (isExpanded) {
+      content.classList.add('collapsed');
+      toggleBtn.classList.add('collapsed');
+      toggleText.textContent = 'Expandir';
+    } else {
+      content.classList.remove('collapsed');
+      toggleBtn.classList.remove('collapsed');
+      toggleText.textContent = 'Recolher';
+    }
+    
+    // Salvar estado no localStorage
+    localStorage.setItem('playground-execution-section-collapsed', JSON.stringify(!isExpanded));
+    
+    setTimeout(() => {
+      this.app.initializeIcons();
+    }, 100);
+  }
 }

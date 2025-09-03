@@ -253,6 +253,59 @@ export default class ConfigService {
     }
   }
 
+  loadSectionStates() {
+    this.loadConfigSectionState();
+    this.loadExecutionSectionState();
+  }
+
+  loadConfigSectionState() {
+    try {
+      const saved = localStorage.getItem('playground-config-section-collapsed');
+      const isCollapsed = saved ? JSON.parse(saved) : false;
+      
+      const toggleBtn = document.getElementById('toggleConfigSection');
+      const content = document.getElementById('configSectionContent');
+      
+      if (!toggleBtn || !content) return;
+      
+      if (isCollapsed) {
+        content.classList.add('collapsed');
+        toggleBtn.classList.add('collapsed');
+        toggleBtn.querySelector('.toggle-text').textContent = 'Expandir';
+      } else {
+        content.classList.remove('collapsed');
+        toggleBtn.classList.remove('collapsed');
+        toggleBtn.querySelector('.toggle-text').textContent = 'Recolher';
+      }
+    } catch (error) {
+      console.warn('Erro ao carregar estado da seção de configurações:', error);
+    }
+  }
+
+  loadExecutionSectionState() {
+    try {
+      const saved = localStorage.getItem('playground-execution-section-collapsed');
+      const isCollapsed = saved ? JSON.parse(saved) : false;
+      
+      const toggleBtn = document.getElementById('toggleExecutionSection');
+      const content = document.getElementById('executionSectionContent');
+      
+      if (!toggleBtn || !content) return;
+      
+      if (isCollapsed) {
+        content.classList.add('collapsed');
+        toggleBtn.classList.add('collapsed');
+        toggleBtn.querySelector('.toggle-text').textContent = 'Expandir';
+      } else {
+        content.classList.remove('collapsed');
+        toggleBtn.classList.remove('collapsed');
+        toggleBtn.querySelector('.toggle-text').textContent = 'Recolher';
+      }
+    } catch (error) {
+      console.warn('Erro ao carregar estado da seção de execução:', error);
+    }
+  }
+
   saveConfig() {
     if (this.isLoadingConfig) {
       return;
