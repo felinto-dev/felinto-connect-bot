@@ -152,6 +152,11 @@ body {
   gap: 8px;
 }
 
+/* Remove margin when h3 is inside field-header-with-toggle for proper alignment */
+.field-header-with-toggle h3 {
+  margin-bottom: 0;
+}
+
 .subsection-icon {
   width: 14px;
   height: 14px;
