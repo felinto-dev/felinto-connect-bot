@@ -1942,9 +1942,7 @@ pre[class*="language-"] {
   flex-wrap: wrap;
 }
 
-.add-constant-btn,
-.clear-constants-btn,
-.example-constants-btn {
+.add-constant-btn {
   display: flex;
   align-items: center;
   gap: 6px;
@@ -1955,9 +1953,6 @@ pre[class*="language-"] {
   font-weight: 500;
   cursor: pointer;
   transition: all 0.2s ease;
-}
-
-.add-constant-btn {
   background: #667eea;
   color: white;
 }
@@ -1967,25 +1962,7 @@ pre[class*="language-"] {
   transform: translateY(-1px);
 }
 
-.clear-constants-btn {
-  background: #fed7d7;
-  color: #e53e3e;
-}
 
-.clear-constants-btn:hover {
-  background: #feb2b2;
-  transform: translateY(-1px);
-}
-
-.example-constants-btn {
-  background: #e2e8f0;
-  color: #4a5568;
-}
-
-.example-constants-btn:hover {
-  background: #cbd5e0;
-  transform: translateY(-1px);
-}
 
 .btn-icon {
   width: 14px;
@@ -2040,15 +2017,26 @@ pre[class*="language-"] {
 }
 
 /* Estado vazio */
-.constants-list:empty::before {
-  content: "Nenhuma constante definida. Clique em 'Adicionar' para começar.";
-  display: block;
-  text-align: center;
-  color: #9ca3af;
-  font-style: italic;
-  font-size: 13px;
+.empty-state-content {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
   padding: 20px;
   border: 2px dashed #e2e8f0;
   border-radius: 6px;
   background: white;
+  gap: 12px;
+}
+
+.empty-state-text {
+  color: #9ca3af;
+  font-style: italic;
+  font-size: 13px;
+  text-align: center;
+  margin: 0;
+}
+
+.empty-state-btn {
+  margin-top: 4px;
 }

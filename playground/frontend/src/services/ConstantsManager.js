@@ -15,6 +15,7 @@ export default class ConstantsManager {
     
     this.setupEventListeners();
     this.loadConstants();
+    this.updateEmptyState();
   }
 
   setupEventListeners() {
@@ -22,18 +23,6 @@ export default class ConstantsManager {
     const addBtn = document.getElementById('addConstantBtn');
     if (addBtn) {
       addBtn.addEventListener('click', () => this.addConstant());
-    }
-
-    // Botão limpar todas as constantes
-    const clearBtn = document.getElementById('clearConstantsBtn');
-    if (clearBtn) {
-      clearBtn.addEventListener('click', () => this.clearAllConstants());
-    }
-
-    // Botão exemplo
-    const exampleBtn = document.getElementById('exampleConstantsBtn');
-    if (exampleBtn) {
-      exampleBtn.addEventListener('click', () => this.loadExampleConstants());
     }
   }
 
@@ -47,6 +36,9 @@ export default class ConstantsManager {
     
     this.constantsList.appendChild(constantElement);
     this.constants.set(id, { name, value });
+    
+    // Atualizar estado vazio
+    this.updateEmptyState();
     
     // Foco no campo nome se estiver vazio
     if (focus && !name) {
@@ -168,6 +160,7 @@ export default class ConstantsManager {
         element.remove();
         this.constants.delete(id);
         this.updateConstantLabels();
+        this.updateEmptyState();
         this.saveConstants();
       }, 300);
     }
@@ -183,36 +176,42 @@ export default class ConstantsManager {
     });
   }
 
-  clearAllConstants() {
-    if (this.constants.size === 0) return;
+  updateEmptyState() {
+    const constantItems = this.constantsList.querySelectorAll('.constant-item');
+    const isEmpty = constantItems.length === 0;
+    const hasEmptyState = this.constantsList.querySelector('.empty-state-content');
     
-    const confirmed = confirm('Tem certeza que deseja remover todas as constantes?');
-    if (confirmed) {
-      this.constantsList.innerHTML = '';
-      this.constants.clear();
-      this.saveConstants();
+    if (isEmpty && !hasEmptyState) {
+      // Criar o estado vazio com botão
+      this.constantsList.innerHTML = `
+        <div class="empty-state-content">
+          <span class="empty-state-text">Nenhuma constante definida.</span>
+          <button type="button" class="add-constant-btn empty-state-btn" id="emptyStateAddBtn">
+            <i data-lucide="plus" class="btn-icon"></i>
+            Adicionar
+          </button>
+        </div>
+      `;
+      
+      // Adicionar event listener ao botão do estado vazio
+      const emptyAddBtn = document.getElementById('emptyStateAddBtn');
+      if (emptyAddBtn) {
+        emptyAddBtn.addEventListener('click', () => this.addConstant());
+      }
+      
+      // Inicializar ícones Lucide
+      setTimeout(() => {
+        if (window.lucide) {
+          window.lucide.createIcons({ nameAttr: 'data-lucide' });
+        }
+      }, 10);
+    } else if (!isEmpty && hasEmptyState) {
+      // Remover o estado vazio se há constantes
+      hasEmptyState.remove();
     }
   }
 
-  loadExampleConstants() {
-    // Limpar constantes existentes
-    this.constantsList.innerHTML = '';
-    this.constants.clear();
-    
-    // Adicionar exemplos
-    const examples = [
-      { name: 'user', value: 'eu@example.com' },
-      { name: 'password', value: '12345' },
-      { name: 'baseUrl', value: 'https://example.com' },
-      { name: 'timeout', value: '5000' }
-    ];
-    
-    examples.forEach(example => {
-      this.addConstant(example.name, example.value, false);
-    });
-    
-    this.app.uiManager.log('📝 Constantes de exemplo carregadas', 'info');
-  }
+
 
   getConstants() {
     const result = {};
@@ -244,6 +243,9 @@ export default class ConstantsManager {
         this.addConstant(name, value, false, shouldSave);
       });
     }
+    
+    // Atualizar estado vazio se não há constantes
+    this.updateEmptyState();
   }
 
   saveConstants() {
@@ -259,8 +261,9 @@ export default class ConstantsManager {
       // Não salvar durante o carregamento inicial para evitar sobrescrever outras configurações
       this.setConstants(config.constants, false);
     } else {
-      // Garante que a lista esteja visualmente vazia para o CSS :empty funcionar
+      // Garante que a lista esteja visualmente vazia
       this.constantsList.innerHTML = '';
+      this.updateEmptyState();
     }
   }
 
