@@ -305,8 +305,13 @@ body {
 
 .input-with-inline-button input {
   width: 100%;
-  padding-right: 140px; /* Espaço aumentado para evitar sobreposição */
+  padding-right: 140px; /* Espaço padrão para botão único */
   margin: 0;
+}
+
+/* Modificadores para diferentes quantidades de botões inline */
+.input-with-inline-button.has-dual-buttons input {
+  padding-right: 76px; /* Para 2 botões pequenos */
 }
 
 .inline-badge-button {
@@ -434,10 +439,7 @@ body {
 
 
 
-/* Ajustar padding do input para os botões do User Agent */
-.input-with-inline-button input#userAgent {
-  padding-right: 70px;
-}
+
 
 /* Template Buttons */
 .template-buttons {
