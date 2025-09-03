@@ -231,6 +231,110 @@ export class SessionDataEditorStrategy extends CodeMirrorEditorStrategy {
       setTimeout(() => this.updateScrollIndicator(container), 500);
     }
   }
+
+  // Override dos métodos expand e collapse para usar seletor consistente
+  expand(editorId) {
+    // Usar o seletor correto para sessionData
+    const container = document.querySelector(`[data-editor-id="${editorId}"]`);
+    const button = document.querySelector(`[data-editor-toggle="${editorId}"]`);
+    
+    if (!container || !button) return;
+
+    // Aplicar estilos de expansão
+    container.classList.add('expanded');
+    container.style.cssText = `
+      position: fixed;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      width: 90vw;
+      height: 80vh;
+      z-index: 1000;
+      background: #1a202c;
+      border-radius: 8px;
+      box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+      max-height: none;
+      overflow: visible;
+      transition: all 0.3s ease;
+    `;
+
+    // Ajustar CodeMirror para expansão
+    const cmEditor = container.querySelector('.cm-editor');
+    const cmScroller = container.querySelector('.cm-scroller');
+    
+    if (cmEditor) {
+      cmEditor.style.height = '100%';
+      cmEditor.style.maxHeight = 'none';
+    }
+    
+    if (cmScroller) {
+      cmScroller.style.height = '100%';
+      cmScroller.style.maxHeight = 'none';
+    }
+
+    // Atualizar botão
+    this.updateButton(button, true);
+
+    // Forçar redimensionamento do CodeMirror
+    setTimeout(() => {
+      const codeMirrorInstance = this.getCodeMirrorInstance(container);
+      if (codeMirrorInstance) {
+        codeMirrorInstance.requestMeasure();
+      }
+    }, 300);
+  }
+
+  collapse(editorId) {
+    // Usar o seletor correto para sessionData
+    const container = document.querySelector(`[data-editor-id="${editorId}"]`);
+    const button = document.querySelector(`[data-editor-toggle="${editorId}"]`);
+    
+    if (!container || !button) return;
+
+    // Remover estilos de expansão
+    container.classList.remove('expanded');
+    container.style.cssText = `
+      max-height: min(300px, 40vh);
+      overflow: hidden;
+      position: relative;
+      transition: all 0.3s ease;
+      border: 1px solid #333;
+      border-radius: 4px;
+    `;
+
+    // Restaurar CodeMirror para estado normal
+    const cmEditor = container.querySelector('.cm-editor');
+    const cmScroller = container.querySelector('.cm-scroller');
+    
+    if (cmEditor) {
+      cmEditor.style.height = 'auto';
+      cmEditor.style.maxHeight = 'min(300px, 40vh)';
+    }
+    
+    if (cmScroller) {
+      cmScroller.style.height = 'auto';
+      cmScroller.style.maxHeight = 'min(300px, 40vh)';
+      cmScroller.style.overflowY = 'auto';
+    }
+
+    // Garantir que o textarea original permaneça oculto
+    const textarea = document.getElementById('sessionData');
+    if (textarea) {
+      textarea.style.display = 'none';
+    }
+
+    // Atualizar botão
+    this.updateButton(button, false);
+
+    // Forçar redimensionamento e atualizar indicador
+    setTimeout(() => {
+      const codeMirrorInstance = this.getCodeMirrorInstance(container);
+      if (codeMirrorInstance) {
+        codeMirrorInstance.requestMeasure();
+      }
+      this.updateScrollIndicator(container);
+    }, 300);
+  }
 }
 
 /**

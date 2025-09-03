@@ -59,12 +59,12 @@ export default class EditorManager {
       return;
     }
 
-    // Para sessionData, o container é diferente (será criado dinamicamente)
+    // Para sessionData, usar o container com data-editor-id após criação
     let actualContainer = container;
     if (editorType === 'sessionData') {
       // Aguardar a criação do container do CodeMirror
       setTimeout(() => {
-        actualContainer = document.querySelector('.session-data-editor');
+        actualContainer = document.querySelector('[data-editor-id="sessionData"]');
         if (actualContainer) {
           this.expansionManager.setupEditor(editorType, editorType, {
             container: actualContainer,
@@ -105,6 +105,7 @@ return {
     
     const editorContainer = document.createElement('div');
     editorContainer.className = 'session-data-editor';
+    editorContainer.setAttribute('data-editor-id', 'sessionData');
     editorContainer.style.cssText = 'border: 1px solid #333; border-radius: 4px; overflow: hidden;';
     
     textarea.parentNode.insertBefore(editorContainer, textarea);
