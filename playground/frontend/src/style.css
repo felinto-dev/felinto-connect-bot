@@ -306,13 +306,13 @@ body {
 
 .input-with-inline-button input {
   width: 100%;
-  padding-right: 100px; /* Espaço ajustado para o botão menor */
+  padding-right: 140px; /* Espaço aumentado para evitar sobreposição */
   margin: 0;
 }
 
 .inline-badge-button {
   position: absolute;
-  right: 6px;
+  right: 8px;
   top: 50%;
   transform: translateY(-50%);
   background: #000000;
@@ -328,6 +328,8 @@ body {
   font-size: 10px;
   font-weight: 500;
   white-space: nowrap;
+  min-width: 120px; /* Largura mínima para garantir espaço consistente */
+  justify-content: center;
 }
 
 .inline-badge-button:hover {
