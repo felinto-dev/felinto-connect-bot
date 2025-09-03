@@ -65,6 +65,30 @@
           </div>
           
           <div id="configSectionContent" class="section-content">
+          
+          <!-- Templates Rápidos movido para o topo -->
+          <div class="config-group">
+            <h3><i data-lucide="layout-template" class="subsection-icon"></i> Templates Rápidos</h3>
+            <div class="template-buttons">
+              <button class="template-btn" data-template="basic">
+                <i data-lucide="rocket" class="template-icon"></i>
+                Básico
+              </button>
+              <button class="template-btn" data-template="ecommerce">
+                <i data-lucide="shopping-cart" class="template-icon"></i>
+                E-commerce
+              </button>
+              <button class="template-btn" data-template="social">
+                <i data-lucide="smartphone" class="template-icon"></i>
+                Social Media
+              </button>
+              <button class="template-btn" data-template="scraping">
+                <i data-lucide="search" class="template-icon"></i>
+                Scraping
+              </button>
+            </div>
+          </div>
+
           <div class="config-group">
             <div class="field">
               <label for="browserWSEndpoint">
@@ -144,34 +168,7 @@
             </div>
           </div>
 
-          <div class="config-group">
-            <h3><i data-lucide="key" class="subsection-icon"></i> Constantes</h3>
-            
-            <div class="constants-container">
-              <div class="constants-list" id="constantsList">
-                <!-- Constantes serão inseridas dinamicamente aqui -->
-              </div>
-              
-              <div class="constants-actions">
-                <button type="button" class="add-constant-btn" id="addConstantBtn">
-                  <i data-lucide="plus" class="btn-icon"></i>
-                  Adicionar
-                </button>
-                <button type="button" class="clear-constants-btn" id="clearConstantsBtn">
-                  <i data-lucide="trash-2" class="btn-icon"></i>
-                  Limpar Tudo
-                </button>
-                <button type="button" class="example-constants-btn" id="exampleConstantsBtn">
-                  <i data-lucide="file-text" class="btn-icon"></i>
-                  Exemplo
-                </button>
-              </div>
-              
-              <div class="constants-help">
-                <small><i data-lucide="info" class="help-icon"></i> Sintaxe: Use <code>{{ $nome }}</code> no seu código</small>
-              </div>
-            </div>
-          </div>
+
 
           <div class="config-group">
             <div class="advanced-main-header">
@@ -183,6 +180,36 @@
             </div>
             
             <div id="advancedConfigContent" class="advanced-config-content collapsed">
+              <!-- Subgrupo: Constantes -->
+              <div class="browser-config-subgroup">
+                <h4><i data-lucide="key" class="browser-section-icon"></i> Constantes</h4>
+                
+                <div class="constants-container">
+                  <div class="constants-list" id="constantsList">
+                    <!-- Constantes serão inseridas dinamicamente aqui -->
+                  </div>
+                  
+                  <div class="constants-actions">
+                    <button type="button" class="add-constant-btn" id="addConstantBtn">
+                      <i data-lucide="plus" class="btn-icon"></i>
+                      Adicionar
+                    </button>
+                    <button type="button" class="clear-constants-btn" id="clearConstantsBtn">
+                      <i data-lucide="trash-2" class="btn-icon"></i>
+                      Limpar Tudo
+                    </button>
+                    <button type="button" class="example-constants-btn" id="exampleConstantsBtn">
+                      <i data-lucide="file-text" class="btn-icon"></i>
+                      Exemplo
+                    </button>
+                  </div>
+                  
+                  <div class="constants-help">
+                    <small><i data-lucide="info" class="help-icon"></i> Sintaxe: Use <code>{{ $nome }}</code> no seu código</small>
+                  </div>
+                </div>
+              </div>
+              
               <!-- Subgrupo: Configurações do Browser -->
               <div class="browser-config-subgroup">
                 <h4><i data-lucide="chrome" class="browser-section-icon"></i> Configurações do Browser</h4>
@@ -267,27 +294,6 @@
             </div>
           </div>
 
-          <div class="config-group">
-            <h3><i data-lucide="layout-template" class="subsection-icon"></i> Templates Rápidos</h3>
-            <div class="template-buttons">
-              <button class="template-btn" data-template="basic">
-                <i data-lucide="rocket" class="template-icon"></i>
-                Básico
-              </button>
-              <button class="template-btn" data-template="ecommerce">
-                <i data-lucide="shopping-cart" class="template-icon"></i>
-                E-commerce
-              </button>
-              <button class="template-btn" data-template="social">
-                <i data-lucide="smartphone" class="template-icon"></i>
-                Social Media
-              </button>
-              <button class="template-btn" data-template="scraping">
-                <i data-lucide="search" class="template-icon"></i>
-                Scraping
-              </button>
-            </div>
-          </div>
           </div>
         </section>
 
