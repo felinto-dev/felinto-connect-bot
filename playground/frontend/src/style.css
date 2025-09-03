@@ -378,6 +378,67 @@ body {
   animation: spin 1s linear infinite;
 }
 
+/* User Agent Inline Buttons */
+.ua-inline-buttons {
+  position: absolute;
+  right: 8px;
+  top: 50%;
+  transform: translateY(-50%);
+  display: flex;
+  gap: 4px;
+}
+
+.ua-inline-button {
+  background: #000000;
+  border: none;
+  padding: 6px;
+  cursor: pointer;
+  border-radius: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
+  color: white;
+  width: 28px;
+  height: 28px;
+}
+
+.ua-inline-button:hover {
+  background: #1f2937;
+}
+
+.ua-inline-button:active {
+  background: #374151;
+  transform: scale(0.98);
+}
+
+.ua-inline-button.browser {
+  background: #3b82f6;
+}
+
+.ua-inline-button.browser:hover {
+  background: #2563eb;
+}
+
+.ua-inline-button.clear {
+  background: #ef4444;
+}
+
+.ua-inline-button.clear:hover {
+  background: #dc2626;
+}
+
+.ua-inline-button svg {
+  flex-shrink: 0;
+}
+
+
+
+/* Ajustar padding do input para os botões do User Agent */
+.input-with-inline-button input#userAgent {
+  padding-right: 70px;
+}
+
 /* Template Buttons */
 .template-buttons {
   display: flex;

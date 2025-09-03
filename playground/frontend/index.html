@@ -239,42 +239,25 @@
                     <i data-lucide="monitor" class="field-icon"></i>
                     User Agent
                   </label>
-                  <input type="text" id="userAgent" value="Mozilla/5.0 (iPhone; CPU iPhone OS 1">
-                  <small>Agente do usuário personalizado</small>
-                  
-                  <!-- User Agent Templates -->
-                  <div class="ua-templates" style="margin-top: 10px;">
-                    <label style="font-size: 12px; color: #666; margin-bottom: 5px; display: block;">
-                      <i data-lucide="zap" style="width: 12px; height: 12px;"></i>
-                      Templates Rápidos:
-                    </label>
-                    <div class="ua-template-buttons" style="display: flex; gap: 5px; flex-wrap: wrap;">
-                      <button type="button" class="ua-template-btn" data-ua-template="current-browser" style="font-size: 11px; padding: 6px 10px; background: #f59e0b; color: white; border: none; border-radius: 4px; cursor: pointer; transition: all 0.2s; display: flex; align-items: center;" onmouseover="this.style.background='#d97706'" onmouseout="this.style.background='#f59e0b'">
-                        <i data-lucide="user" style="width: 12px; height: 12px; margin-right: 4px;"></i>
-                        Navegador Atual
+                  <div class="input-with-inline-button">
+                    <input type="text" id="userAgent" value="Mozilla/5.0 (iPhone; CPU iPhone OS 1">
+                    <div class="ua-inline-buttons">
+                      <button type="button" id="useCurrentUserAgent" class="ua-inline-button browser" title="Copiar meu User Agent">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                          <circle cx="12" cy="12" r="10"></circle>
+                          <path d="M2 12h20"></path>
+                          <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"></path>
+                        </svg>
                       </button>
-                      <button type="button" class="ua-template-btn" data-ua-template="chrome-desktop" style="font-size: 11px; padding: 6px 10px; background: #3b82f6; color: white; border: none; border-radius: 4px; cursor: pointer; transition: all 0.2s; display: flex; align-items: center;" onmouseover="this.style.background='#2563eb'" onmouseout="this.style.background='#3b82f6'">
-                        <i data-lucide="monitor" style="width: 12px; height: 12px; margin-right: 4px;"></i>
-                        Chrome Desktop
-                      </button>
-                      <button type="button" class="ua-template-btn" data-ua-template="safari-desktop" style="font-size: 11px; padding: 6px 10px; background: #6366f1; color: white; border: none; border-radius: 4px; cursor: pointer; transition: all 0.2s; display: flex; align-items: center;" onmouseover="this.style.background='#4f46e5'" onmouseout="this.style.background='#6366f1'">
-                        <i data-lucide="monitor" style="width: 12px; height: 12px; margin-right: 4px;"></i>
-                        Safari Desktop
-                      </button>
-                      <button type="button" class="ua-template-btn" data-ua-template="iphone" style="font-size: 11px; padding: 6px 10px; background: #10b981; color: white; border: none; border-radius: 4px; cursor: pointer; transition: all 0.2s; display: flex; align-items: center;" onmouseover="this.style.background='#059669'" onmouseout="this.style.background='#10b981'">
-                        <i data-lucide="smartphone" style="width: 12px; height: 12px; margin-right: 4px;"></i>
-                        iPhone
-                      </button>
-                      <button type="button" class="ua-template-btn" data-ua-template="android" style="font-size: 11px; padding: 6px 10px; background: #10b981; color: white; border: none; border-radius: 4px; cursor: pointer; transition: all 0.2s; display: flex; align-items: center;" onmouseover="this.style.background='#059669'" onmouseout="this.style.background='#10b981'">
-                        <i data-lucide="smartphone" style="width: 12px; height: 12px; margin-right: 4px;"></i>
-                        Android
-                      </button>
-                      <button type="button" class="ua-template-btn" data-ua-template="clear" style="font-size: 11px; padding: 6px 10px; background: #ef4444; color: white; border: none; border-radius: 4px; cursor: pointer; transition: all 0.2s; display: flex; align-items: center;" onmouseover="this.style.background='#dc2626'" onmouseout="this.style.background='#ef4444'">
-                        <i data-lucide="x" style="width: 12px; height: 12px; margin-right: 4px;"></i>
-                        Limpar
+                      <button type="button" id="clearUserAgent" class="ua-inline-button clear" title="Limpar campo User Agent">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                          <line x1="18" y1="6" x2="6" y2="18"></line>
+                          <line x1="6" y1="6" x2="18" y2="18"></line>
+                        </svg>
                       </button>
                     </div>
                   </div>
+                  <small>Agente do usuário personalizado</small>
                 </div>
               </div>
             </div>

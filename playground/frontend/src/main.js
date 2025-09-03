@@ -245,13 +245,21 @@ class PlaygroundApp {
       });
     });
 
-    // User Agent Template buttons
-    document.querySelectorAll('.ua-template-btn').forEach(btn => {
-      btn.addEventListener('click', (e) => {
-        const template = e.target.dataset.uaTemplate;
-        this.applyUserAgentTemplate(template);
+    // User Agent Inline buttons
+    const useCurrentUserAgentBtn = document.getElementById('useCurrentUserAgent');
+    const clearUserAgentBtn = document.getElementById('clearUserAgent');
+    
+    if (useCurrentUserAgentBtn) {
+      useCurrentUserAgentBtn.addEventListener('click', () => {
+        this.useCurrentUserAgent();
       });
-    });
+    }
+    
+    if (clearUserAgentBtn) {
+      clearUserAgentBtn.addEventListener('click', () => {
+        this.clearUserAgent();
+      });
+    }
 
     // Results tabs event listeners
     document.addEventListener('click', (e) => {
@@ -1219,54 +1227,34 @@ console.log(\`Total de quotes coletadas: \${quotes.length}\`);`
     this.generateCodeAutomatically(true);
   }
 
-  applyUserAgentTemplate(templateName) {
+  useCurrentUserAgent() {
     const userAgentEl = document.getElementById('userAgent');
     if (!userAgentEl) return;
 
-    let userAgent = '';
-
-    switch (templateName) {
-      case 'chrome-desktop':
-        userAgent = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36';
-        this.uiManager.log('💻 Aplicado User Agent: Chrome Desktop', 'info');
-        break;
-        
-      case 'safari-desktop':
-        userAgent = 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.1 Safari/605.1.15';
-        this.uiManager.log('💻 Aplicado User Agent: Safari Desktop', 'info');
-        break;
-        
-      case 'iphone':
-        userAgent = 'Mozilla/5.0 (iPhone; CPU iPhone OS 17_1_1 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.1 Mobile/15E148 Safari/604.1';
-        this.uiManager.log('📱 Aplicado User Agent: iPhone', 'info');
-        break;
-        
-      case 'android':
-        userAgent = 'Mozilla/5.0 (Linux; Android 14; SM-G981B) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Mobile Safari/537.36';
-        this.uiManager.log('📱 Aplicado User Agent: Android', 'info');
-        break;
-        
-      case 'current-browser':
-        userAgent = navigator.userAgent;
-        this.uiManager.log('🌐 Aplicado User Agent: Navegador Atual', 'info');
-        break;
-        
-      case 'clear':
-        userAgent = '';
-        this.uiManager.log('🧹 User Agent limpo', 'info');
-        break;
-        
-      default:
-        return;
-    }
-
-    // Aplicar o user agent ao campo
+    const userAgent = navigator.userAgent;
     userAgentEl.value = userAgent;
     
     // Trigger input event to save config
     userAgentEl.dispatchEvent(new Event('input'));
     
-    // Gerar código automaticamente após template
+    this.uiManager.log('🌐 Aplicado User Agent do navegador atual', 'info');
+    
+    // Gerar código automaticamente
+    this.generateCodeAutomatically();
+  }
+
+  clearUserAgent() {
+    const userAgentEl = document.getElementById('userAgent');
+    if (!userAgentEl) return;
+
+    userAgentEl.value = '';
+    
+    // Trigger input event to save config
+    userAgentEl.dispatchEvent(new Event('input'));
+    
+    this.uiManager.log('🧹 User Agent limpo', 'info');
+    
+    // Gerar código automaticamente
     this.generateCodeAutomatically();
   }
 
