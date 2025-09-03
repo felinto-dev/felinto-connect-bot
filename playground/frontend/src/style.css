@@ -699,8 +699,10 @@ body {
 
 /* Section Content */
 .section-content {
-  overflow: hidden;
+  overflow: visible;
   transition: all 0.3s ease;
+  max-height: none;
+  opacity: 1;
 }
 
 .section-content.collapsed {
@@ -708,11 +710,13 @@ body {
   opacity: 0;
   padding-top: 0;
   padding-bottom: 0;
+  overflow: hidden;
 }
 
 .section-content:not(.collapsed) {
   max-height: none;
   opacity: 1;
+  overflow: visible;
 }
 
 /* Console Output */

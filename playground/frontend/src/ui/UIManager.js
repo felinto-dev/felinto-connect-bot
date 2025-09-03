@@ -429,17 +429,18 @@ export default class UIManager {
     const isExpanded = !content.classList.contains('collapsed');
     
     if (isExpanded) {
+      // Colapsando: seção vai ficar colapsada
       content.classList.add('collapsed');
       toggleBtn.classList.add('collapsed');
       toggleText.textContent = 'Expandir';
+      localStorage.setItem('playground-config-section-collapsed', JSON.stringify(true));
     } else {
+      // Expandindo: seção vai ficar expandida
       content.classList.remove('collapsed');
       toggleBtn.classList.remove('collapsed');
       toggleText.textContent = 'Recolher';
+      localStorage.setItem('playground-config-section-collapsed', JSON.stringify(false));
     }
-    
-    // Salvar estado no localStorage
-    localStorage.setItem('playground-config-section-collapsed', JSON.stringify(!isExpanded));
     
     setTimeout(() => {
       this.app.initializeIcons();
@@ -457,17 +458,18 @@ export default class UIManager {
     const isExpanded = !content.classList.contains('collapsed');
     
     if (isExpanded) {
+      // Colapsando: seção vai ficar colapsada
       content.classList.add('collapsed');
       toggleBtn.classList.add('collapsed');
       toggleText.textContent = 'Expandir';
+      localStorage.setItem('playground-execution-section-collapsed', JSON.stringify(true));
     } else {
+      // Expandindo: seção vai ficar expandida
       content.classList.remove('collapsed');
       toggleBtn.classList.remove('collapsed');
       toggleText.textContent = 'Recolher';
+      localStorage.setItem('playground-execution-section-collapsed', JSON.stringify(false));
     }
-    
-    // Salvar estado no localStorage
-    localStorage.setItem('playground-execution-section-collapsed', JSON.stringify(!isExpanded));
     
     setTimeout(() => {
       this.app.initializeIcons();

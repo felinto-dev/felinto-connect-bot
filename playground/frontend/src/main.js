@@ -49,8 +49,6 @@ class PlaygroundApp {
   init() {
     this.setupWebSocket();
     this.setupEventListeners();
-    this.configService.loadAdvancedConfigState();
-    this.configService.loadSectionStates();
     this.editorManager.init();
     
     // Carregar configuração APÓS inicializar editores e constantes
@@ -61,11 +59,18 @@ class PlaygroundApp {
     // Initialize results section with empty state
     this.uiManager.clearResultsContent();
     
+    // Carregar estados das seções após DOM estar pronto
+    setTimeout(() => {
+      this.configService.loadAdvancedConfigState();
+      this.configService.loadSectionStates();
+      this.initializeIcons(); // Reinicializar ícones após mudanças
+    }, 100);
+    
     // Gerar código inicial após tudo estar configurado
     // Pequeno delay para garantir que todos os elementos estejam prontos
     setTimeout(() => {
       this.generateCodeAutomatically();
-    }, 50);
+    }, 150);
   }
   
   initializeIcons() {
@@ -140,6 +145,8 @@ class PlaygroundApp {
     document.body.addEventListener('click', (e) => {
       const target = e.target.closest('button');
       if (!target) return;
+      
+
       
       switch (target.id) {
 
@@ -1650,6 +1657,7 @@ console.log(\`Total de quotes coletadas: \${quotes.length}\`);`
 document.addEventListener('DOMContentLoaded', () => {
   // Aguardar um pouco para garantir que tudo carregou
   setTimeout(() => {
-    window.playgroundApp = new PlaygroundApp();
+    window.app = new PlaygroundApp();
+    window.playgroundApp = window.app; // Manter compatibilidade
   }, 100);
 });

@@ -261,7 +261,7 @@ export default class ConfigService {
   loadConfigSectionState() {
     try {
       const saved = localStorage.getItem('playground-config-section-collapsed');
-      const isCollapsed = saved ? JSON.parse(saved) : false;
+      const isCollapsed = saved ? JSON.parse(saved) : false; // Por padrão, expandido
       
       const toggleBtn = document.getElementById('toggleConfigSection');
       const content = document.getElementById('configSectionContent');
@@ -277,6 +277,8 @@ export default class ConfigService {
         toggleBtn.classList.remove('collapsed');
         toggleBtn.querySelector('.toggle-text').textContent = 'Recolher';
       }
+      
+
     } catch (error) {
       console.warn('Erro ao carregar estado da seção de configurações:', error);
     }
@@ -285,7 +287,7 @@ export default class ConfigService {
   loadExecutionSectionState() {
     try {
       const saved = localStorage.getItem('playground-execution-section-collapsed');
-      const isCollapsed = saved ? JSON.parse(saved) : false;
+      const isCollapsed = saved ? JSON.parse(saved) : false; // Por padrão, expandido
       
       const toggleBtn = document.getElementById('toggleExecutionSection');
       const content = document.getElementById('executionSectionContent');
@@ -301,6 +303,8 @@ export default class ConfigService {
         toggleBtn.classList.remove('collapsed');
         toggleBtn.querySelector('.toggle-text').textContent = 'Recolher';
       }
+      
+
     } catch (error) {
       console.warn('Erro ao carregar estado da seção de execução:', error);
     }
