@@ -2047,3 +2047,178 @@ pre[class*="language-"] {
 .empty-state-btn {
   margin-top: 4px;
 }
+
+/* Resource Blocking UI */
+.resource-presets {
+  margin: 12px 0;
+}
+
+.preset-buttons {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.preset-btn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 12px;
+  font-size: 13px;
+  font-weight: 500;
+  border: 1px solid #e2e8f0;
+  border-radius: 6px;
+  background: #ffffff;
+  color: #4a5568;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.preset-btn:hover {
+  background: #f7fafc;
+  border-color: #cbd5e0;
+}
+
+.preset-btn.active {
+  background: #4299e1;
+  color: white;
+  border-color: #3182ce;
+}
+
+.preset-btn i {
+  width: 14px;
+  height: 14px;
+}
+
+.resource-checkboxes {
+  margin: 16px 0;
+}
+
+.checkbox-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 12px;
+}
+
+.resource-checkbox {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+  border: 1px solid #e2e8f0;
+  border-radius: 6px;
+  background: #ffffff;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  user-select: none;
+  position: relative;
+}
+
+.resource-checkbox:hover {
+  background: #f7fafc;
+  border-color: #cbd5e0;
+}
+
+.resource-checkbox input[type="checkbox"] {
+  position: absolute;
+  opacity: 0;
+  cursor: pointer;
+}
+
+.checkmark {
+  width: 18px;
+  height: 18px;
+  border: 2px solid #cbd5e0;
+  border-radius: 4px;
+  background: #ffffff;
+  position: relative;
+  transition: all 0.2s ease;
+}
+
+.resource-checkbox input:checked + .checkmark {
+  background: #4299e1;
+  border-color: #3182ce;
+}
+
+.resource-checkbox input:checked + .checkmark::after {
+  content: '';
+  position: absolute;
+  left: 5px;
+  top: 2px;
+  width: 4px;
+  height: 8px;
+  border: solid white;
+  border-width: 0 2px 2px 0;
+  transform: rotate(45deg);
+}
+
+.resource-checkbox input:checked ~ .resource-icon {
+  color: #4299e1;
+}
+
+.resource-checkbox:has(input:checked) {
+  background: #ebf8ff;
+  border-color: #4299e1;
+}
+
+.resource-icon {
+  width: 16px;
+  height: 16px;
+  color: #718096;
+  transition: color 0.2s ease;
+}
+
+.advanced-resources {
+  margin-top: 16px;
+}
+
+.advanced-resources details {
+  cursor: pointer;
+}
+
+.advanced-resources summary {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  color: #718096;
+  padding: 8px 0;
+  user-select: none;
+  font-weight: 500;
+}
+
+.advanced-resources summary:hover {
+  color: #4299e1;
+}
+
+.advanced-content {
+  margin-top: 12px;
+  padding: 12px;
+  background: #f7fafc;
+  border-radius: 6px;
+  border: 1px solid #e2e8f0;
+}
+
+.advanced-content input {
+  width: 100%;
+  margin-bottom: 8px;
+}
+
+/* Validation styles for blocked resources */
+#blockedResourcesTypes.validation-error {
+  border-color: #e53e3e;
+  background-color: #fed7d7;
+}
+
+#blockedResourcesTypes.validation-success {
+  border-color: #38a169;
+  background-color: #c6f6d5;
+}
+
+#blockedResourcesTypes.validation-error:focus {
+  box-shadow: 0 0 0 3px rgba(229, 62, 62, 0.1);
+}
+
+#blockedResourcesTypes.validation-success:focus {
+  box-shadow: 0 0 0 3px rgba(56, 161, 105, 0.1);
+}

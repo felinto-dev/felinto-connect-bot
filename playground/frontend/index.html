@@ -243,6 +243,123 @@
                   </div>
                   <small>Agente do usuário personalizado</small>
                 </div>
+
+                <div class="field">
+                  <label>
+                    <i data-lucide="shield" class="field-icon"></i>
+                    Bloqueio de Recursos
+                  </label>
+                  
+                  <!-- Presets Rápidos -->
+                  <div class="resource-presets">
+                    <div class="preset-buttons">
+                      <button type="button" class="preset-btn" data-preset="none">
+                        <i data-lucide="circle"></i>
+                        Nenhum
+                      </button>
+                      <button type="button" class="preset-btn" data-preset="performance">
+                        <i data-lucide="zap"></i>
+                        Performance
+                      </button>
+                      <button type="button" class="preset-btn" data-preset="scraping">
+                        <i data-lucide="search"></i>
+                        Scraping
+                      </button>
+                      <button type="button" class="preset-btn" data-preset="minimal">
+                        <i data-lucide="minimize-2"></i>
+                        Mínimo
+                      </button>
+                      <button type="button" class="preset-btn" data-preset="maximum">
+                        <i data-lucide="shield"></i>
+                        Máximo
+                      </button>
+                    </div>
+                  </div>
+
+                  <!-- Recursos Comuns com Checkboxes -->
+                  <div class="resource-checkboxes">
+                    <div class="checkbox-grid">
+                      <label class="resource-checkbox">
+                        <input type="checkbox" data-resource="image">
+                        <span class="checkmark"></span>
+                        <i data-lucide="image" class="resource-icon"></i>
+                        Imagens
+                      </label>
+                      
+                      <label class="resource-checkbox">
+                        <input type="checkbox" data-resource="stylesheet">
+                        <span class="checkmark"></span>
+                        <i data-lucide="palette" class="resource-icon"></i>
+                        CSS
+                      </label>
+                      
+                      <label class="resource-checkbox">
+                        <input type="checkbox" data-resource="font">
+                        <span class="checkmark"></span>
+                        <i data-lucide="type" class="resource-icon"></i>
+                        Fontes
+                      </label>
+                      
+                      <label class="resource-checkbox">
+                        <input type="checkbox" data-resource="script">
+                        <span class="checkmark"></span>
+                        <i data-lucide="code" class="resource-icon"></i>
+                        Scripts
+                      </label>
+                      
+                      <label class="resource-checkbox">
+                        <input type="checkbox" data-resource="media">
+                        <span class="checkmark"></span>
+                        <i data-lucide="play" class="resource-icon"></i>
+                        Mídia
+                      </label>
+                      
+                      <label class="resource-checkbox">
+                        <input type="checkbox" data-resource="xhr">
+                        <span class="checkmark"></span>
+                        <i data-lucide="wifi" class="resource-icon"></i>
+                        XHR/Ajax
+                      </label>
+                      
+                      <label class="resource-checkbox">
+                        <input type="checkbox" data-resource="fetch">
+                        <span class="checkmark"></span>
+                        <i data-lucide="download" class="resource-icon"></i>
+                        Fetch API
+                      </label>
+                      
+                      <label class="resource-checkbox">
+                        <input type="checkbox" data-resource="websocket">
+                        <span class="checkmark"></span>
+                        <i data-lucide="radio" class="resource-icon"></i>
+                        WebSocket
+                      </label>
+                      
+                      <label class="resource-checkbox">
+                        <input type="checkbox" data-resource="manifest">
+                        <span class="checkmark"></span>
+                        <i data-lucide="file-text" class="resource-icon"></i>
+                        Manifest
+                      </label>
+                    </div>
+                  </div>
+
+                  <!-- Campo avançado (oculto por padrão) -->
+                  <div class="advanced-resources">
+                    <details>
+                      <summary>
+                        <i data-lucide="settings" class="help-icon"></i>
+                        Configuração Avançada
+                      </summary>
+                      <div class="advanced-content">
+                        <input type="text" id="blockedResourcesTypes" placeholder="Tipos personalizados separados por vírgula">
+                        <small>Para tipos específicos como: texttrack, eventsource, other, document</small>
+                      </div>
+                    </details>
+                  </div>
+
+                  <small>Selecione os recursos que deseja bloquear para melhorar a performance</small>
+                </div>
               </div>
             </div>
           </div>

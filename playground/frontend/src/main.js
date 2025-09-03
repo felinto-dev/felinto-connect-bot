@@ -261,6 +261,30 @@ class PlaygroundApp {
       });
     }
 
+    // Resource Blocking - Preset buttons
+    document.addEventListener('click', (e) => {
+      if (e.target.closest('.preset-btn')) {
+        const btn = e.target.closest('.preset-btn');
+        const preset = btn.dataset.preset;
+        this.applyResourcePreset(preset);
+      }
+    });
+
+    // Resource Blocking - Checkboxes
+    document.addEventListener('change', (e) => {
+      if (e.target.matches('input[data-resource]')) {
+        this.updateBlockedResourcesFromCheckboxes();
+      }
+    });
+
+    // Advanced blocked resources validation
+    const blockedResourcesEl = document.getElementById('blockedResourcesTypes');
+    if (blockedResourcesEl) {
+      blockedResourcesEl.addEventListener('input', () => {
+        this.updateBlockedResourcesFromAdvanced();
+      });
+    }
+
     // Results tabs event listeners
     document.addEventListener('click', (e) => {
       if (e.target.closest('.tab-btn')) {
@@ -1032,6 +1056,7 @@ console.log('Título:', title);`
           slowMo: 0,
           timeout: 90,
           initialUrl: 'https://shopee.com.br',
+          blockedResourcesTypes: ['image', 'font'],
           constants: {
             searchTerm: 'smartphone',
             maxPrice: '1000',
@@ -1071,6 +1096,7 @@ console.log('Produtos encontrados:', products.length);`
           timeout: 120,
           initialUrl: 'https://twitter.com/login',
           userAgent: 'Mozilla/5.0 (iPhone; CPU iPhone OS 14_7_1 like Mac OS X) AppleWebKit/605.1.15',
+          blockedResourcesTypes: ['image', 'media'],
           constants: {
             username: 'seu_usuario',
             password: 'sua_senha',
@@ -1244,6 +1270,129 @@ console.log(\`Total de quotes coletadas: \${quotes.length}\`);`
     
     // Gerar código automaticamente
     this.generateCodeAutomatically();
+  }
+
+  applyResourcePreset(preset) {
+    // Clear all preset buttons
+    document.querySelectorAll('.preset-btn').forEach(btn => {
+      btn.classList.remove('active');
+    });
+
+    // Set active preset button
+    const activeBtn = document.querySelector(`[data-preset="${preset}"]`);
+    if (activeBtn) {
+      activeBtn.classList.add('active');
+    }
+
+    // Define presets
+    const presets = {
+      none: [],
+      performance: ['image', 'stylesheet', 'font'],
+      scraping: ['image', 'stylesheet', 'font', 'media'],
+      minimal: ['image'],
+      maximum: ['image', 'stylesheet', 'font', 'script', 'media', 'xhr', 'fetch', 'websocket', 'manifest']
+    };
+
+    const resources = presets[preset] || [];
+    
+    // Update checkboxes
+    document.querySelectorAll('input[data-resource]').forEach(checkbox => {
+      checkbox.checked = resources.includes(checkbox.dataset.resource);
+    });
+
+    // Update config and save
+    this.updateBlockedResourcesFromCheckboxes();
+    
+    // Log action
+    const presetNames = {
+      none: 'Nenhum bloqueio',
+      performance: 'Performance (imagens, CSS, fontes)',
+      scraping: 'Scraping (imagens, CSS, fontes, mídia)',
+      minimal: 'Mínimo (apenas imagens)',
+      maximum: 'Máximo (todos os recursos + fetch, websocket, manifest)'
+    };
+    
+    this.uiManager.log(`🎯 Preset aplicado: ${presetNames[preset]}`, 'info');
+  }
+
+  updateBlockedResourcesFromCheckboxes() {
+    const checkedResources = [];
+    
+    // Get checked resources from checkboxes
+    document.querySelectorAll('input[data-resource]:checked').forEach(checkbox => {
+      checkedResources.push(checkbox.dataset.resource);
+    });
+
+    // Get advanced resources
+    const advancedEl = document.getElementById('blockedResourcesTypes');
+    const advancedValue = advancedEl ? advancedEl.value.trim() : '';
+    let advancedResources = [];
+    
+    if (advancedValue) {
+      advancedResources = advancedValue.split(',').map(s => s.trim()).filter(s => s);
+    }
+
+    // Combine all resources
+    const allResources = [...new Set([...checkedResources, ...advancedResources])];
+    
+    // Update the config
+    this.updateResourcesConfig(allResources);
+    
+    // Update preset button state
+    this.updatePresetButtonState(checkedResources);
+  }
+
+  updateBlockedResourcesFromAdvanced() {
+    // Just trigger the checkbox update which will combine both
+    this.updateBlockedResourcesFromCheckboxes();
+  }
+
+  updateResourcesConfig(resources) {
+    // Save to config and trigger events
+    const config = this.configService.getConfigFromForm();
+    config.blockedResourcesTypes = resources;
+    
+    // Trigger save and code generation
+    this.configService.saveConfig();
+    this.generateCodeAutomatically();
+    
+    // Log current state
+    if (resources.length > 0) {
+      this.uiManager.log(`🛡️ Bloqueando ${resources.length} tipo(s): ${resources.join(', ')}`, 'success');
+    } else {
+      this.uiManager.log('🔓 Nenhum recurso sendo bloqueado', 'info');
+    }
+  }
+
+  updatePresetButtonState(checkedResources) {
+    // Check if current selection matches any preset
+    const presets = {
+      none: [],
+      performance: ['image', 'stylesheet', 'font'],
+      scraping: ['image', 'stylesheet', 'font', 'media'],
+      minimal: ['image'],
+      maximum: ['image', 'stylesheet', 'font', 'script', 'media', 'xhr', 'fetch', 'websocket', 'manifest']
+    };
+
+    // Clear all active states
+    document.querySelectorAll('.preset-btn').forEach(btn => {
+      btn.classList.remove('active');
+    });
+
+    // Find matching preset
+    for (const [presetName, presetResources] of Object.entries(presets)) {
+      if (this.arraysEqual(checkedResources.sort(), presetResources.sort())) {
+        const btn = document.querySelector(`[data-preset="${presetName}"]`);
+        if (btn) {
+          btn.classList.add('active');
+        }
+        break;
+      }
+    }
+  }
+
+  arraysEqual(a, b) {
+    return a.length === b.length && a.every((val, i) => val === b[i]);
   }
 
   // Documentation Modal

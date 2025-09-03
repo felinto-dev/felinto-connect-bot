@@ -83,12 +83,25 @@ export default class ConfigService {
       config.footerCode = this.app.editors.footer.state.doc.toString();
     }
 
+    // Collect blocked resources from both checkboxes and advanced field
+    const checkedResources = [];
+    document.querySelectorAll('input[data-resource]:checked').forEach(checkbox => {
+      checkedResources.push(checkbox.dataset.resource);
+    });
+    
     const blockedResourcesTypesEl = document.getElementById('blockedResourcesTypes');
+    let advancedResources = [];
     if (blockedResourcesTypesEl) {
-      const blockedResourcesTypes = blockedResourcesTypesEl.value.trim();
-      if (blockedResourcesTypes) {
-        config.blockedResourcesTypes = blockedResourcesTypes.split(',').map(s => s.trim());
+      const advancedValue = blockedResourcesTypesEl.value.trim();
+      if (advancedValue) {
+        advancedResources = advancedValue.split(',').map(s => s.trim()).filter(s => s);
       }
+    }
+    
+    // Combine all resources
+    const allResources = [...new Set([...checkedResources, ...advancedResources])];
+    if (allResources.length > 0) {
+      config.blockedResourcesTypes = allResources;
     }
 
     const waitUntilEl = document.getElementById('waitUntil');
@@ -192,9 +205,37 @@ export default class ConfigService {
       this.app.editors.footer.dispatch(footerTransaction);
     }
 
-    const blockedResourcesTypesEl = document.getElementById('blockedResourcesTypes');
-    if (blockedResourcesTypesEl && config.blockedResourcesTypes) {
-      blockedResourcesTypesEl.value = config.blockedResourcesTypes.join(', ');
+    // Update blocked resources - both checkboxes and advanced field
+    if (config.blockedResourcesTypes) {
+      const resources = config.blockedResourcesTypes;
+      
+      // Update checkboxes for common resources
+      const commonResources = ['image', 'stylesheet', 'font', 'script', 'media', 'xhr', 'fetch', 'websocket', 'manifest'];
+      document.querySelectorAll('input[data-resource]').forEach(checkbox => {
+        checkbox.checked = resources.includes(checkbox.dataset.resource);
+      });
+      
+      // Update advanced field with remaining resources
+      const advancedResources = resources.filter(r => !commonResources.includes(r));
+      const blockedResourcesTypesEl = document.getElementById('blockedResourcesTypes');
+      if (blockedResourcesTypesEl) {
+        blockedResourcesTypesEl.value = advancedResources.join(', ');
+      }
+      
+      // Update preset button state if app is available
+      if (this.app && this.app.updatePresetButtonState) {
+        const checkedResources = resources.filter(r => commonResources.includes(r));
+        this.app.updatePresetButtonState(checkedResources);
+      }
+    } else {
+      // Clear all checkboxes and advanced field
+      document.querySelectorAll('input[data-resource]').forEach(checkbox => {
+        checkbox.checked = false;
+      });
+      const blockedResourcesTypesEl = document.getElementById('blockedResourcesTypes');
+      if (blockedResourcesTypesEl) {
+        blockedResourcesTypesEl.value = '';
+      }
     }
 
     const waitUntilEl = document.getElementById('waitUntil');
