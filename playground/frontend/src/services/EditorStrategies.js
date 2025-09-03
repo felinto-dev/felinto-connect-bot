@@ -317,11 +317,7 @@ export class SessionDataEditorStrategy extends CodeMirrorEditorStrategy {
       cmScroller.style.overflowY = 'auto';
     }
 
-    // Garantir que o textarea original permaneça oculto
-    const textarea = document.getElementById('sessionData');
-    if (textarea) {
-      textarea.style.display = 'none';
-    }
+
 
     // Atualizar botão
     this.updateButton(button, false);

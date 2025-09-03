@@ -28,7 +28,7 @@ export default class EditorManager {
 
   init() {
     this.initCodeEditors();
-    this.setupCodeMirrorAutoSave();
+
     this.setupEditorExpansion();
   }
 
@@ -98,18 +98,14 @@ return {
   }
 
   initSessionDataEditor() {
-    const textarea = document.getElementById('sessionData');
-    if (!textarea) return;
+    const container = document.getElementById('sessionData');
+    if (!container) return;
 
-    const currentValue = textarea.value || '{\n  "localStorage": {\n    "userPreferred_language": "pt-BR",\n    "currency": "BRL"\n  }\n}';
+    const currentValue = '{\n  "localStorage": {\n    "userPreferred_language": "pt-BR",\n    "currency": "BRL"\n  }\n}';
     
-    const editorContainer = document.createElement('div');
-    editorContainer.className = 'session-data-editor';
-    editorContainer.setAttribute('data-editor-id', 'sessionData');
-    editorContainer.style.cssText = 'border: 1px solid #333; border-radius: 4px; overflow: hidden;';
-    
-    textarea.parentNode.insertBefore(editorContainer, textarea);
-    textarea.style.display = 'none';
+    container.className = 'session-data-editor';
+    container.setAttribute('data-editor-id', 'sessionData');
+    container.style.cssText = 'border: 1px solid #333; border-radius: 4px; overflow: hidden;';
 
     
     const extensions = [
@@ -151,8 +147,9 @@ return {
       }),
       EditorView.updateListener.of((update) => {
         if (update.docChanged) {
-          textarea.value = update.state.doc.toString();
-          textarea.dispatchEvent(new Event('input', { bubbles: true }));
+          // Trigger config save and code generation
+          this.app.configService.saveConfig();
+          this.app.generateCodeAutomatically();
           
           let totalInserted = 0;
           update.changes.iterChanges((fromA, toA, fromB, toB, inserted) => {
@@ -179,24 +176,12 @@ return {
     
     this.editors.sessionData = new EditorView({
       state: startState,
-      parent: editorContainer
+      parent: container
     });
 
   }
 
-  setupCodeMirrorAutoSave() {
-    const sessionDataTextarea = document.getElementById('sessionData');
-    if (sessionDataTextarea) {
-      const hasListener = sessionDataTextarea.getAttribute('data-autosave-setup');
-      if (!hasListener) {
-        sessionDataTextarea.addEventListener('input', () => {
-          this.app.configService.saveConfig();
-          this.app.generateCodeAutomatically();
-        });
-        sessionDataTextarea.setAttribute('data-autosave-setup', 'true');
-      }
-    }
-  }
+
 
   createJsonLinter() {
     return linter((view) => {

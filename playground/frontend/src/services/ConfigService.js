@@ -41,11 +41,6 @@ export default class ConfigService {
     let sessionDataValue = '';
     if (this.app.editors.sessionData) {
       sessionDataValue = this.app.editors.sessionData.state.doc.toString().trim();
-    } else {
-      const sessionDataEl = document.getElementById('sessionData');
-      if (sessionDataEl) {
-        sessionDataValue = sessionDataEl.value.trim();
-      }
     }
     
     if (sessionDataValue) {
@@ -173,12 +168,6 @@ export default class ConfigService {
         }
       });
       this.app.editors.sessionData.dispatch(transaction);
-    } else {
-      const sessionDataEl = document.getElementById('sessionData');
-      if (sessionDataEl && shouldUpdateSessionData) {
-        const jsonString = hasSessionData ? JSON.stringify(sessionDataObj, null, 2) : '{}';
-        sessionDataEl.value = jsonString;
-      }
     }
 
     if (this.app.editors.automation && config.automationCode !== undefined) {

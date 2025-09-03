@@ -1192,11 +1192,7 @@ console.log(\`Total de quotes coletadas: \${quotes.length}\`);`
         this.uiManager.log('🔄 Aplicado template: Limpar só sessionStorage', 'info');
         break;
         
-      case 'empty':
-        sessionData = {};
-        this.uiManager.log('📋 Aplicado template: {} Vazio', 'info');
-        break;
-        
+
       default:
         return;
     }
@@ -1213,14 +1209,6 @@ console.log(\`Total de quotes coletadas: \${quotes.length}\`);`
         }
       });
       this.editors.sessionData.dispatch(transaction);
-    } else {
-      // Fallback para textarea
-      const sessionDataEl = document.getElementById('sessionData');
-      if (sessionDataEl) {
-        sessionDataEl.value = jsonString;
-        // Trigger input event to save config
-        sessionDataEl.dispatchEvent(new Event('input'));
-      }
     }
     
     // Gerar código automaticamente após carregar configuração
