@@ -91,6 +91,26 @@ export default class UIManager {
     }
   }
 
+  setSessionLoading(loading: boolean): void {
+    const sessionToggleBtn = document.getElementById('sessionToggleBtn') as HTMLButtonElement;
+    if (!sessionToggleBtn) return;
+    
+    const isActive = this.app.currentSession.active;
+    
+    sessionToggleBtn.disabled = loading;
+    sessionToggleBtn.classList.toggle('loading', loading);
+    if (loading) {
+      if (isActive) {
+        sessionToggleBtn.innerHTML = '<div class="spinner"></div> Fechando...';
+      } else {
+        sessionToggleBtn.innerHTML = '<div class="spinner"></div> Criando...';
+      }
+    } else {
+      // Restaura o estado normal do botão
+      this.updateSessionStatus();
+    }
+  }
+
   updateSessionStatus(): void {
     const sessionToggleBtn = document.getElementById('sessionToggleBtn') as HTMLButtonElement;
     const executeBtn = document.getElementById('executeCodeBtn') as HTMLButtonElement;

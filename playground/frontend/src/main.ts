@@ -342,7 +342,7 @@ class PlaygroundApp {
     const config = this.configService.getConfigFromForm();
     if (!this.configService.validateConfig(config)) return;
 
-    this.uiManager.setLoading(true);
+    this.uiManager.setSessionLoading(true);
 
     try {
       const result = await this.apiService.createSession(config);
@@ -361,7 +361,7 @@ class PlaygroundApp {
     } catch (error: any) {
       this.uiManager.log(`❌ Erro ao criar sessão: ${error.details?.error || error.message}`, 'error');
     } finally {
-      this.uiManager.setLoading(false);
+      this.uiManager.setSessionLoading(false);
     }
   }
 
@@ -477,7 +477,7 @@ class PlaygroundApp {
       return;
     }
 
-    this.uiManager.setLoading(true);
+    this.uiManager.setSessionLoading(true);
 
     try {
       const footerCode = this.editors.footer?.state.doc.toString();
@@ -504,7 +504,7 @@ class PlaygroundApp {
     } catch (error: any) {
       this.uiManager.log(`❌ Erro ao fechar sessão: ${error.details?.error || error.message}`, 'error');
     } finally {
-      this.uiManager.setLoading(false);
+      this.uiManager.setSessionLoading(false);
     }
   }
 
