@@ -70,7 +70,7 @@ body {
   background: white;
   border-radius: 8px;
   border: 1px solid #e2e8f0;
-  overflow: hidden; /* Evita que conteúdo force expansão de largura */
+  overflow: visible; /* Permite que dropdowns sejam exibidos fora da seção */
   width: 100%;
   max-width: 100%;
   box-sizing: border-box;
