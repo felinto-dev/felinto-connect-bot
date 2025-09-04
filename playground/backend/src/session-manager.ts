@@ -387,6 +387,29 @@ class SessionManager {
           : null,
     };
   }
+
+  /**
+   * Limpar todas as sessões (para shutdown gracioso)
+   */
+  async cleanup(): Promise<void> {
+    const sessionIds = Array.from(this.sessions.keys());
+    
+    // Fechar todas as sessões em paralelo
+    const cleanupPromises = sessionIds.map(async (sessionId) => {
+      try {
+        await this.removeSession(sessionId);
+      } catch (error: any) {
+        console.error(`Erro ao fechar sessão ${sessionId}:`, error.message);
+      }
+    });
+
+    await Promise.allSettled(cleanupPromises);
+    
+    // Limpar o Map
+    this.sessions.clear();
+    
+    console.log(`🧹 Cleanup concluído: ${sessionIds.length} sessões processadas`);
+  }
 }
 
 export default SessionManager;

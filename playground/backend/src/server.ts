@@ -529,6 +529,61 @@ app.get('/api/sessions/stats', (req: Request, res: Response) => {
   }
 });
 
+// Graceful shutdown handler
+async function gracefulShutdown(signal: string) {
+  console.log(`\n🛑 Recebido sinal ${signal}. Iniciando shutdown gracioso...`);
+  
+  try {
+    // 1. Parar de aceitar novas conexões
+    console.log('📡 Fechando servidor HTTP...');
+    server.close(() => {
+      console.log('✅ Servidor HTTP fechado');
+    });
+
+    // 2. Fechar todas as conexões WebSocket
+    console.log('🔌 Fechando conexões WebSocket...');
+    clients.forEach(client => {
+      if (client.readyState === WebSocket.OPEN) {
+        client.close(1000, 'Server shutdown');
+      }
+    });
+    clients.clear();
+    console.log('✅ Conexões WebSocket fechadas');
+
+    // 3. Fechar todas as sessões ativas
+    if (sessionManager) {
+      console.log('🧹 Limpando sessões ativas...');
+      const stats = sessionManager.getStats();
+      if (stats.totalSessions > 0) {
+        console.log(`📊 Fechando ${stats.totalSessions} sessões ativas...`);
+        await sessionManager.cleanup();
+        console.log('✅ Sessões fechadas');
+      }
+    }
+
+    console.log('🎯 Shutdown gracioso concluído');
+    process.exit(0);
+  } catch (error) {
+    console.error('❌ Erro durante shutdown:', error);
+    process.exit(1);
+  }
+}
+
+// Register signal handlers
+process.on('SIGINT', () => gracefulShutdown('SIGINT'));
+process.on('SIGTERM', () => gracefulShutdown('SIGTERM'));
+
+// Handle uncaught exceptions
+process.on('uncaughtException', (error) => {
+  console.error('💥 Uncaught Exception:', error);
+  gracefulShutdown('UNCAUGHT_EXCEPTION');
+});
+
+process.on('unhandledRejection', (reason, promise) => {
+  console.error('💥 Unhandled Rejection at:', promise, 'reason:', reason);
+  gracefulShutdown('UNHANDLED_REJECTION');
+});
+
 // Start server
 server.listen(port, () => {
   console.log(`\n🚀 Playground Backend rodando em http://localhost:${port}`);
@@ -548,4 +603,5 @@ server.listen(port, () => {
   console.log(`   1. Execute no terminal do host:`);
   console.log(`      google-chrome --remote-debugging-port=9222 --user-data-dir=/tmp/chrome-debug`);
   console.log(`   2. Acesse o playground em http://localhost:3000`);
+  console.log(`\n🔧 Para parar o servidor: Ctrl+C (shutdown gracioso habilitado)`);
 });
