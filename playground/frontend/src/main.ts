@@ -149,6 +149,7 @@ class PlaygroundApp {
 
   setupEventListeners(): void {
     this.setupDropdownListeners();
+    this.setupNavigationListeners();
     
     document.body.addEventListener('click', (e: MouseEvent) => {
       const target = (e.target as HTMLElement).closest('button');
@@ -596,6 +597,63 @@ class PlaygroundApp {
         dropdown.classList.remove('open');
       }
     });
+  }
+
+  setupNavigationListeners(): void {
+    // Configurar listeners para os links de navegação
+    document.querySelectorAll<HTMLAnchorElement>('.nav-link').forEach(link => {
+      link.addEventListener('click', (e) => {
+        e.preventDefault();
+        
+        // Não fazer nada se o link estiver desabilitado
+        if (link.classList.contains('disabled')) {
+          this.uiManager.log('⚠️ Esta funcionalidade estará disponível em breve!', 'warning');
+          return;
+        }
+        
+        const page = link.dataset.page;
+        if (page) {
+          this.navigateToPage(page);
+        }
+      });
+    });
+  }
+
+  navigateToPage(page: string): void {
+    // Remover classe active de todos os links
+    document.querySelectorAll('.nav-link').forEach(link => {
+      link.classList.remove('active');
+    });
+    
+    // Adicionar classe active ao link atual
+    const currentLink = document.querySelector(`[data-page="${page}"]`);
+    if (currentLink) {
+      currentLink.classList.add('active');
+    }
+    
+    // Por enquanto, apenas o playground está disponível
+    switch (page) {
+      case 'playground':
+        this.showPlaygroundPage();
+        this.uiManager.log('📱 Navegando para Playground', 'info');
+        break;
+      case 'recording':
+        this.uiManager.log('🎥 Gravação da Sessão estará disponível em breve!', 'warning');
+        break;
+      default:
+        this.uiManager.log(`❌ Página "${page}" não encontrada`, 'error');
+    }
+  }
+
+  showPlaygroundPage(): void {
+    // Garantir que o conteúdo do playground esteja visível
+    const container = document.querySelector('.container') as HTMLElement;
+    if (container) {
+      container.style.display = 'grid';
+    }
+    
+    // Atualizar título da página se necessário
+    document.title = 'Felinto Connect Bot - Debug Playground';
   }
 
   async exportConfig(): Promise<void> {
