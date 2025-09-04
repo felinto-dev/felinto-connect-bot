@@ -81,14 +81,30 @@ wss.on('connection', (ws: WebSocket) => {
   });
 });
 
-// Broadcast function
+// Broadcast function with retry mechanism for better reliability
 function broadcast(message: BroadcastMessage) {
   const data = JSON.stringify(message);
+  let sentCount = 0;
+  
   clients.forEach(client => {
     if (client.readyState === WebSocket.OPEN) {
       client.send(data);
+      sentCount++;
     }
   });
+  
+  // If no clients received the message and it's an important message, retry after a short delay
+  if (sentCount === 0 && (message.type === 'success' || message.type === 'error')) {
+    setTimeout(() => {
+      let retrySentCount = 0;
+      clients.forEach(client => {
+        if (client.readyState === WebSocket.OPEN) {
+          client.send(data);
+          retrySentCount++;
+        }
+      });
+    }, 100); // 100ms delay for retry
+  }
 }
 
 // Initialize SessionManager with broadcast function
