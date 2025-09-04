@@ -168,7 +168,8 @@ class PlaygroundApp {
     });
 
     document.querySelectorAll<HTMLButtonElement>('.session-template-btn').forEach(btn => {
-      btn.addEventListener('click', () => {
+      btn.addEventListener('click', (e) => {
+        e.preventDefault();
         this.applySessionTemplate(btn.dataset.sessionTemplate!);
       });
     });
@@ -664,15 +665,34 @@ class PlaygroundApp {
   }
 
   applySessionTemplate(templateName: string): void {
-    const sessionData: Partial<SessionData> = {};
+    let sessionData: SessionData;
+    let templateDescription = '';
+    
     switch (templateName) {
       case 'clear-all':
-        Object.assign(sessionData, { cookies: [], localStorage: {}, sessionStorage: {} });
+        sessionData = { cookies: [], localStorage: {}, sessionStorage: {} };
+        templateDescription = 'Limpar Tudo';
         break;
-      // outros casos...
+      case 'clear-cookies':
+        sessionData = { cookies: [] };
+        templateDescription = 'Limpar Cookies';
+        break;
+      case 'clear-localStorage':
+        sessionData = { localStorage: {} };
+        templateDescription = 'Limpar localStorage';
+        break;
+      case 'clear-sessionStorage':
+        sessionData = { sessionStorage: {} };
+        templateDescription = 'Limpar sessionStorage';
+        break;
+      default:
+        return;
     }
+    
+    this.uiManager.log(`🧹 Template aplicado: ${templateDescription}`, 'info');
     const currentConfig = this.configService.getConfigFromForm();
-    this.configService.setConfigToForm({ ...currentConfig, sessionData: { ...(currentConfig.sessionData || {}), ...sessionData } });
+    const newConfig = { ...currentConfig, sessionData };
+    this.configService.setConfigToForm(newConfig);
   }
 
   useCurrentUserAgent(): void {
@@ -697,13 +717,16 @@ class PlaygroundApp {
     const presets: Record<string, string[]> = {
       none: [],
       performance: ['image', 'stylesheet', 'font'],
-      // ...
+      scraping: ['image', 'stylesheet', 'font', 'media'],
+      minimal: ['image', 'font'],
+      maximum: ['image', 'stylesheet', 'font', 'script', 'media', 'xhr', 'fetch', 'websocket', 'manifest']
     };
     const resources = presets[preset] || [];
     document.querySelectorAll<HTMLInputElement>('input[data-resource]').forEach(checkbox => {
       checkbox.checked = resources.includes(checkbox.dataset.resource!);
     });
     this.updateBlockedResourcesFromCheckboxes();
+    this.updatePresetButtonState(resources);
   }
 
   updateBlockedResourcesFromCheckboxes(): void {
@@ -711,7 +734,38 @@ class PlaygroundApp {
     document.querySelectorAll<HTMLInputElement>('input[data-resource]:checked').forEach(checkbox => {
       resources.push(checkbox.dataset.resource!);
     });
+    this.updatePresetButtonState(resources);
     // Lógica para combinar com advanced e salvar...
+  }
+
+  updatePresetButtonState(checkedResources: string[]): void {
+    const presets: Record<string, string[]> = {
+      none: [],
+      performance: ['image', 'stylesheet', 'font'],
+      scraping: ['image', 'stylesheet', 'font', 'media'],
+      minimal: ['image', 'font'],
+      maximum: ['image', 'stylesheet', 'font', 'script', 'media', 'xhr', 'fetch', 'websocket', 'manifest']
+    };
+
+    // Remove a classe active de todos os botões
+    document.querySelectorAll<HTMLButtonElement>('.preset-btn').forEach(btn => {
+      btn.classList.remove('active');
+    });
+
+    // Encontra qual preset corresponde aos recursos selecionados
+    for (const [presetName, presetResources] of Object.entries(presets)) {
+      const sortedChecked = [...checkedResources].sort();
+      const sortedPreset = [...presetResources].sort();
+      
+      if (sortedChecked.length === sortedPreset.length && 
+          sortedChecked.every((resource, index) => resource === sortedPreset[index])) {
+        const presetBtn = document.querySelector<HTMLButtonElement>(`.preset-btn[data-preset="${presetName}"]`);
+        if (presetBtn) {
+          presetBtn.classList.add('active');
+        }
+        break;
+      }
+    }
   }
 
   updateBlockedResourcesFromAdvanced(): void {
