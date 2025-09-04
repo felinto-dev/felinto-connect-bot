@@ -1,16 +1,30 @@
+interface Constant {
+  name: string;
+  value: string;
+}
+
+interface ConstantValidationResult {
+  usedConstants: string[];
+  undefinedConstants: string[];
+  isValid: boolean;
+}
+
 export default class ConstantsManager {
-  constructor(app) {
+  private app: any;
+  private constants: Map<string, Constant>;
+  private constantsList: HTMLElement | null;
+  private constantCounter: number;
+
+  constructor(app: any) {
     this.app = app;
     this.constants = new Map();
-    this.constantsContainer = null;
     this.constantsList = null;
     this.constantCounter = 0;
     
     this.init();
   }
 
-  init() {
-    this.constantsContainer = document.querySelector('.constants-container');
+  init(): void {
     this.constantsList = document.getElementById('constantsList');
     
     this.setupEventListeners();
@@ -18,34 +32,31 @@ export default class ConstantsManager {
     this.updateEmptyState();
   }
 
-  setupEventListeners() {
-    // Botão adicionar constante
+  setupEventListeners(): void {
     const addBtn = document.getElementById('addConstantBtn');
     if (addBtn) {
       addBtn.addEventListener('click', () => this.addConstant());
     }
   }
 
-  generateId() {
+  generateId(): string {
     return `constant_${Date.now()}_${++this.constantCounter}`;
   }
 
-  addConstant(name = '', value = '', focus = true, shouldSave = true) {
+  addConstant(name: string = '', value: string = '', focus: boolean = true, shouldSave: boolean = true): string {
     const id = this.generateId();
     const constantElement = this.createConstantElement(id, name, value);
     
-    this.constantsList.appendChild(constantElement);
+    if (this.constantsList) {
+      this.constantsList.appendChild(constantElement);
+    }
     this.constants.set(id, { name, value });
     
-    // Atualizar estado vazio
     this.updateEmptyState();
     
-    // Foco no campo nome se estiver vazio
     if (focus && !name) {
-      const nameInput = constantElement.querySelector('.constant-name');
-      if (nameInput) {
-        nameInput.focus();
-      }
+      const nameInput = constantElement.querySelector<HTMLInputElement>('.constant-name');
+      nameInput?.focus();
     }
     
     if (shouldSave) {
@@ -54,7 +65,7 @@ export default class ConstantsManager {
     return id;
   }
 
-  createConstantElement(id, name, value) {
+  createConstantElement(id: string, name: string, value: string): HTMLElement {
     const constantItem = document.createElement('div');
     constantItem.className = 'constant-item';
     constantItem.setAttribute('data-constant-id', id);
@@ -79,79 +90,73 @@ export default class ConstantsManager {
       </button>
     `;
 
-    // Event listeners para os inputs
-    const nameInput = constantItem.querySelector('.constant-name');
-    const valueInput = constantItem.querySelector('.constant-value');
-    const removeBtn = constantItem.querySelector('.remove-constant-btn');
+    const nameInput = constantItem.querySelector<HTMLInputElement>('.constant-name');
+    const valueInput = constantItem.querySelector<HTMLInputElement>('.constant-value');
+    const removeBtn = constantItem.querySelector<HTMLButtonElement>('.remove-constant-btn');
 
-    nameInput.addEventListener('input', (e) => this.updateConstant(id, 'name', e.target.value));
-    nameInput.addEventListener('blur', (e) => this.validateConstantName(e.target));
+    nameInput?.addEventListener('input', (e) => this.updateConstant(id, 'name', (e.target as HTMLInputElement).value));
+    nameInput?.addEventListener('blur', (e) => this.validateConstantName(e.target as HTMLInputElement));
     
-    valueInput.addEventListener('input', (e) => this.updateConstant(id, 'value', e.target.value));
+    valueInput?.addEventListener('input', (e) => this.updateConstant(id, 'value', (e.target as HTMLInputElement).value));
     
-    removeBtn.addEventListener('click', (e) => {
+    removeBtn?.addEventListener('click', (e) => {
       e.preventDefault();
       e.stopPropagation();
       this.removeConstant(id);
     });
 
-    // Inicializar ícones Lucide
     setTimeout(() => {
-      if (window.lucide) {
-        window.lucide.createIcons({ nameAttr: 'data-lucide' });
-      }
+      window.lucide?.createIcons({ nameAttr: 'data-lucide' });
     }, 10);
 
     return constantItem;
   }
 
-  updateConstant(id, field, value) {
+  updateConstant(id: string, field: keyof Constant, value: string): void {
     const constant = this.constants.get(id);
     if (constant) {
       constant[field] = value;
       this.constants.set(id, constant);
       this.saveConstants();
       
-      // Validar nome se for o campo nome
       if (field === 'name') {
-        const element = document.querySelector(`[data-constant-id="${id}"] .constant-name`);
-        this.validateConstantName(element);
+        const element = document.querySelector<HTMLInputElement>(`[data-constant-id="${id}"] .constant-name`);
+        if (element) {
+          this.validateConstantName(element);
+        }
       }
     }
   }
 
-  validateConstantName(input) {
+  validateConstantName(input: HTMLInputElement): boolean {
     const name = input.value.trim();
     const isValid = this.isValidConstantName(name);
     
     input.classList.toggle('invalid', !isValid);
     
     const constantItem = input.closest('.constant-item');
-    constantItem.classList.toggle('error', !isValid);
-    constantItem.classList.toggle('success', isValid && name.length > 0);
+    constantItem?.classList.toggle('error', !isValid);
+    constantItem?.classList.toggle('success', isValid && name.length > 0);
     
     return isValid;
   }
 
-  isValidConstantName(name) {
+  isValidConstantName(name: string): boolean {
     if (!name || name.length === 0) return false;
     
-    // Verificar se é um nome válido (letras, números, underscore, começando com letra ou underscore)
     const validNameRegex = /^[a-zA-Z_][a-zA-Z0-9_]*$/;
     if (!validNameRegex.test(name)) return false;
     
-    // Verificar duplicatas
     const currentNames = Array.from(this.constants.values()).map(c => c.name).filter(n => n && n.length > 0);
     const duplicates = currentNames.filter(n => n === name);
     
-    return duplicates.length <= 1; // Permitir 1 (o próprio)
+    return duplicates.length <= 1;
   }
 
-  removeConstant(id) {
-    const element = document.querySelector(`[data-constant-id="${id}"]`);
+  removeConstant(id: string): void {
+    const element = document.querySelector<HTMLElement>(`[data-constant-id="${id}"]`);
     
     if (element) {
-      // Animação de remoção
       element.style.transition = 'all 0.3s ease';
       element.style.opacity = '0';
       element.style.transform = 'translateX(-20px)';
@@ -166,23 +171,24 @@ export default class ConstantsManager {
     }
   }
 
-  updateConstantLabels() {
+  updateConstantLabels(): void {
+    if (!this.constantsList) return;
     const items = this.constantsList.querySelectorAll('.constant-item');
     items.forEach((item, index) => {
-      const label = item.querySelector('.constant-label');
+      const label = item.querySelector<HTMLDivElement>('.constant-label');
       if (label) {
         label.textContent = `Constante ${index + 1}:`;
       }
     });
   }
 
-  updateEmptyState() {
+  updateEmptyState(): void {
+    if (!this.constantsList) return;
     const constantItems = this.constantsList.querySelectorAll('.constant-item');
     const isEmpty = constantItems.length === 0;
     const hasEmptyState = this.constantsList.querySelector('.empty-state-content');
     
     if (isEmpty && !hasEmptyState) {
-      // Criar o estado vazio com botão
       this.constantsList.innerHTML = `
         <div class="empty-state-content">
           <span class="empty-state-text">Nenhuma constante definida.</span>
@@ -193,30 +199,23 @@ export default class ConstantsManager {
         </div>
       `;
       
-      // Adicionar event listener ao botão do estado vazio
       const emptyAddBtn = document.getElementById('emptyStateAddBtn');
       if (emptyAddBtn) {
         emptyAddBtn.addEventListener('click', () => this.addConstant());
       }
       
-      // Inicializar ícones Lucide
       setTimeout(() => {
-        if (window.lucide) {
-          window.lucide.createIcons({ nameAttr: 'data-lucide' });
-        }
+        window.lucide?.createIcons({ nameAttr: 'data-lucide' });
       }, 10);
     } else if (!isEmpty && hasEmptyState) {
-      // Remover o estado vazio se há constantes
       hasEmptyState.remove();
     }
   }
 
-
-
-  getConstants() {
-    const result = {};
+  getConstants(): Record<string, string> {
+    const result: Record<string, string> = {};
     
-    this.constants.forEach((constant, id) => {
+    this.constants.forEach((constant) => {
       if (constant.name && constant.name.trim().length > 0) {
         const name = constant.name.trim();
         if (this.isValidConstantName(name)) {
@@ -228,75 +227,65 @@ export default class ConstantsManager {
     return result;
   }
 
-  getConstantsForConfig() {
+  getConstantsForConfig(): Record<string, string> {
     return this.getConstants();
   }
 
-  setConstants(constants, shouldSave = true) {
-    // Limpar constantes existentes
-    this.constantsList.innerHTML = '';
+  setConstants(constants: Record<string, string>, shouldSave: boolean = true): void {
+    if (this.constantsList) {
+      this.constantsList.innerHTML = '';
+    }
     this.constants.clear();
     
-    // Adicionar novas constantes
     if (constants && typeof constants === 'object') {
       Object.entries(constants).forEach(([name, value]) => {
         this.addConstant(name, value, false, shouldSave);
       });
     }
     
-    // Atualizar estado vazio se não há constantes
     this.updateEmptyState();
   }
 
-  saveConstants() {
+  saveConstants(): void {
     if (this.app.configService) {
       this.app.configService.saveConfig();
     }
   }
 
-  loadConstants() {
+  loadConstants(): void {
     const config = this.app.configService.loadConfig();
-    // Verifica se as constantes existem e se o objeto não está vazio
     if (config.constants && Object.keys(config.constants).length > 0) {
-      // Não salvar durante o carregamento inicial para evitar sobrescrever outras configurações
       this.setConstants(config.constants, false);
     } else {
-      // Garante que a lista esteja visualmente vazia
-      this.constantsList.innerHTML = '';
+      if (this.constantsList) {
+        this.constantsList.innerHTML = '';
+      }
       this.updateEmptyState();
     }
   }
 
-  escapeHtml(text) {
+  escapeHtml(text: string): string {
     const div = document.createElement('div');
     div.textContent = text;
     return div.innerHTML;
   }
 
-  // Método para processar constantes no código
-  static processConstants(code, constants) {
+  static processConstants(code: string, constants: Record<string, string>): string {
     if (!code || !constants) return code;
     
-    let processedCode = code;
-    
-    // Regex para encontrar padrões {{ $variavel }} - incluindo contexto de aspas
     const constantPattern = /(['"]?)\{\{\s*\$([a-zA-Z_][a-zA-Z0-9_]*)\s*\}\}(['"]?)/g;
     
-    processedCode = processedCode.replace(constantPattern, (match, openQuote, variableName, closeQuote) => {
-      if (constants.hasOwnProperty(variableName)) {
+    return code.replace(constantPattern, (match, openQuote, variableName, closeQuote) => {
+      if (Object.prototype.hasOwnProperty.call(constants, variableName)) {
         const value = constants[variableName];
         
-        // Se já está entre aspas, substituir apenas o valor
         if (openQuote && closeQuote) {
           if (typeof value === 'string') {
-            // Escapar aspas internas se necessário
             return openQuote + value.replace(/"/g, '\\"').replace(/'/g, "\\'") + closeQuote;
           } else {
-            // Para números/booleans em contexto de string, converter para string
             return openQuote + String(value) + closeQuote;
           }
         } else {
-          // Se não está entre aspas, aplicar formatação adequada
           if (typeof value === 'string') {
             return JSON.stringify(value);
           } else {
@@ -304,26 +293,22 @@ export default class ConstantsManager {
           }
         }
       } else {
-        // Constante não encontrada - manter original
         console.warn(`Constante não encontrada: ${variableName}`);
         return match;
       }
     });
-    
-    return processedCode;
   }
 
-  // Método para validar uso de constantes no código
-  static validateConstantUsage(code, availableConstants) {
+  static validateConstantUsage(code: string, availableConstants: Record<string, string>): ConstantValidationResult {
     const constantPattern = /\{\{\s*\$([a-zA-Z_][a-zA-Z0-9_]*)\s*\}\}/g;
-    const usedConstants = [];
-    const undefinedConstants = [];
+    const usedConstants: string[] = [];
+    const undefinedConstants: string[] = [];
     
     let match;
     while ((match = constantPattern.exec(code)) !== null) {
       const constantName = match[1];
       
-      if (availableConstants.hasOwnProperty(constantName)) {
+      if (Object.prototype.hasOwnProperty.call(availableConstants, constantName)) {
         if (!usedConstants.includes(constantName)) {
           usedConstants.push(constantName);
         }

@@ -1,38 +1,43 @@
+import { AppConfig, SessionData } from '../types/config';
+
 export default class ConfigService {
-  constructor(app) {
+  private app: any;
+  private isLoadingConfig: boolean;
+
+  constructor(app: any) {
     this.app = app;
     this.isLoadingConfig = false;
   }
 
-  getConfigFromForm() {
-    const config = {};
+  getConfigFromForm(): AppConfig {
+    const config: AppConfig = {};
 
-    const slowMoEl = document.getElementById('slowMo');
+    const slowMoEl = document.getElementById('slowMo') as HTMLInputElement;
     if (slowMoEl) {
       const slowMoValue = slowMoEl.value.trim();
-      const slowMo = slowMoValue === '' ? 0 : parseInt(slowMoValue);
+      const slowMo = slowMoValue === '' ? 0 : parseInt(slowMoValue, 10);
       if (!isNaN(slowMo)) config.slowMo = slowMo;
     }
 
-    const timeoutEl = document.getElementById('timeout');
+    const timeoutEl = document.getElementById('timeout') as HTMLInputElement;
     if (timeoutEl) {
-      const timeout = parseInt(timeoutEl.value);
-      if (timeout > 0) config.timeout = timeout;
+      const timeout = parseInt(timeoutEl.value, 10);
+      if (timeout > 0) config.timeout = timeout * 1000; // Convert to ms
     }
 
-    const userAgentEl = document.getElementById('userAgent');
+    const userAgentEl = document.getElementById('userAgent') as HTMLInputElement;
     if (userAgentEl) {
       const userAgent = userAgentEl.value.trim();
       if (userAgent) config.userAgent = userAgent;
     }
 
-    const browserWSEndpointEl = document.getElementById('browserWSEndpoint');
+    const browserWSEndpointEl = document.getElementById('browserWSEndpoint') as HTMLInputElement;
     if (browserWSEndpointEl) {
       const browserWSEndpoint = browserWSEndpointEl.value.trim();
       if (browserWSEndpoint) config.browserWSEndpoint = browserWSEndpoint;
     }
 
-    const initialUrlEl = document.getElementById('initialUrl');
+    const initialUrlEl = document.getElementById('initialUrl') as HTMLInputElement;
     if (initialUrlEl) {
       const initialUrl = initialUrlEl.value.trim();
       if (initialUrl) config.initialUrl = initialUrl;
@@ -45,34 +50,12 @@ export default class ConfigService {
     
     if (sessionDataValue) {
       try {
-        let correctedJson = sessionDataValue;
-        
-        if (correctedJson.includes('cookies:') || correctedJson.includes('localStorage:') || correctedJson.includes('sessionStorage:')) {
-          correctedJson = correctedJson
-            .replace(/(\s*)cookies(\s*):/g, '$1"cookies"$2:')
-            .replace(/(\s*)localStorage(\s*):/g, '$1"localStorage"$2:')
-            .replace(/(\s*)sessionStorage(\s*):/g, '$1"sessionStorage"$2:');
-          
-          this.app.log('🔧 JSON corrigido automaticamente (adicionadas aspas nas chaves)', 'info');
+        const parsedSessionData: SessionData = JSON.parse(sessionDataValue);
+        if (Object.keys(parsedSessionData).length > 0) {
+          config.sessionData = parsedSessionData;
         }
-        
-        const parsedSessionData = JSON.parse(correctedJson);
-          
-          const keys = Object.keys(parsedSessionData);
-          if (keys.length === 0) {
-            config.sessionData = {
-              cookies: [],
-              localStorage: {},
-              sessionStorage: {}
-            };
-          } else {
-            config.sessionData = parsedSessionData;
-          }
       } catch (error) {
-        this.app.log(`❌ Erro no JSON do Session Data: ${error.message}`, 'error');
-        this.app.log('💡 Dica: Verifique se as chaves estão entre aspas (ex: "cookies" ao invés de cookies)', 'warning');
-        console.error('Session Data JSON Error:', error);
-        console.log('Valor problemático:', sessionDataValue);
+        this.app.uiManager.log(`❌ Erro no JSON do Session Data: ${(error as Error).message}`, 'error');
       }
     }
 
@@ -83,14 +66,13 @@ export default class ConfigService {
       config.footerCode = this.app.editors.footer.state.doc.toString();
     }
 
-    // Collect blocked resources from both checkboxes and advanced field
-    const checkedResources = [];
-    document.querySelectorAll('input[data-resource]:checked').forEach(checkbox => {
-      checkedResources.push(checkbox.dataset.resource);
+    const checkedResources: string[] = [];
+    document.querySelectorAll<HTMLInputElement>('input[data-resource]:checked').forEach(checkbox => {
+      checkedResources.push(checkbox.dataset.resource!);
     });
     
-    const blockedResourcesTypesEl = document.getElementById('blockedResourcesTypes');
-    let advancedResources = [];
+    const blockedResourcesTypesEl = document.getElementById('blockedResourcesTypes') as HTMLInputElement;
+    let advancedResources: string[] = [];
     if (blockedResourcesTypesEl) {
       const advancedValue = blockedResourcesTypesEl.value.trim();
       if (advancedValue) {
@@ -98,21 +80,11 @@ export default class ConfigService {
       }
     }
     
-    // Combine all resources
     const allResources = [...new Set([...checkedResources, ...advancedResources])];
     if (allResources.length > 0) {
       config.blockedResourcesTypes = allResources;
     }
 
-    const waitUntilEl = document.getElementById('waitUntil');
-    if (waitUntilEl) {
-      const waitUntil = waitUntilEl.value;
-      if (waitUntil !== 'domcontentloaded') {
-        config.navigationOptions = { waitUntil };
-      }
-        }
-    
-    // Adicionar constantes se disponíveis
     if (this.app.constantsManager) {
       const constants = this.app.constantsManager.getConstantsForConfig();
       if (Object.keys(constants).length > 0) {
@@ -123,15 +95,15 @@ export default class ConfigService {
     return config;
   }
 
-  validateConfig(config) {
+  validateConfig(config: AppConfig): boolean {
     if (config.initialUrl && !this.isValidUrl(config.initialUrl)) {
-      this.app.log('URL inicial inválida', 'warning');
+      this.app.uiManager.log('URL inicial inválida', 'warning');
       return false;
     }
     return true;
   }
 
-  isValidUrl(string) {
+  isValidUrl(string: string): boolean {
     try {
       new URL(string);
       return true;
@@ -140,110 +112,70 @@ export default class ConfigService {
     }
   }
   
-  setConfigToForm(config, isApplyingTemplate = false) {
-    const slowMoEl = document.getElementById('slowMo');
+  setConfigToForm(config: AppConfig, isApplyingTemplate: boolean = false): void {
+    const slowMoEl = document.getElementById('slowMo') as HTMLInputElement;
     if (slowMoEl && config.hasOwnProperty('slowMo')) {
-      slowMoEl.value = config.slowMo === 0 ? '' : config.slowMo;
+      slowMoEl.value = String(config.slowMo ?? 0);
     }
     
-    const timeoutEl = document.getElementById('timeout');
-    if (timeoutEl && config.timeout) timeoutEl.value = config.timeout;
+    const timeoutEl = document.getElementById('timeout') as HTMLInputElement;
+    if (timeoutEl && config.timeout) timeoutEl.value = String(config.timeout / 1000);
     
-    const userAgentEl = document.getElementById('userAgent');
+    const userAgentEl = document.getElementById('userAgent') as HTMLInputElement;
     if (userAgentEl && config.userAgent) userAgentEl.value = config.userAgent;
     
-    const browserWSEndpointEl = document.getElementById('browserWSEndpoint');
+    const browserWSEndpointEl = document.getElementById('browserWSEndpoint') as HTMLInputElement;
     if (browserWSEndpointEl && config.browserWSEndpoint) browserWSEndpointEl.value = config.browserWSEndpoint;
     
-    const initialUrlEl = document.getElementById('initialUrl');
+    const initialUrlEl = document.getElementById('initialUrl') as HTMLInputElement;
     if (initialUrlEl && config.initialUrl) initialUrlEl.value = config.initialUrl;
 
-    let sessionDataObj = {};
-    if (config.sessionData && typeof config.sessionData === 'object') {
-      sessionDataObj = { ...config.sessionData };
-    }
-    
-    if (config.cookies !== undefined && !sessionDataObj.cookies) {
-      sessionDataObj.cookies = config.cookies;
-    }
-    
-    const hasSessionData = Object.keys(sessionDataObj).length > 0;
-    const shouldUpdateSessionData = isApplyingTemplate || hasSessionData;
-    
-    if (this.app.editors.sessionData && shouldUpdateSessionData) {
-      const jsonString = hasSessionData ? JSON.stringify(sessionDataObj, null, 2) : '{}';
-      
-      const transaction = this.app.editors.sessionData.state.update({
-        changes: {
-          from: 0,
-          to: this.app.editors.sessionData.state.doc.length,
-          insert: jsonString
-        }
+    if (this.app.editors.sessionData && config.sessionData) {
+      const jsonString = JSON.stringify(config.sessionData, null, 2);
+      this.app.editors.sessionData.dispatch({
+        changes: { from: 0, to: this.app.editors.sessionData.state.doc.length, insert: jsonString }
       });
-      this.app.editors.sessionData.dispatch(transaction);
     }
 
     if (this.app.editors.automation && config.automationCode !== undefined) {
-      const automationTransaction = this.app.editors.automation.state.update({
-        changes: {
-          from: 0,
-          to: this.app.editors.automation.state.doc.length,
-          insert: config.automationCode
-        }
+      this.app.editors.automation.dispatch({
+        changes: { from: 0, to: this.app.editors.automation.state.doc.length, insert: config.automationCode }
       });
-      this.app.editors.automation.dispatch(automationTransaction);
     }
 
     if (this.app.editors.footer && config.footerCode !== undefined) {
-      const footerTransaction = this.app.editors.footer.state.update({
-        changes: {
-          from: 0,
-          to: this.app.editors.footer.state.doc.length,
-          insert: config.footerCode
-        }
+      this.app.editors.footer.dispatch({
+        changes: { from: 0, to: this.app.editors.footer.state.doc.length, insert: config.footerCode }
       });
-      this.app.editors.footer.dispatch(footerTransaction);
     }
 
-    // Update blocked resources - both checkboxes and advanced field
     if (config.blockedResourcesTypes) {
       const resources = config.blockedResourcesTypes;
-      
-      // Update checkboxes for common resources
       const commonResources = ['image', 'stylesheet', 'font', 'script', 'media', 'xhr', 'fetch', 'websocket', 'manifest'];
-      document.querySelectorAll('input[data-resource]').forEach(checkbox => {
-        checkbox.checked = resources.includes(checkbox.dataset.resource);
+      document.querySelectorAll<HTMLInputElement>('input[data-resource]').forEach(checkbox => {
+        checkbox.checked = resources.includes(checkbox.dataset.resource!);
       });
       
-      // Update advanced field with remaining resources
       const advancedResources = resources.filter(r => !commonResources.includes(r));
-      const blockedResourcesTypesEl = document.getElementById('blockedResourcesTypes');
+      const blockedResourcesTypesEl = document.getElementById('blockedResourcesTypes') as HTMLInputElement;
       if (blockedResourcesTypesEl) {
         blockedResourcesTypesEl.value = advancedResources.join(', ');
       }
       
-      // Update preset button state if app is available
-      if (this.app && this.app.updatePresetButtonState) {
+      if (this.app.updatePresetButtonState) {
         const checkedResources = resources.filter(r => commonResources.includes(r));
         this.app.updatePresetButtonState(checkedResources);
       }
     } else {
-      // Clear all checkboxes and advanced field
-      document.querySelectorAll('input[data-resource]').forEach(checkbox => {
+      document.querySelectorAll<HTMLInputElement>('input[data-resource]').forEach(checkbox => {
         checkbox.checked = false;
       });
-      const blockedResourcesTypesEl = document.getElementById('blockedResourcesTypes');
+      const blockedResourcesTypesEl = document.getElementById('blockedResourcesTypes') as HTMLInputElement;
       if (blockedResourcesTypesEl) {
         blockedResourcesTypesEl.value = '';
       }
     }
 
-    const waitUntilEl = document.getElementById('waitUntil');
-    if (waitUntilEl && config.navigationOptions?.waitUntil) {
-      waitUntilEl.value = config.navigationOptions.waitUntil;
-    }
-
-    // Carregar constantes se disponíveis
     if (config.constants && this.app.constantsManager) {
       this.app.constantsManager.setConstants(config.constants);
     }
@@ -255,11 +187,11 @@ export default class ConfigService {
     this.app.generateCodeAutomatically(isApplyingTemplate);
   }
 
-  saveAdvancedConfigState(isExpanded) {
+  saveAdvancedConfigState(isExpanded: boolean): void {
     localStorage.setItem('playground-advanced-config-expanded', JSON.stringify(isExpanded));
   }
   
-  loadAdvancedConfigState() {
+  loadAdvancedConfigState(): void {
     try {
       const saved = localStorage.getItem('playground-advanced-config-expanded');
       const isExpanded = saved ? JSON.parse(saved) : false;
@@ -272,26 +204,26 @@ export default class ConfigService {
       if (isExpanded) {
         content.classList.remove('collapsed');
         toggleBtn.classList.add('expanded');
-        toggleBtn.querySelector('.toggle-text').textContent = 'Ocultar Configurações';
+        toggleBtn.querySelector('.toggle-text')!.textContent = 'Ocultar Configurações';
       } else {
         content.classList.add('collapsed');
         toggleBtn.classList.remove('expanded');
-        toggleBtn.querySelector('.toggle-text').textContent = 'Mostrar Configurações';
+        toggleBtn.querySelector('.toggle-text')!.textContent = 'Mostrar Configurações';
       }
     } catch (error) {
       console.warn('Erro ao carregar estado das configurações avançadas:', error);
     }
   }
 
-  loadSectionStates() {
+  loadSectionStates(): void {
     this.loadConfigSectionState();
     this.loadExecutionSectionState();
   }
 
-  loadConfigSectionState() {
+  loadConfigSectionState(): void {
     try {
       const saved = localStorage.getItem('playground-config-section-collapsed');
-      const isCollapsed = saved ? JSON.parse(saved) : false; // Por padrão, expandido
+      const isCollapsed = saved ? JSON.parse(saved) : false;
       
       const toggleBtn = document.getElementById('toggleConfigSection');
       const content = document.getElementById('configSectionContent');
@@ -301,23 +233,21 @@ export default class ConfigService {
       if (isCollapsed) {
         content.classList.add('collapsed');
         toggleBtn.classList.add('collapsed');
-        toggleBtn.querySelector('.toggle-text').textContent = 'Expandir';
+        toggleBtn.querySelector('.toggle-text')!.textContent = 'Expandir';
       } else {
         content.classList.remove('collapsed');
         toggleBtn.classList.remove('collapsed');
-        toggleBtn.querySelector('.toggle-text').textContent = 'Recolher';
+        toggleBtn.querySelector('.toggle-text')!.textContent = 'Recolher';
       }
-      
-
     } catch (error) {
       console.warn('Erro ao carregar estado da seção de configurações:', error);
     }
   }
 
-  loadExecutionSectionState() {
+  loadExecutionSectionState(): void {
     try {
       const saved = localStorage.getItem('playground-execution-section-collapsed');
-      const isCollapsed = saved ? JSON.parse(saved) : false; // Por padrão, expandido
+      const isCollapsed = saved ? JSON.parse(saved) : false;
       
       const toggleBtn = document.getElementById('toggleExecutionSection');
       const content = document.getElementById('executionSectionContent');
@@ -327,20 +257,18 @@ export default class ConfigService {
       if (isCollapsed) {
         content.classList.add('collapsed');
         toggleBtn.classList.add('collapsed');
-        toggleBtn.querySelector('.toggle-text').textContent = 'Expandir';
+        toggleBtn.querySelector('.toggle-text')!.textContent = 'Expandir';
       } else {
         content.classList.remove('collapsed');
         toggleBtn.classList.remove('collapsed');
-        toggleBtn.querySelector('.toggle-text').textContent = 'Recolher';
+        toggleBtn.querySelector('.toggle-text')!.textContent = 'Recolher';
       }
-      
-
     } catch (error) {
       console.warn('Erro ao carregar estado da seção de execução:', error);
     }
   }
 
-  saveConfig() {
+  saveConfig(): void {
     if (this.isLoadingConfig) {
       return;
     }
@@ -349,18 +277,17 @@ export default class ConfigService {
     localStorage.setItem('playground-config', JSON.stringify(config));
   }
 
-  loadConfig() {
+  loadConfig(): AppConfig {
     try {
       const saved = localStorage.getItem('playground-config');
-      const parsed = saved ? JSON.parse(saved) : {};
-      return parsed;
+      return saved ? JSON.parse(saved) : {};
     } catch (error) {
       console.error('❌ Erro ao carregar config do localStorage:', error);
       return {};
     }
   }
 
-  loadSavedConfig() {
+  loadSavedConfig(): void {
     this.isLoadingConfig = true;
     
     const config = this.app.config;
