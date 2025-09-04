@@ -1,5 +1,5 @@
-import express from 'express';
-import { WebSocketServer } from 'ws';
+import express, { Request, Response } from 'express';
+import { WebSocketServer, WebSocket } from 'ws';
 import cors from 'cors';
 import http from 'http';
 import { execSync } from 'child_process';
@@ -9,10 +9,11 @@ import { fileURLToPath } from 'url';
 import { marked } from 'marked';
 import { newPage } from '@felinto-dev/felinto-connect-bot';
 import SessionManager from './session-manager.js';
+import { BroadcastMessage, SessionConfig } from './types.js';
 
 const app = express();
 // SessionManager será inicializado após a função broadcast estar disponível
-let sessionManager;
+let sessionManager: SessionManager;
 const port = 3001;
 
 // Get current directory for ES modules
@@ -22,8 +23,6 @@ const __dirname = dirname(fileURLToPath(import.meta.url));
 marked.setOptions({
   gfm: true, // GitHub Flavored Markdown
   breaks: true, // Convert \n to <br>
-  sanitize: false, // Allow HTML
-  smartypants: true, // Use smart quotes
 });
 
 // Middleware
@@ -37,10 +36,10 @@ const server = http.createServer(app);
 const wss = new WebSocketServer({ server, path: '/ws' });
 
 // Store active connections
-const clients = new Set();
+const clients = new Set<WebSocket>();
 
 // Function to detect possible Chrome endpoints
-function detectPossibleEndpoints() {
+function detectPossibleEndpoints(): string[] {
   const endpoints = [
     'docker.for.mac.localhost:9222', // Funciona melhor no macOS com Docker Desktop
     'host.docker.internal:9222',
@@ -67,7 +66,7 @@ function detectPossibleEndpoints() {
 }
 
 // WebSocket connection handler
-wss.on('connection', (ws) => {
+wss.on('connection', (ws: WebSocket) => {
   console.log('Cliente conectado via WebSocket');
   clients.add(ws);
 
@@ -76,17 +75,17 @@ wss.on('connection', (ws) => {
     clients.delete(ws);
   });
 
-  ws.on('error', (error) => {
+  ws.on('error', (error: Error) => {
     console.error('Erro WebSocket:', error);
     clients.delete(ws);
   });
 });
 
 // Broadcast function
-function broadcast(message) {
+function broadcast(message: BroadcastMessage) {
   const data = JSON.stringify(message);
   clients.forEach(client => {
-    if (client.readyState === client.OPEN) {
+    if (client.readyState === WebSocket.OPEN) {
       client.send(data);
     }
   });
@@ -96,14 +95,14 @@ function broadcast(message) {
 sessionManager = new SessionManager(broadcast);
 
 // Health check endpoint
-app.get('/api/health', (req, res) => {
+app.get('/api/health', (req: Request, res: Response) => {
   res.json({ status: 'OK', timestamp: new Date().toISOString() });
 });
 
 // Documentation endpoint
-app.get('/api/docs', (req, res) => {
+app.get('/api/docs', (req: Request, res: Response) => {
   try {
-    const readmePath = join(__dirname, '../README.md');
+    const readmePath = join(__dirname, '../../README.md');
     const readmeContent = readFileSync(readmePath, 'utf-8');
     const htmlContent = marked.parse(readmeContent);
     
@@ -112,7 +111,7 @@ app.get('/api/docs', (req, res) => {
       markdown: readmeContent,
       lastModified: new Date().toISOString()
     });
-  } catch (error) {
+  } catch (error: any) {
     console.error('Erro ao ler README.md:', error);
     res.status(500).json({ 
       error: 'Não foi possível carregar a documentação',
@@ -122,7 +121,7 @@ app.get('/api/docs', (req, res) => {
 });
 
 // Check Chrome connection endpoint
-app.get('/api/chrome/check', async (req, res) => {
+app.get('/api/chrome/check', async (req: Request, res: Response) => {
   try {
     broadcast({ type: 'info', message: 'Verificando conexão com Chrome...' });
     
@@ -130,9 +129,9 @@ app.get('/api/chrome/check', async (req, res) => {
     const endpoints = detectPossibleEndpoints();
     broadcast({ type: 'info', message: `📍 Endpoints detectados: ${endpoints.join(', ')}` });
     
-    let successEndpoint = null;
-    let chromeInfo = null;
-    let lastError = null;
+    let successEndpoint: string | null = null;
+    let chromeInfo: any = null;
+    let lastError: string | null = null;
 
     // Try each endpoint
     for (const endpoint of endpoints) {
@@ -152,7 +151,7 @@ app.get('/api/chrome/check', async (req, res) => {
           throw new Error(`HTTP ${response.status}`);
         }
         
-      } catch (error) {
+      } catch (error: any) {
         lastError = error.message;
         broadcast({ type: 'info', message: `❌ ${endpoint}: ${error.message}` });
         continue;
@@ -201,17 +200,17 @@ app.get('/api/chrome/check', async (req, res) => {
       });
     }
 
-  } catch (error) {
+  } catch (error: any) {
     broadcast({ type: 'error', message: `❌ Erro ao verificar Chrome: ${error.message}` });
     res.status(500).json({ error: error.message });
   }
 });
 
 // Store detected endpoint globally
-let detectedChromeEndpoint = null;
+let detectedChromeEndpoint: string | null = null;
 
 // Execute session endpoint
-app.post('/api/execute', async (req, res) => {
+app.post('/api/execute', async (req: Request, res: Response) => {
   try {
     const config = req.body;
     
@@ -248,7 +247,7 @@ app.post('/api/execute', async (req, res) => {
     broadcast({ type: 'info', message: `🔗 Usando endpoint: ${chromeEndpoint}` });
     
     // Force connection to detected Chrome endpoint
-    const sessionConfig = {
+    const sessionConfig: SessionConfig = {
       ...config,
       browserWSEndpoint: chromeEndpoint,
       // Add debug logging
@@ -283,7 +282,7 @@ app.post('/api/execute', async (req, res) => {
       }
     });
 
-  } catch (error) {
+  } catch (error: any) {
     console.error('Erro ao executar sessão:', error);
     
     let errorMessage = error.message;
@@ -310,7 +309,7 @@ app.post('/api/execute', async (req, res) => {
 });
 
 // Create new session endpoint
-app.post('/api/session/create', async (req, res) => {
+app.post('/api/session/create', async (req: Request, res: Response) => {
   try {
     const config = req.body;
     
@@ -343,7 +342,7 @@ app.post('/api/session/create', async (req, res) => {
     }
     
     // Force connection to detected Chrome endpoint
-    const sessionConfig = {
+    const sessionConfig: SessionConfig = {
       ...config,
       browserWSEndpoint: chromeEndpoint,
       $debug: true
@@ -363,7 +362,7 @@ app.post('/api/session/create', async (req, res) => {
       pageInfo
     });
 
-  } catch (error) {
+  } catch (error: any) {
     console.error('Erro ao criar sessão:', error);
     
     broadcast({ 
@@ -379,7 +378,7 @@ app.post('/api/session/create', async (req, res) => {
 });
 
 // Execute code in existing session
-app.post('/api/session/execute', async (req, res) => {
+app.post('/api/session/execute', async (req: Request, res: Response) => {
   try {
     const { sessionId, code } = req.body;
     
@@ -399,11 +398,12 @@ app.post('/api/session/execute', async (req, res) => {
       ...result
     });
 
-  } catch (error) {
+  } catch (error: any) {
     console.error('Erro ao executar código:', error);
     
     // Verificar se é erro de sessão não encontrada
     if (error.message.includes('Sessão não encontrada')) {
+      const sessionId = req.body.sessionId;
       broadcast({ 
         type: 'session_expired', 
         message: `❌ Sessão expirou ou foi removida. Crie uma nova sessão.`,
@@ -430,7 +430,7 @@ app.post('/api/session/execute', async (req, res) => {
 });
 
 // Take screenshot of session
-app.post('/api/session/screenshot', async (req, res) => {
+app.post('/api/session/screenshot', async (req: Request, res: Response) => {
   try {
     const { sessionId, options = {} } = req.body;
     
@@ -450,11 +450,12 @@ app.post('/api/session/screenshot', async (req, res) => {
       message: 'Screenshot capturado com sucesso!'
     });
 
-  } catch (error) {
+  } catch (error: any) {
     console.error('Erro ao capturar screenshot:', error);
     
     // Verificar se é erro de sessão não encontrada
     if (error.message.includes('Sessão não encontrada')) {
+      const sessionId = req.body.sessionId;
       broadcast({ 
         type: 'session_expired', 
         message: `❌ Sessão expirou ou foi removida. Crie uma nova sessão.`,
@@ -481,7 +482,7 @@ app.post('/api/session/screenshot', async (req, res) => {
 });
 
 // Remove session
-app.delete('/api/session/:sessionId', async (req, res) => {
+app.delete('/api/session/:sessionId', async (req: Request, res: Response) => {
   try {
     const { sessionId } = req.params;
     
@@ -498,7 +499,7 @@ app.delete('/api/session/:sessionId', async (req, res) => {
       });
     }
 
-  } catch (error) {
+  } catch (error: any) {
     console.error('Erro ao remover sessão:', error);
     
     res.status(500).json({ 
@@ -509,7 +510,7 @@ app.delete('/api/session/:sessionId', async (req, res) => {
 });
 
 // Get session stats
-app.get('/api/sessions/stats', (req, res) => {
+app.get('/api/sessions/stats', (req: Request, res: Response) => {
   try {
     const stats = sessionManager.getStats();
     
@@ -518,7 +519,7 @@ app.get('/api/sessions/stats', (req, res) => {
       stats 
     });
 
-  } catch (error) {
+  } catch (error: any) {
     console.error('Erro ao obter estatísticas:', error);
     
     res.status(500).json({ 

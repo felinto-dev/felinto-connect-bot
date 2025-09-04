@@ -1,5 +1,6 @@
-import { ExtendedPage, SessionDataApplier } from '../utils';
 import { SessionManager } from './SessionManager';
+import { ExtendedPage } from '../types';
+import { SessionDataApplier } from '../utils';
 
 /**
  * Interface for session-enabled pages

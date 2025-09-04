@@ -1,5 +1,5 @@
 import { CookieParam } from 'puppeteer-core';
-import { ExtendedPage } from './page-configurator';
+import { ExtendedPage } from '../types';
 
 /**
  * Interface for session data that can be applied to a page

@@ -1,4 +1,4 @@
-import { Browser, ConnectOptions } from 'puppeteer-core';
+import { Browser, ConnectOptions } from 'puppeteer';
 import puppeteerExtra from 'puppeteer-extra';
 import { BrowserConnectionError } from './custom-errors';
 import { retryOperation, RetryOptions } from './retry-mechanism';
@@ -59,7 +59,7 @@ export class BrowserFactory {
 		}
 
 		try {
-			return await retryOperation(
+			const browser = await retryOperation(
 				async () => {
 					try {
 						return await puppeteerExtra.connect({
@@ -84,6 +84,12 @@ export class BrowserFactory {
 				retryOptions.baseDelay,
 				'Browser connection'
 			);
+
+			if (!browser) {
+				throw new BrowserConnectionError('Failed to create browser instance, received null.');
+			}
+			return browser;
+			
 		} catch (error) {
 			if (error instanceof BrowserConnectionError) {
 				throw error;

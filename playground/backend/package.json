@@ -2,11 +2,12 @@
   "name": "playground-backend",
   "version": "1.0.0",
   "description": "Debug playground backend for felinto-connect-bot",
-  "main": "server.js",
+  "main": "dist/server.js",
   "type": "module",
   "scripts": {
-    "dev": "nodemon server.js",
-    "start": "node server.js"
+    "build": "rimraf dist && tsc",
+    "start": "node dist/server.js",
+    "dev": "tsx watch src/server.ts"
   },
   "keywords": [
     "debug",
@@ -27,7 +28,16 @@
     "ws": "^8.18.3"
   },
   "devDependencies": {
+    "@types/cors": "^2.8.19",
+    "@types/express": "^5.0.3",
+    "@types/marked": "^6.0.0",
+    "@types/node": "^24.3.1",
+    "@types/puppeteer": "^7.0.4",
+    "@types/uuid": "^10.0.0",
+    "@types/ws": "^8.18.1",
     "concurrently": "^9.2.1",
-    "nodemon": "^3.1.10"
+    "rimraf": "^6.0.1",
+    "tsx": "^4.20.5",
+    "typescript": "^5.9.2"
   }
 }
