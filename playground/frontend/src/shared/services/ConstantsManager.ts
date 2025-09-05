@@ -21,7 +21,8 @@ export default class ConstantsManager {
     this.constantsList = null;
     this.constantCounter = 0;
     
-    this.init();
+    // Não chamar init() no construtor para evitar dependências circulares
+    // init() será chamado depois quando necessário
   }
 
   init(): void {

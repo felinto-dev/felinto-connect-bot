@@ -1,13 +1,7 @@
 import './style.css';
-import ConfigService from './services/ConfigService';
-import UIManager from './ui/UIManager';
-import ApiService from './services/ApiService';
-import EditorManager from './ui/EditorManager';
-import ConstantsManager from './services/ConstantsManager';
-import CodeProcessingService from './services/CodeProcessingService';
-import { AppConfig, SessionData } from './types/config';
-import { AppEditors } from './types/editor';
-import { PageInfo } from './types/api';
+import { SharedServices, UIManager, EditorManager } from './shared';
+import { PlaygroundManager } from './playground/PlaygroundManager';
+import { AppConfig, SessionData, AppEditors, PageInfo } from './shared/types';
 
 // Adicionar a propriedade 'app' à interface Window
 declare global {
@@ -32,14 +26,11 @@ interface ExtractionData {
 
 class PlaygroundApp {
   public ws: WebSocket | null;
-  public configService: ConfigService;
+  public sharedServices: SharedServices;
   public uiManager: UIManager;
-  public apiService: ApiService;
   public editorManager: EditorManager;
-  public constantsManager: ConstantsManager;
-  public codeProcessingService: CodeProcessingService;
+  public playgroundManager: PlaygroundManager;
   public config: AppConfig;
-  public templates: Record<string, any>;
   public editors: AppEditors;
   public currentSession: CurrentSession;
   public extractionData: ExtractionData;
@@ -47,15 +38,16 @@ class PlaygroundApp {
 
   constructor() {
     this.ws = null;
-    this.configService = new ConfigService(this);
+    this.sharedServices = new SharedServices();
     this.uiManager = new UIManager(this);
-    this.apiService = new ApiService();
     this.editorManager = new EditorManager(this);
-    this.constantsManager = new ConstantsManager(this);
-    this.codeProcessingService = new CodeProcessingService(this.constantsManager);
-    this.config = this.configService.loadConfig();
-    this.templates = this.getTemplates();
+    this.playgroundManager = new PlaygroundManager(this.sharedServices);
+    this.config = this.sharedServices.configService.loadConfig();
     this.editors = this.editorManager.editors;
+    
+    // Definir os editores e referência ao PlaygroundApp no ConfigService após eles serem criados
+    this.sharedServices.configService.setEditors(this.editors);
+    this.sharedServices.configService.setPlaygroundApp(this);
     this.currentSession = {
       id: null,
       active: false,
@@ -77,16 +69,15 @@ class PlaygroundApp {
     this.setupEventListeners();
     this.setupPageNavigation();
     this.editorManager.init();
+    this.playgroundManager.init();
     
-    this.configService.loadSavedConfig();
-    this.checkChromeStatus();
     this.initializeIcons();
     
     this.uiManager.clearResultsContent();
     
     setTimeout(() => {
-      this.configService.loadAdvancedConfigState();
-      this.configService.loadSectionStates();
+      this.sharedServices.configService.loadAdvancedConfigState();
+      this.sharedServices.configService.loadSectionStates();
       this.initializeIcons();
     }, 100);
     
@@ -207,13 +198,6 @@ class PlaygroundApp {
 
   private getButtonAction(id: string): (() => void) | null {
     const actions: Record<string, () => void> = {
-      'sessionToggleBtn': () => this.toggleSession(),
-      'executeCodeBtn': () => this.executeCode(),
-      'executeExtractionBtn': () => this.executeExtraction(),
-      'takeScreenshotBtn': () => this.takeScreenshot(),
-      'importConfig': () => this.importConfig(),
-      'importPuppeteerCookies': () => this.importPuppeteerCookies(),
-      'exportConfig': () => this.exportConfig(),
       'docsBtn': () => this.uiManager.openDocumentation(),
       'closeDocsModal': () => this.uiManager.closeDocumentation(),
       'copyCodeBtn': () => this.copyGeneratedCode(),
@@ -228,7 +212,7 @@ class PlaygroundApp {
   setupAutoSave(): void {
     document.querySelectorAll('input, textarea, select').forEach(input => {
       input.addEventListener('input', () => {
-        this.configService.saveConfig();
+        this.sharedServices.configService.saveConfig();
         this.generateCodeAutomatically();
       });
     });
@@ -254,7 +238,7 @@ class PlaygroundApp {
   async checkChromeStatus(): Promise<void> {
     this.uiManager.log('Verificando Chrome...', 'info');
     try {
-      await this.apiService.checkChromeStatus();
+      await this.sharedServices.apiService.checkChromeStatus();
       const executeBtn = document.getElementById('executeBtn') as HTMLButtonElement | null;
       if (executeBtn) executeBtn.disabled = false;
       this.uiManager.log('Chrome conectado e disponível', 'success');
@@ -290,7 +274,7 @@ class PlaygroundApp {
     this.uiManager.log(`Validando conexão com ${endpoint}...`, 'info');
     
     try {
-      const data = await this.apiService.validateWebSocketEndpoint(endpoint);
+      const data = await this.sharedServices.apiService.validateWebSocketEndpoint(endpoint);
       this.uiManager.log(`✅ Conexão válida! Chrome ${data.Browser || 'versão desconhecida'}`, 'success');
       this.uiManager.showButtonSuccess(validateButton, originalContent);
     } catch (error: any) {
@@ -303,8 +287,8 @@ class PlaygroundApp {
   }
 
   async executeSession(): Promise<void> {
-    const config = this.configService.getConfigFromForm();
-    if (!this.configService.validateConfig(config)) return;
+    const config = this.sharedServices.configService.getConfigFromForm();
+    if (!this.sharedServices.configService.validateConfig(config)) return;
 
     const codeBlocks = {
       header: this.editors.header?.state.doc.toString() || '',
@@ -329,7 +313,7 @@ class PlaygroundApp {
     this.uiManager.setLoading(true);
 
     try {
-      const result = await this.apiService.executeSession(config);
+      const result = await this.sharedServices.apiService.executeSession(config);
       this.uiManager.log(result.message, 'success');
       if (result.pageInfo) {
         this.uiManager.log(`${result.pageInfo.title} - ${result.pageInfo.url}`, 'info');
@@ -342,13 +326,13 @@ class PlaygroundApp {
   }
 
   async createSession(): Promise<void> {
-    const config = this.configService.getConfigFromForm();
-    if (!this.configService.validateConfig(config)) return;
+    const config = this.sharedServices.configService.getConfigFromForm();
+    if (!this.sharedServices.configService.validateConfig(config)) return;
 
     this.uiManager.setSessionLoading(true);
 
     try {
-      const result = await this.apiService.createSession(config);
+      const result = await this.sharedServices.apiService.createSession(config);
       this.currentSession = {
         id: result.sessionId,
         active: true,
@@ -389,7 +373,7 @@ class PlaygroundApp {
     this.uiManager.setExecuteCodeLoading(true);
 
     try {
-      const result = await this.apiService.executeCode(this.currentSession.id, processingResult.processedCode);
+      const result = await this.sharedServices.apiService.executeCode(this.currentSession.id, processingResult.processedCode);
       this.currentSession.executionCount++;
       this.currentSession.pageInfo = result.pageInfo || null;
       
@@ -427,7 +411,7 @@ class PlaygroundApp {
     this.uiManager.setExecuteExtractionLoading(true);
 
     try {
-      const result = await this.apiService.executeCode(this.currentSession.id, processingResult.processedCode);
+      const result = await this.sharedServices.apiService.executeCode(this.currentSession.id, processingResult.processedCode);
       
       if (result.result) {
         this.uiManager.log(`📋 Dados extraídos: ${JSON.stringify(result.result, null, 2)}`, 'info');
@@ -461,7 +445,7 @@ class PlaygroundApp {
     this.uiManager.setLoading(true);
 
     try {
-      const result = await this.apiService.takeScreenshot(this.currentSession.id);
+      const result = await this.sharedServices.apiService.takeScreenshot(this.currentSession.id);
       this.uiManager.log(`✅ Screenshot capturado!`, 'success');
       this.uiManager.showScreenshot(result.screenshot);
     } catch (error: any) {
@@ -489,7 +473,7 @@ class PlaygroundApp {
         try {
           const processingResult = this.codeProcessingService.processCode(footerCode, 'footer');
           if (processingResult.isValid) {
-            const executeResult = await this.apiService.executeCode(this.currentSession.id, processingResult.processedCode);
+            const executeResult = await this.sharedServices.apiService.executeCode(this.currentSession.id, processingResult.processedCode);
             if (executeResult.result) {
               this.uiManager.showExtractionData(executeResult.result);
               this.uiManager.switchResultsTab('data');
@@ -500,7 +484,7 @@ class PlaygroundApp {
         }
       }
 
-      await this.apiService.closeSession(this.currentSession.id);
+      await this.sharedServices.apiService.closeSession(this.currentSession.id);
       this.currentSession = { id: null, active: false, executionCount: 0, pageInfo: null };
       this.uiManager.updateSessionStatus();
 
@@ -529,8 +513,8 @@ class PlaygroundApp {
   }
 
   generateCodeAutomatically(forceOverwrite: boolean = false): void {
-    const savedConfig = this.configService.loadConfig();
-    const config = this.configService.getConfigFromForm();
+    const savedConfig = this.sharedServices.configService.loadConfig();
+    const config = this.sharedServices.configService.getConfigFromForm();
     const codeSections = this.generateCodeSections(config);
 
     if (savedConfig.automationCode !== undefined && !forceOverwrite) {
@@ -601,98 +585,18 @@ class PlaygroundApp {
   }
 
   setupNavigationListeners(): void {
-    // Configurar listeners para os links de navegação
-    document.querySelectorAll<HTMLAnchorElement>('.nav-link').forEach(link => {
-      link.addEventListener('click', (e) => {
-        e.preventDefault();
-        
-        // Não fazer nada se o link estiver desabilitado
-        if (link.classList.contains('disabled')) {
-          this.uiManager.log('⚠️ Esta funcionalidade estará disponível em breve!', 'warning');
-          return;
-        }
-        
-        const page = link.dataset.page;
-        if (page) {
-          this.navigateToPage(page);
-        }
-      });
-    });
-  }
-
-  navigateToPage(page: string): void {
-    // Remover classe active de todos os links
-    document.querySelectorAll('.nav-link').forEach(link => {
-      link.classList.remove('active');
-    });
-    
-    // Adicionar classe active ao link atual
-    const currentLink = document.querySelector(`[data-page="${page}"]`);
-    if (currentLink) {
-      currentLink.classList.add('active');
-    }
-    
-    // Navegar para a página correspondente
-    switch (page) {
-      case 'playground':
-        this.showPlaygroundPage();
-        this.uiManager.log('📱 Navegando para Playground', 'info');
-        break;
-      case 'recording':
-        this.showRecordingPage();
-        this.uiManager.log('🎥 Navegando para Gravação da Sessão', 'info');
-        break;
-      default:
-        this.uiManager.log(`❌ Página "${page}" não encontrada`, 'error');
-    }
+    // Navegação agora é feita via URLs reais - não precisa de listeners especiais
   }
 
   setupPageNavigation(): void {
-    // Inicializar navegação de páginas
-    this.showPlaygroundPage(); // Mostrar playground por padrão
-  }
-
-  showPlaygroundPage(): void {
-    // Ocultar todas as páginas
-    document.querySelectorAll('.page-content').forEach(page => {
-      page.classList.remove('active');
-    });
-    
-    // Mostrar página do playground
-    const playgroundPage = document.getElementById('playgroundPage');
-    if (playgroundPage) {
-      playgroundPage.classList.add('active');
-    }
-    
-    // Atualizar título da página
+    // Página única - não precisa de navegação
     document.title = 'Felinto Connect Bot - Debug Playground';
-  }
-
-  showRecordingPage(): void {
-    // Ocultar todas as páginas
-    document.querySelectorAll('.page-content').forEach(page => {
-      page.classList.remove('active');
-    });
-    
-    // Mostrar página de gravação
-    const recordingPage = document.getElementById('recordingPage');
-    if (recordingPage) {
-      recordingPage.classList.add('active');
-    }
-    
-    // Atualizar título da página
-    document.title = 'Felinto Connect Bot - Gravação da Sessão';
-    
-    // Inicializar ícones na nova página
-    setTimeout(() => {
-      this.initializeIcons();
-    }, 50);
   }
 
   async exportConfig(): Promise<void> {
     const exportBtn = document.getElementById('exportConfig') as HTMLButtonElement;
     try {
-      const config = this.configService.getConfigFromForm();
+      const config = this.sharedServices.configService.getConfigFromForm();
       const configJson = JSON.stringify(config, null, 2);
       await navigator.clipboard.writeText(configJson);
       this.uiManager.log('✅ Configurações exportadas para o clipboard!', 'success');
@@ -711,8 +615,8 @@ class PlaygroundApp {
         return;
       }
       const config = JSON.parse(configText.trim());
-      this.configService.setConfigToForm(config);
-      this.configService.saveConfig();
+      this.sharedServices.configService.setConfigToForm(config);
+      this.sharedServices.configService.saveConfig();
       this.uiManager.log('✅ Configurações importadas!', 'success');
       this.uiManager.showTemporaryFeedback(importBtn, 'Sucesso!', 'check');
     } catch (error: any) {
@@ -728,14 +632,14 @@ class PlaygroundApp {
       
       if (!Array.isArray(cookies)) throw new Error("O conteúdo não é um array de cookies.");
 
-      const currentConfig = this.configService.getConfigFromForm();
+      const currentConfig = this.sharedServices.configService.getConfigFromForm();
       const newSessionData = { 
         ...(currentConfig.sessionData || {}), 
         cookies 
       };
       
-      this.configService.setConfigToForm({ ...currentConfig, sessionData: newSessionData });
-      this.configService.saveConfig();
+      this.sharedServices.configService.setConfigToForm({ ...currentConfig, sessionData: newSessionData });
+      this.sharedServices.configService.saveConfig();
       this.uiManager.log(`✅ ${cookies.length} cookies importados!`, 'success');
       this.uiManager.showTemporaryFeedback(importBtn, 'Sucesso!', 'check');
     } catch (error: any) {
@@ -752,7 +656,7 @@ class PlaygroundApp {
     const template = this.templates[templateName];
     if (!template) return;
     this.uiManager.log(`Aplicando template: ${template.name}`, 'info');
-    this.configService.setConfigToForm(template.config, true);
+    this.sharedServices.configService.setConfigToForm(template.config, true);
   }
 
   applySessionTemplate(templateName: string): void {
@@ -781,9 +685,9 @@ class PlaygroundApp {
     }
     
     this.uiManager.log(`🧹 Template aplicado: ${templateDescription}`, 'info');
-    const currentConfig = this.configService.getConfigFromForm();
+    const currentConfig = this.sharedServices.configService.getConfigFromForm();
     const newConfig = { ...currentConfig, sessionData };
-    this.configService.setConfigToForm(newConfig);
+    this.sharedServices.configService.setConfigToForm(newConfig);
   }
 
   useCurrentUserAgent(): void {

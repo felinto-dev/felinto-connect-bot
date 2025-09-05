@@ -3,10 +3,22 @@ import { AppConfig, SessionData } from '../types/config';
 export default class ConfigService {
   private app: any;
   private isLoadingConfig: boolean;
+  private editors: any = null; // Referência aos editores, será definida depois
+  private playgroundApp: any = null; // Referência ao PlaygroundApp para métodos específicos
 
   constructor(app: any) {
     this.app = app;
     this.isLoadingConfig = false;
+  }
+
+  // Método para definir os editores após eles serem criados
+  setEditors(editors: any): void {
+    this.editors = editors;
+  }
+
+  // Método para definir referência ao PlaygroundApp
+  setPlaygroundApp(playgroundApp: any): void {
+    this.playgroundApp = playgroundApp;
   }
 
   getConfigFromForm(): AppConfig {
@@ -44,8 +56,8 @@ export default class ConfigService {
     }
 
     let sessionDataValue = '';
-    if (this.app.editors.sessionData) {
-      sessionDataValue = this.app.editors.sessionData.state.doc.toString().trim();
+    if (this.editors && this.editors.sessionData) {
+      sessionDataValue = this.editors.sessionData.state.doc.toString().trim();
     }
     
     if (sessionDataValue) {
@@ -55,15 +67,15 @@ export default class ConfigService {
           config.sessionData = parsedSessionData;
         }
       } catch (error) {
-        this.app.uiManager.log(`❌ Erro no JSON do Session Data: ${(error as Error).message}`, 'error');
+        console.error('❌ Erro no JSON do Session Data:', error);
       }
     }
 
-    if (this.app.editors.automation) {
-      config.automationCode = this.app.editors.automation.state.doc.toString();
+    if (this.editors && this.editors.automation) {
+      config.automationCode = this.editors.automation.state.doc.toString();
     }
-    if (this.app.editors.footer) {
-      config.footerCode = this.app.editors.footer.state.doc.toString();
+    if (this.editors && this.editors.footer) {
+      config.footerCode = this.editors.footer.state.doc.toString();
     }
 
     const checkedResources: string[] = [];
@@ -97,7 +109,7 @@ export default class ConfigService {
 
   validateConfig(config: AppConfig): boolean {
     if (config.initialUrl && !this.isValidUrl(config.initialUrl)) {
-      this.app.uiManager.log('URL inicial inválida', 'warning');
+      console.warn('URL inicial inválida');
       return false;
     }
     return true;
@@ -130,22 +142,22 @@ export default class ConfigService {
     const initialUrlEl = document.getElementById('initialUrl') as HTMLInputElement;
     if (initialUrlEl && config.initialUrl) initialUrlEl.value = config.initialUrl;
 
-    if (this.app.editors.sessionData && config.sessionData) {
+    if (this.editors && this.editors.sessionData && config.sessionData) {
       const jsonString = JSON.stringify(config.sessionData, null, 2);
-      this.app.editors.sessionData.dispatch({
-        changes: { from: 0, to: this.app.editors.sessionData.state.doc.length, insert: jsonString }
+      this.editors.sessionData.dispatch({
+        changes: { from: 0, to: this.editors.sessionData.state.doc.length, insert: jsonString }
       });
     }
 
-    if (this.app.editors.automation && config.automationCode !== undefined) {
-      this.app.editors.automation.dispatch({
-        changes: { from: 0, to: this.app.editors.automation.state.doc.length, insert: config.automationCode }
+    if (this.editors && this.editors.automation && config.automationCode !== undefined) {
+      this.editors.automation.dispatch({
+        changes: { from: 0, to: this.editors.automation.state.doc.length, insert: config.automationCode }
       });
     }
 
-    if (this.app.editors.footer && config.footerCode !== undefined) {
-      this.app.editors.footer.dispatch({
-        changes: { from: 0, to: this.app.editors.footer.state.doc.length, insert: config.footerCode }
+    if (this.editors && this.editors.footer && config.footerCode !== undefined) {
+      this.editors.footer.dispatch({
+        changes: { from: 0, to: this.editors.footer.state.doc.length, insert: config.footerCode }
       });
     }
 
@@ -184,7 +196,9 @@ export default class ConfigService {
       this.saveConfig();
     }
     
-    this.app.generateCodeAutomatically(isApplyingTemplate);
+    if (this.playgroundApp && this.playgroundApp.generateCodeAutomatically) {
+      this.playgroundApp.generateCodeAutomatically(isApplyingTemplate);
+    }
   }
 
   saveAdvancedConfigState(isExpanded: boolean): void {
@@ -290,11 +304,9 @@ export default class ConfigService {
   loadSavedConfig(): void {
     this.isLoadingConfig = true;
     
-    const config = this.app.config;
-    if (Object.keys(config).length > 0) {
+    const config = this.loadConfig();
+    if (config && Object.keys(config).length > 0) {
       this.setConfigToForm(config);
-    } else {
-      console.log('📂 Nenhuma configuração salva encontrada');
     }
     
     setTimeout(() => {

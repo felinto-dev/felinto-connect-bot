@@ -108,7 +108,7 @@ export default class EditorManager {
       }),
       EditorView.updateListener.of((update) => {
         if (update.docChanged) {
-          this.app.configService.saveConfig();
+          this.app.sharedServices.configService.saveConfig();
           this.app.generateCodeAutomatically();
         }
       })
@@ -175,7 +175,7 @@ export default class EditorManager {
 
     if (!readonly) {
       extensions.push(EditorView.updateListener.of((update) => {
-        if (update.docChanged) this.app.configService.saveConfig();
+        if (update.docChanged) this.app.sharedServices.configService.saveConfig();
       }));
     }
 
