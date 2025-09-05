@@ -75,6 +75,7 @@ class PlaygroundApp {
   init(): void {
     this.setupWebSocket();
     this.setupEventListeners();
+    this.setupPageNavigation();
     this.editorManager.init();
     
     this.configService.loadSavedConfig();
@@ -631,29 +632,61 @@ class PlaygroundApp {
       currentLink.classList.add('active');
     }
     
-    // Por enquanto, apenas o playground está disponível
+    // Navegar para a página correspondente
     switch (page) {
       case 'playground':
         this.showPlaygroundPage();
         this.uiManager.log('📱 Navegando para Playground', 'info');
         break;
       case 'recording':
-        this.uiManager.log('🎥 Gravação da Sessão estará disponível em breve!', 'warning');
+        this.showRecordingPage();
+        this.uiManager.log('🎥 Navegando para Gravação da Sessão', 'info');
         break;
       default:
         this.uiManager.log(`❌ Página "${page}" não encontrada`, 'error');
     }
   }
 
+  setupPageNavigation(): void {
+    // Inicializar navegação de páginas
+    this.showPlaygroundPage(); // Mostrar playground por padrão
+  }
+
   showPlaygroundPage(): void {
-    // Garantir que o conteúdo do playground esteja visível
-    const container = document.querySelector('.container') as HTMLElement;
-    if (container) {
-      container.style.display = 'grid';
+    // Ocultar todas as páginas
+    document.querySelectorAll('.page-content').forEach(page => {
+      page.classList.remove('active');
+    });
+    
+    // Mostrar página do playground
+    const playgroundPage = document.getElementById('playgroundPage');
+    if (playgroundPage) {
+      playgroundPage.classList.add('active');
     }
     
-    // Atualizar título da página se necessário
+    // Atualizar título da página
     document.title = 'Felinto Connect Bot - Debug Playground';
+  }
+
+  showRecordingPage(): void {
+    // Ocultar todas as páginas
+    document.querySelectorAll('.page-content').forEach(page => {
+      page.classList.remove('active');
+    });
+    
+    // Mostrar página de gravação
+    const recordingPage = document.getElementById('recordingPage');
+    if (recordingPage) {
+      recordingPage.classList.add('active');
+    }
+    
+    // Atualizar título da página
+    document.title = 'Felinto Connect Bot - Gravação da Sessão';
+    
+    // Inicializar ícones na nova página
+    setTimeout(() => {
+      this.initializeIcons();
+    }, 50);
   }
 
   async exportConfig(): Promise<void> {
