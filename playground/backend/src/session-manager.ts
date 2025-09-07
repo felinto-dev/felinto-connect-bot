@@ -74,6 +74,28 @@ class SessionManager {
   }
 
   /**
+   * Verificar se uma sessão ainda está ativa e válida
+   */
+  async isSessionValid(sessionId: string): Promise<boolean> {
+    const session = this.getSession(sessionId);
+    if (!session) {
+      return false;
+    }
+
+    try {
+      // Tentar uma operação simples para verificar se a página ainda está ativa
+      await session.page.evaluate(() => document.title);
+      return true;
+    } catch (error: any) {
+      console.warn(`⚠️ Sessão ${sessionId} não é mais válida:`, error.message);
+      
+      // Remover sessão inválida automaticamente
+      await this.removeSession(sessionId);
+      return false;
+    }
+  }
+
+  /**
    * Executar código JavaScript no contexto da página
    */
   async executeCode(

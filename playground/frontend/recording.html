@@ -159,7 +159,7 @@
               <h3><i data-lucide="play-circle" class="subsection-icon"></i> Controles</h3>
               
               <div class="recording-controls">
-                <button id="startRecordingBtn" class="btn btn-record" disabled>
+                <button id="startRecordingBtn" class="btn btn-record" aria-label="Iniciar gravação da sessão">
                   <i data-lucide="circle" class="record-icon"></i>
                   Iniciar Gravação
                 </button>
@@ -172,11 +172,11 @@
                   </div>
                   
                   <div class="recording-actions">
-                    <button id="pauseRecordingBtn" class="btn btn-secondary btn-small">
+                    <button id="pauseRecordingBtn" class="btn btn-secondary btn-small" aria-label="Pausar gravação">
                       <i data-lucide="pause"></i>
                       Pausar
                     </button>
-                    <button id="stopRecordingBtn" class="btn btn-danger btn-small">
+                    <button id="stopRecordingBtn" class="btn btn-danger btn-small" aria-label="Parar gravação">
                       <i data-lucide="square"></i>
                       Parar
                     </button>
@@ -267,6 +267,10 @@
                     </span>
                   </div>
                   <div class="actions-controls">
+                    <button id="importRecordingBtn" class="btn btn-primary btn-small" title="Importar gravação">
+                      <i data-lucide="upload"></i>
+                      Importar
+                    </button>
                     <button id="clearActionsBtn" class="btn btn-secondary btn-small" title="Limpar todas as ações" disabled>
                       <i data-lucide="trash-2"></i>
                       Limpar
@@ -290,27 +294,49 @@
 
             <!-- Timeline das Ações -->
             <div class="execution-group">
-              <h3><i data-lucide="timeline" class="subsection-icon"></i> Timeline</h3>
+              <h3><i data-lucide="activity" class="subsection-icon"></i> Timeline</h3>
               
               <div class="timeline-container">
                 <div class="timeline-controls">
-                  <button id="playTimelineBtn" class="btn btn-primary btn-small" title="Reproduzir timeline" disabled>
-                    <i data-lucide="play"></i>
-                    Reproduzir
-                  </button>
-                  <button id="pauseTimelineBtn" class="btn btn-secondary btn-small" title="Pausar timeline" disabled style="display: none;">
-                    <i data-lucide="pause"></i>
-                    Pausar
-                  </button>
+                  <div class="timeline-playback">
+                    <button id="playTimelineBtn" class="btn btn-primary btn-small" title="Reproduzir timeline" disabled>
+                      <i data-lucide="play"></i>
+                      Reproduzir
+                    </button>
+                    <button id="pauseTimelineBtn" class="btn btn-secondary btn-small" title="Pausar timeline" disabled style="display: none;">
+                      <i data-lucide="pause"></i>
+                      Pausar
+                    </button>
+                    <button id="stopTimelineBtn" class="btn btn-secondary btn-small" title="Parar timeline" disabled>
+                      <i data-lucide="square"></i>
+                      Parar
+                    </button>
+                  </div>
+                  
+                  <div class="timeline-info">
+                    <span class="timeline-progress-text">
+                      <span id="currentEventIndex">0</span>/<span id="totalEvents">0</span>
+                    </span>
+                    <span class="timeline-time">
+                      <span id="elapsedTime">00:00</span> / <span id="remainingTime">00:00</span>
+                    </span>
+                  </div>
+                  
                   <div class="timeline-speed">
                     <label for="timelineSpeed">Velocidade:</label>
                     <select id="timelineSpeed">
+                      <option value="0.25">0.25x</option>
                       <option value="0.5">0.5x</option>
                       <option value="1" selected>1x</option>
                       <option value="1.5">1.5x</option>
                       <option value="2">2x</option>
+                      <option value="4">4x</option>
                     </select>
                   </div>
+                </div>
+                
+                <div class="timeline-progress-bar">
+                  <input type="range" id="timelineProgress" min="0" max="100" value="0" class="timeline-slider" disabled>
                 </div>
                 
                 <div class="timeline-track" id="timelineTrack">

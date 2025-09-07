@@ -9,12 +9,41 @@ import { fileURLToPath } from 'url';
 import { marked } from 'marked';
 import { newPage } from '@felinto-dev/felinto-connect-bot';
 import SessionManager from './session-manager.js';
-import { BroadcastMessage, SessionConfig } from './types.js';
+import { RecordingService } from './recording/RecordingService.js';
+import { ExportService } from './recording/ExportService.js';
+import { PlaybackService } from './recording/PlaybackService.js';
+import { 
+  BroadcastMessage, 
+  SessionConfig,
+  RecordingConfig,
+  RecordingData,
+  RecordingStatus,
+  StartRecordingResponse,
+  StopRecordingResponse,
+  PauseRecordingResponse,
+  RecordingStatusResponse,
+  ExportOptions,
+  ExportResult,
+  PlaybackConfig,
+  PlaybackStatus
+} from './types.js';
 
 const app = express();
 // SessionManager será inicializado após a função broadcast estar disponível
 let sessionManager: SessionManager;
 const port = 3001;
+
+// Store para gravações ativas
+const activeRecordings = new Map<string, RecordingData>();
+// Store para serviços de gravação ativos
+const activeRecordingServices = new Map<string, RecordingService>();
+// Store para serviços de reprodução ativos
+const activePlaybackServices = new Map<string, PlaybackService>();
+
+// Função para gerar ID único de gravação
+function generateRecordingId(): string {
+  return `recording_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+}
 
 // Get current directory for ES modules
 const __dirname = dirname(fileURLToPath(import.meta.url));
@@ -545,6 +574,954 @@ app.get('/api/sessions/stats', (req: Request, res: Response) => {
   }
 });
 
+// ==========================================
+// ENDPOINTS DE GRAVAÇÃO
+// ==========================================
+
+// Start recording
+app.post('/api/recording/start', async (req: Request, res: Response) => {
+  try {
+    const { sessionId, config } = req.body;
+    
+    if (!sessionId) {
+      return res.status(400).json({ 
+        success: false,
+        error: 'sessionId é obrigatório' 
+      });
+    }
+
+    // Verificar se a sessão existe
+    const session = sessionManager.getSession(sessionId);
+    if (!session) {
+      return res.status(404).json({
+        success: false,
+        error: 'Sessão não encontrada',
+        sessionExpired: true
+      });
+    }
+
+    // Verificar se já existe gravação ativa para esta sessão
+    const existingRecording = Array.from(activeRecordings.values())
+      .find(rec => rec.sessionId === sessionId && rec.status === 'recording');
+    
+    if (existingRecording) {
+      return res.status(409).json({
+        success: false,
+        error: 'Já existe uma gravação ativa para esta sessão',
+        recordingId: existingRecording.id
+      });
+    }
+
+    // Gerar ID da gravação
+    const recordingId = generateRecordingId();
+    
+    // Configuração padrão da gravação
+    const recordingConfig: RecordingConfig = {
+      sessionId,
+      events: config?.events || ['click', 'type', 'navigation', 'wait'],
+      mode: config?.mode || 'smart',
+      delay: config?.delay || 500,
+      captureScreenshots: config?.captureScreenshots || false,
+      screenshotInterval: config?.screenshotInterval || 5000,
+      maxDuration: config?.maxDuration,
+      maxEvents: config?.maxEvents || 1000
+    };
+
+    // Obter informações da página atual
+    const pageUrl = await session.page.url();
+    const pageTitle = await session.page.title();
+    const viewport = await session.page.viewport();
+
+    // Criar dados da gravação
+    const recordingData: RecordingData = {
+      id: recordingId,
+      sessionId,
+      config: recordingConfig,
+      events: [],
+      startTime: Date.now(),
+      status: 'recording' as RecordingStatus,
+      metadata: {
+        userAgent: await session.page.evaluate(() => navigator.userAgent),
+        viewport: viewport ? { width: viewport.width, height: viewport.height } : undefined,
+        initialUrl: pageUrl,
+        totalEvents: 0,
+        totalScreenshots: 0
+      }
+    };
+
+    // Armazenar gravação ativa
+    activeRecordings.set(recordingId, recordingData);
+
+    // Criar e iniciar serviço de gravação
+    const recordingService = new RecordingService(session.page, recordingData, broadcast);
+    activeRecordingServices.set(recordingId, recordingService);
+
+    // Iniciar captura de eventos
+    await recordingService.startCapture();
+
+    console.log(`🔴 Gravação iniciada: ${recordingId} para sessão: ${sessionId}`);
+
+    const response: StartRecordingResponse = {
+      recordingId,
+      sessionId,
+      message: 'Gravação iniciada com sucesso!',
+      config: recordingConfig
+    };
+
+    res.json({
+      success: true,
+      ...response
+    });
+
+  } catch (error: any) {
+    console.error('Erro ao iniciar gravação:', error);
+    
+    broadcast({
+      type: 'error',
+      message: `❌ Erro ao iniciar gravação: ${error.message}`
+    });
+    
+    res.status(500).json({
+      success: false,
+      error: error.message,
+      stack: process.env.NODE_ENV === 'development' ? error.stack : undefined
+    });
+  }
+});
+
+// Stop recording
+app.post('/api/recording/stop', async (req: Request, res: Response) => {
+  try {
+    const { recordingId } = req.body;
+    
+    if (!recordingId) {
+      return res.status(400).json({
+        success: false,
+        error: 'recordingId é obrigatório'
+      });
+    }
+
+    const recording = activeRecordings.get(recordingId);
+    const recordingService = activeRecordingServices.get(recordingId);
+    
+    if (!recording || !recordingService) {
+      return res.status(404).json({
+        success: false,
+        error: 'Gravação não encontrada'
+      });
+    }
+
+    // Parar captura de eventos
+    await recordingService.stopCapture();
+
+    // Atualizar dados da gravação
+    const updatedRecording = recordingService.getRecordingData();
+    const endTime = Date.now();
+    updatedRecording.status = 'stopped';
+    updatedRecording.endTime = endTime;
+    updatedRecording.duration = endTime - updatedRecording.startTime;
+    updatedRecording.metadata.totalEvents = updatedRecording.events.length;
+
+    // Atualizar no store
+    activeRecordings.set(recordingId, updatedRecording);
+    
+    // Remover serviço ativo
+    activeRecordingServices.delete(recordingId);
+
+    // Calcular estatísticas
+    const eventsByType: Record<string, number> = {};
+    let screenshotCount = 0;
+
+    updatedRecording.events.forEach(event => {
+      eventsByType[event.type] = (eventsByType[event.type] || 0) + 1;
+      if (event.screenshot) screenshotCount++;
+    });
+
+    const stats = {
+      totalEvents: updatedRecording.events.length,
+      eventsByType,
+      duration: updatedRecording.duration || 0,
+      averageEventInterval: updatedRecording.events.length > 1 ? 
+        (updatedRecording.duration || 0) / (updatedRecording.events.length - 1) : 0,
+      screenshotCount
+    };
+
+    console.log(`⏹️ Gravação finalizada: ${recordingId} - ${stats.totalEvents} eventos`);
+
+    const response: StopRecordingResponse = {
+      recordingId,
+      message: 'Gravação finalizada com sucesso!',
+      stats,
+      recording: updatedRecording
+    };
+
+    res.json({
+      success: true,
+      ...response
+    });
+
+  } catch (error: any) {
+    console.error('Erro ao parar gravação:', error);
+    
+    broadcast({
+      type: 'error',
+      message: `❌ Erro ao parar gravação: ${error.message}`
+    });
+    
+    res.status(500).json({
+      success: false,
+      error: error.message,
+      stack: process.env.NODE_ENV === 'development' ? error.stack : undefined
+    });
+  }
+});
+
+// Pause/Resume recording
+app.post('/api/recording/pause', async (req: Request, res: Response) => {
+  try {
+    const { recordingId } = req.body;
+    
+    if (!recordingId) {
+      return res.status(400).json({
+        success: false,
+        error: 'recordingId é obrigatório'
+      });
+    }
+
+    const recording = activeRecordings.get(recordingId);
+    const recordingService = activeRecordingServices.get(recordingId);
+    
+    if (!recording || !recordingService) {
+      return res.status(404).json({
+        success: false,
+        error: 'Gravação não encontrada'
+      });
+    }
+
+    const currentTime = Date.now();
+    let newStatus: RecordingStatus;
+    let message: string;
+    let pausedAt: number | undefined;
+    let resumedAt: number | undefined;
+
+    if (recording.status === 'recording') {
+      // Pausar gravação
+      recordingService.pauseCapture();
+      newStatus = 'paused';
+      message = 'Gravação pausada';
+      pausedAt = currentTime;
+    } else if (recording.status === 'paused') {
+      // Resumir gravação
+      recordingService.resumeCapture();
+      newStatus = 'recording';
+      message = 'Gravação resumida';
+      resumedAt = currentTime;
+    } else {
+      return res.status(400).json({
+        success: false,
+        error: `Não é possível pausar/resumir gravação com status: ${recording.status}`
+      });
+    }
+
+    // Atualizar status no store
+    recording.status = newStatus;
+    activeRecordings.set(recordingId, recording);
+
+    // Broadcast status
+    broadcast({
+      type: 'recording_status',
+      message: `${newStatus === 'paused' ? '⏸️' : '▶️'} ${message}: ${recordingId}`,
+      sessionId: recording.sessionId,
+      recordingId,
+      data: { status: newStatus, recordingId }
+    });
+
+    console.log(`${newStatus === 'paused' ? '⏸️' : '▶️'} ${message}: ${recordingId}`);
+
+    const response: PauseRecordingResponse = {
+      recordingId,
+      message,
+      status: newStatus,
+      pausedAt,
+      resumedAt
+    };
+
+    res.json({
+      success: true,
+      ...response
+    });
+
+  } catch (error: any) {
+    console.error('Erro ao pausar/resumir gravação:', error);
+    
+    broadcast({
+      type: 'error',
+      message: `❌ Erro ao pausar/resumir gravação: ${error.message}`
+    });
+    
+    res.status(500).json({
+      success: false,
+      error: error.message,
+      stack: process.env.NODE_ENV === 'development' ? error.stack : undefined
+    });
+  }
+});
+
+// Get recording status
+app.get('/api/recording/status/:sessionId', async (req: Request, res: Response) => {
+  try {
+    const { sessionId } = req.params;
+    
+    if (!sessionId) {
+      return res.status(400).json({
+        success: false,
+        error: 'sessionId é obrigatório'
+      });
+    }
+
+    // Buscar gravação ativa para a sessão
+    const recording = Array.from(activeRecordings.values())
+      .find(rec => rec.sessionId === sessionId);
+
+    if (!recording) {
+      return res.json({
+        success: true,
+        recordingId: null,
+        status: 'idle' as RecordingStatus,
+        stats: {
+          totalEvents: 0,
+          eventsByType: {},
+          duration: 0,
+          averageEventInterval: 0,
+          screenshotCount: 0
+        },
+        isActive: false
+      });
+    }
+
+    // Calcular estatísticas atuais
+    const eventsByType: Record<string, number> = {};
+    let screenshotCount = 0;
+
+    recording.events.forEach(event => {
+      eventsByType[event.type] = (eventsByType[event.type] || 0) + 1;
+      if (event.screenshot) screenshotCount++;
+    });
+
+    const currentTime = Date.now();
+    const duration = recording.status === 'stopped' ? 
+      (recording.duration || 0) : 
+      (currentTime - recording.startTime);
+
+    const stats = {
+      totalEvents: recording.events.length,
+      eventsByType,
+      duration,
+      averageEventInterval: recording.events.length > 1 ? 
+        duration / (recording.events.length - 1) : 0,
+      screenshotCount
+    };
+
+    const response: RecordingStatusResponse = {
+      recordingId: recording.id,
+      status: recording.status,
+      stats,
+      currentEvent: recording.events[recording.events.length - 1],
+      isActive: recording.status === 'recording' || recording.status === 'paused'
+    };
+
+    res.json({
+      success: true,
+      ...response
+    });
+
+  } catch (error: any) {
+    console.error('Erro ao obter status da gravação:', error);
+    
+    res.status(500).json({
+      success: false,
+      error: error.message,
+      stack: process.env.NODE_ENV === 'development' ? error.stack : undefined
+    });
+  }
+});
+
+// ==========================================
+// ENDPOINTS DE PREVIEW
+// ==========================================
+
+// Capturar screenshot da sessão ativa
+app.post('/api/recording/screenshot/:sessionId', async (req: Request, res: Response) => {
+  try {
+    const { sessionId } = req.params;
+    const { quality = 80, fullPage = false } = req.body;
+    
+    if (!sessionId) {
+      return res.status(400).json({
+        success: false,
+        error: 'sessionId é obrigatório'
+      });
+    }
+
+    // Verificar se a sessão existe
+    const session = sessionManager.getSession(sessionId);
+    if (!session) {
+      return res.status(404).json({
+        success: false,
+        error: 'Sessão não encontrada',
+        sessionExpired: true
+      });
+    }
+
+    // Verificar se a sessão ainda está ativa
+    const isValid = await sessionManager.isSessionValid(sessionId);
+    if (!isValid) {
+      return res.status(404).json({
+        success: false,
+        error: 'Sessão foi fechada ou não está mais ativa',
+        sessionExpired: true
+      });
+    }
+
+    console.log(`📸 Capturando screenshot da sessão: ${sessionId}`);
+    
+    // Capturar screenshot
+    const screenshot = await session.page.screenshot({
+      encoding: 'base64',
+      fullPage,
+      quality: Math.min(Math.max(quality, 10), 100) // Limitar entre 10-100
+    });
+
+    // Obter informações da página
+    const pageUrl = await session.page.url();
+    const pageTitle = await session.page.title();
+    const viewport = await session.page.viewport();
+
+    const response = {
+      success: true,
+      screenshot: `data:image/png;base64,${screenshot}`,
+      metadata: {
+        url: pageUrl,
+        title: pageTitle,
+        viewport,
+        timestamp: Date.now(),
+        quality,
+        fullPage,
+        size: Math.round((screenshot.length * 3) / 4 / 1024) // Tamanho aproximado em KB
+      }
+    };
+
+    res.json(response);
+
+    console.log(`✅ Screenshot capturado: ${response.metadata.size}KB`);
+
+  } catch (error: any) {
+    console.error('❌ Erro ao capturar screenshot:', error);
+    
+    res.status(500).json({
+      success: false,
+      error: error.message,
+      stack: process.env.NODE_ENV === 'development' ? error.stack : undefined
+    });
+  }
+});
+
+// Obter último screenshot/preview da sessão
+app.get('/api/recording/preview/:sessionId', async (req: Request, res: Response) => {
+  try {
+    const { sessionId } = req.params;
+    
+    if (!sessionId) {
+      return res.status(400).json({
+        success: false,
+        error: 'sessionId é obrigatório'
+      });
+    }
+
+    // Verificar se a sessão existe
+    const session = sessionManager.getSession(sessionId);
+    if (!session) {
+      return res.status(404).json({
+        success: false,
+        error: 'Sessão não encontrada',
+        sessionExpired: true
+      });
+    }
+
+    // Verificar se a sessão ainda está ativa
+    const isValid = await sessionManager.isSessionValid(sessionId);
+    if (!isValid) {
+      return res.status(404).json({
+        success: false,
+        error: 'Sessão foi fechada ou não está mais ativa',
+        sessionExpired: true
+      });
+    }
+
+    // Capturar screenshot atual (preview rápido)
+    const screenshot = await session.page.screenshot({
+      encoding: 'base64',
+      fullPage: false,
+      quality: 60 // Qualidade menor para preview rápido
+    });
+
+    // Obter informações básicas da página
+    const pageUrl = await session.page.url();
+    const pageTitle = await session.page.title();
+
+    const response = {
+      success: true,
+      preview: `data:image/png;base64,${screenshot}`,
+      metadata: {
+        url: pageUrl,
+        title: pageTitle,
+        timestamp: Date.now(),
+        isPreview: true
+      }
+    };
+
+    res.json(response);
+
+  } catch (error: any) {
+    console.error('❌ Erro ao obter preview:', error);
+    
+    res.status(500).json({
+      success: false,
+      error: error.message,
+      stack: process.env.NODE_ENV === 'development' ? error.stack : undefined
+    });
+  }
+});
+
+// Obter informações da página atual da sessão
+app.get('/api/recording/page-info/:sessionId', async (req: Request, res: Response) => {
+  try {
+    const { sessionId } = req.params;
+    
+    if (!sessionId) {
+      return res.status(400).json({
+        success: false,
+        error: 'sessionId é obrigatório'
+      });
+    }
+
+    // Verificar se a sessão existe
+    const session = sessionManager.getSession(sessionId);
+    if (!session) {
+      return res.status(404).json({
+        success: false,
+        error: 'Sessão não encontrada',
+        sessionExpired: true
+      });
+    }
+
+    // Obter informações detalhadas da página
+    const pageUrl = await session.page.url();
+    const pageTitle = await session.page.title();
+    const viewport = await session.page.viewport();
+
+    // Obter métricas de performance se disponível
+    let metrics = null;
+    try {
+      const performanceMetrics = await session.page.metrics();
+      metrics = performanceMetrics;
+    } catch (error) {
+      // Métricas podem não estar disponíveis em alguns casos
+    }
+
+    const response = {
+      success: true,
+      pageInfo: {
+        url: pageUrl,
+        title: pageTitle,
+        viewport,
+        timestamp: Date.now(),
+        metrics
+      }
+    };
+
+    res.json(response);
+
+  } catch (error: any) {
+    console.error('❌ Erro ao obter informações da página:', error);
+    
+    res.status(500).json({
+      success: false,
+      error: error.message,
+      stack: process.env.NODE_ENV === 'development' ? error.stack : undefined
+    });
+  }
+});
+
+// ==========================================
+// ENDPOINTS DE EXPORTAÇÃO
+// ==========================================
+
+// Exportar gravação
+app.post('/api/recording/export', async (req: Request, res: Response) => {
+  try {
+    const { recordingId, options } = req.body;
+    
+    if (!recordingId) {
+      return res.status(400).json({
+        success: false,
+        error: 'recordingId é obrigatório'
+      });
+    }
+
+    if (!options || !options.format) {
+      return res.status(400).json({
+        success: false,
+        error: 'options.format é obrigatório'
+      });
+    }
+
+    // Buscar gravação (primeiro em ativas, depois em finalizadas)
+    let recording = activeRecordings.get(recordingId);
+    
+    if (!recording) {
+      return res.status(404).json({
+        success: false,
+        error: 'Gravação não encontrada'
+      });
+    }
+
+    // Validar opções de exportação
+    try {
+      ExportService.validateExportOptions(options);
+    } catch (validationError: any) {
+      return res.status(400).json({
+        success: false,
+        error: `Opções inválidas: ${validationError.message}`
+      });
+    }
+
+    console.log(`📤 Iniciando exportação: ${recordingId} -> ${options.format}`);
+
+    // Exportar gravação
+    const exportResult = await ExportService.exportRecording(recording, options);
+
+    // Broadcast sucesso
+    broadcast({
+      type: 'success',
+      message: `📤 Exportação concluída: ${exportResult.filename}`,
+      sessionId: recording.sessionId,
+      recordingId,
+      data: {
+        format: exportResult.format,
+        size: exportResult.size,
+        filename: exportResult.filename
+      }
+    });
+
+    res.json({
+      success: true,
+      ...exportResult
+    });
+
+  } catch (error: any) {
+    console.error('❌ Erro ao exportar gravação:', error);
+    
+    broadcast({
+      type: 'error',
+      message: `❌ Erro na exportação: ${error.message}`
+    });
+    
+    res.status(500).json({
+      success: false,
+      error: error.message,
+      stack: process.env.NODE_ENV === 'development' ? error.stack : undefined
+    });
+  }
+});
+
+// Listar gravações disponíveis para exportação
+app.get('/api/recordings', async (req: Request, res: Response) => {
+  try {
+    const recordings = Array.from(activeRecordings.values()).map(recording => ({
+      id: recording.id,
+      sessionId: recording.sessionId,
+      createdAt: recording.startTime,
+      duration: recording.duration,
+      eventCount: recording.events.length,
+      status: recording.status,
+      metadata: {
+        initialUrl: recording.metadata.initialUrl,
+        totalEvents: recording.metadata.totalEvents
+      }
+    }));
+
+    res.json({
+      success: true,
+      recordings,
+      total: recordings.length
+    });
+
+  } catch (error: any) {
+    console.error('❌ Erro ao listar gravações:', error);
+    
+    res.status(500).json({
+      success: false,
+      error: error.message,
+      stack: process.env.NODE_ENV === 'development' ? error.stack : undefined
+    });
+  }
+});
+
+// Obter gravação específica
+app.get('/api/recording/:recordingId', async (req: Request, res: Response) => {
+  try {
+    const { recordingId } = req.params;
+    
+    const recording = activeRecordings.get(recordingId);
+    
+    if (!recording) {
+      return res.status(404).json({
+        success: false,
+        error: 'Gravação não encontrada'
+      });
+    }
+
+    res.json({
+      success: true,
+      recording
+    });
+
+  } catch (error: any) {
+    console.error('❌ Erro ao obter gravação:', error);
+    
+    res.status(500).json({
+      success: false,
+      error: error.message,
+      stack: process.env.NODE_ENV === 'development' ? error.stack : undefined
+    });
+  }
+});
+
+// ==========================================
+// ENDPOINTS DE REPRODUÇÃO
+// ==========================================
+
+// Reproduzir gravação
+app.post('/api/recording/playback/start', async (req: Request, res: Response) => {
+  try {
+    const { recordingId, sessionId, config } = req.body;
+    
+    if (!recordingId || !sessionId) {
+      return res.status(400).json({
+        success: false,
+        error: 'recordingId e sessionId são obrigatórios'
+      });
+    }
+
+    // Verificar se a sessão existe
+    const session = sessionManager.getSession(sessionId);
+    if (!session) {
+      return res.status(404).json({
+        success: false,
+        error: 'Sessão não encontrada',
+        sessionExpired: true
+      });
+    }
+
+    // Verificar se a gravação existe
+    const recording = activeRecordings.get(recordingId);
+    if (!recording) {
+      return res.status(404).json({
+        success: false,
+        error: 'Gravação não encontrada'
+      });
+    }
+
+    // Verificar se já existe reprodução ativa
+    if (activePlaybackServices.has(recordingId)) {
+      return res.status(409).json({
+        success: false,
+        error: 'Reprodução já está em andamento para esta gravação'
+      });
+    }
+
+    // Configuração padrão de reprodução
+    const playbackConfig: PlaybackConfig = {
+      speed: config?.speed || 1,
+      pauseOnError: config?.pauseOnError !== false,
+      skipScreenshots: config?.skipScreenshots || false,
+      startFromEvent: config?.startFromEvent,
+      endAtEvent: config?.endAtEvent
+    };
+
+    // Criar e iniciar serviço de reprodução
+    const playbackService = new PlaybackService(session.page, recording, playbackConfig, broadcast);
+    activePlaybackServices.set(recordingId, playbackService);
+
+    // Iniciar reprodução
+    await playbackService.startPlayback();
+
+    console.log(`▶️ Reprodução iniciada para gravação: ${recordingId}`);
+
+    res.json({
+      success: true,
+      message: 'Reprodução iniciada com sucesso!',
+      recordingId,
+      sessionId,
+      config: playbackConfig,
+      status: playbackService.getStatus()
+    });
+
+  } catch (error: any) {
+    console.error('❌ Erro ao iniciar reprodução:', error);
+    
+    broadcast({
+      type: 'error',
+      message: `❌ Erro ao iniciar reprodução: ${error.message}`
+    });
+    
+    res.status(500).json({
+      success: false,
+      error: error.message,
+      stack: process.env.NODE_ENV === 'development' ? error.stack : undefined
+    });
+  }
+});
+
+// Controlar reprodução (pause/resume)
+app.post('/api/recording/playback/control', async (req: Request, res: Response) => {
+  try {
+    const { recordingId, action } = req.body;
+    
+    if (!recordingId || !action) {
+      return res.status(400).json({
+        success: false,
+        error: 'recordingId e action são obrigatórios'
+      });
+    }
+
+    const playbackService = activePlaybackServices.get(recordingId);
+    if (!playbackService) {
+      return res.status(404).json({
+        success: false,
+        error: 'Reprodução não encontrada'
+      });
+    }
+
+    let message: string;
+    
+    switch (action) {
+      case 'pause':
+        playbackService.pausePlayback();
+        message = 'Reprodução pausada';
+        break;
+      
+      case 'resume':
+        playbackService.resumePlayback();
+        message = 'Reprodução resumida';
+        break;
+      
+      case 'stop':
+        playbackService.stopPlayback();
+        activePlaybackServices.delete(recordingId);
+        message = 'Reprodução parada';
+        break;
+      
+      default:
+        return res.status(400).json({
+          success: false,
+          error: `Ação inválida: ${action}`
+        });
+    }
+
+    res.json({
+      success: true,
+      message,
+      recordingId,
+      action,
+      status: playbackService.getStatus()
+    });
+
+  } catch (error: any) {
+    console.error('❌ Erro no controle de reprodução:', error);
+    
+    res.status(500).json({
+      success: false,
+      error: error.message,
+      stack: process.env.NODE_ENV === 'development' ? error.stack : undefined
+    });
+  }
+});
+
+// Navegar na reprodução
+app.post('/api/recording/playback/seek', async (req: Request, res: Response) => {
+  try {
+    const { recordingId, eventIndex } = req.body;
+    
+    if (!recordingId || eventIndex === undefined) {
+      return res.status(400).json({
+        success: false,
+        error: 'recordingId e eventIndex são obrigatórios'
+      });
+    }
+
+    const playbackService = activePlaybackServices.get(recordingId);
+    if (!playbackService) {
+      return res.status(404).json({
+        success: false,
+        error: 'Reprodução não encontrada'
+      });
+    }
+
+    await playbackService.seekToEvent(eventIndex);
+
+    res.json({
+      success: true,
+      message: `Navegado para evento ${eventIndex + 1}`,
+      recordingId,
+      eventIndex,
+      status: playbackService.getStatus()
+    });
+
+  } catch (error: any) {
+    console.error('❌ Erro na navegação da reprodução:', error);
+    
+    res.status(500).json({
+      success: false,
+      error: error.message,
+      stack: process.env.NODE_ENV === 'development' ? error.stack : undefined
+    });
+  }
+});
+
+// Obter status da reprodução
+app.get('/api/recording/playback/status/:recordingId', async (req: Request, res: Response) => {
+  try {
+    const { recordingId } = req.params;
+    
+    const playbackService = activePlaybackServices.get(recordingId);
+    
+    if (!playbackService) {
+      return res.json({
+        success: true,
+        isActive: false,
+        status: null
+      });
+    }
+
+    res.json({
+      success: true,
+      isActive: playbackService.isActive(),
+      status: playbackService.getStatus()
+    });
+
+  } catch (error: any) {
+    console.error('❌ Erro ao obter status da reprodução:', error);
+    
+    res.status(500).json({
+      success: false,
+      error: error.message,
+      stack: process.env.NODE_ENV === 'development' ? error.stack : undefined
+    });
+  }
+});
+
 // Graceful shutdown handler
 async function gracefulShutdown(signal: string) {
   console.log(`\n🛑 Recebido sinal ${signal}. Iniciando shutdown gracioso...`);
@@ -566,7 +1543,38 @@ async function gracefulShutdown(signal: string) {
     clients.clear();
     console.log('✅ Conexões WebSocket fechadas');
 
-    // 3. Fechar todas as sessões ativas
+    // 3. Parar todas as reproduções ativas
+    if (activePlaybackServices.size > 0) {
+      console.log(`🎬 Parando ${activePlaybackServices.size} reproduções ativas...`);
+      for (const [recordingId, playbackService] of activePlaybackServices) {
+        try {
+          playbackService.cleanup();
+          console.log(`✅ Reprodução ${recordingId} finalizada`);
+        } catch (error) {
+          console.error(`❌ Erro ao parar reprodução ${recordingId}:`, error);
+        }
+      }
+      activePlaybackServices.clear();
+      console.log('✅ Reproduções finalizadas');
+    }
+
+    // 4. Parar todas as gravações ativas
+    if (activeRecordingServices.size > 0) {
+      console.log(`🎬 Parando ${activeRecordingServices.size} gravações ativas...`);
+      for (const [recordingId, recordingService] of activeRecordingServices) {
+        try {
+          await recordingService.stopCapture();
+          console.log(`✅ Gravação ${recordingId} finalizada`);
+        } catch (error) {
+          console.error(`❌ Erro ao parar gravação ${recordingId}:`, error);
+        }
+      }
+      activeRecordingServices.clear();
+      activeRecordings.clear();
+      console.log('✅ Gravações finalizadas');
+    }
+
+    // 5. Fechar todas as sessões ativas
     if (sessionManager) {
       console.log('🧹 Limpando sessões ativas...');
       const stats = sessionManager.getStats();
@@ -614,6 +1622,24 @@ server.listen(port, () => {
   console.log(`   POST /api/session/screenshot - Capturar screenshot`);
   console.log(`   DELETE /api/session/:id - Remover sessão`);
   console.log(`   GET  /api/sessions/stats - Estatísticas das sessões`);
+  console.log(`\n🎬 Endpoints de Gravação:`);
+  console.log(`   POST /api/recording/start - Iniciar gravação`);
+  console.log(`   POST /api/recording/stop - Parar gravação`);
+  console.log(`   POST /api/recording/pause - Pausar/resumir gravação`);
+  console.log(`   GET  /api/recording/status/:sessionId - Status da gravação`);
+  console.log(`\n📺 Endpoints de Preview:`);
+  console.log(`   POST /api/recording/screenshot/:sessionId - Capturar screenshot da sessão`);
+  console.log(`   GET  /api/recording/preview/:sessionId - Obter último screenshot`);
+  console.log(`   GET  /api/recording/page-info/:sessionId - Informações da página`);
+  console.log(`\n📤 Endpoints de Exportação:`);
+  console.log(`   POST /api/recording/export - Exportar gravação (JSON/Puppeteer)`);
+  console.log(`   GET  /api/recordings - Listar gravações disponíveis`);
+  console.log(`   GET  /api/recording/:recordingId - Obter gravação específica`);
+  console.log(`\n▶️ Endpoints de Reprodução:`);
+  console.log(`   POST /api/recording/playback/start - Iniciar reprodução`);
+  console.log(`   POST /api/recording/playback/control - Controlar reprodução`);
+  console.log(`   POST /api/recording/playback/seek - Navegar na reprodução`);
+  console.log(`   GET  /api/recording/playback/status/:recordingId - Status da reprodução`);
 
   console.log(`\n💡 Para usar o playground:`);
   console.log(`   1. Execute no terminal do host:`);

@@ -1,6 +1,7 @@
 import { SharedServices } from '../shared';
 import { AppConfig, SessionData } from '../shared/types';
 import { PageInfo } from '../shared/types';
+import { SessionSyncService } from '../shared/services/SessionSyncService';
 
 interface CurrentSession {
   id: string | null;
@@ -21,6 +22,7 @@ export class PlaygroundManager {
   public extractionData: ExtractionData;
   public config: AppConfig;
   public templates: Record<string, any>;
+  private sessionSyncService: SessionSyncService;
 
   constructor(sharedServices: SharedServices) {
     this.sharedServices = sharedServices;
@@ -37,6 +39,7 @@ export class PlaygroundManager {
     };
     this.config = this.sharedServices.configService.loadConfig();
     this.templates = this.getTemplates();
+    this.sessionSyncService = new SessionSyncService(this.sharedServices);
   }
 
   public init(): void {
@@ -44,6 +47,36 @@ export class PlaygroundManager {
     this.loadSavedConfig();
     this.checkChromeStatus();
     this.generateCodeAutomatically();
+    this.checkForExistingSession();
+  }
+
+  /**
+   * Verificar se há sessão existente ao carregar a página
+   */
+  private async checkForExistingSession(): Promise<void> {
+    try {
+      const sessionInfo = await this.sessionSyncService.getActiveSession();
+      
+      if (sessionInfo) {
+        console.log('🔄 Sessão existente detectada:', sessionInfo.sessionId);
+        
+        // Restaurar estado da sessão
+        this.currentSession = {
+          id: sessionInfo.sessionId,
+          active: true,
+          executionCount: 0,
+          pageInfo: sessionInfo.pageInfo || null
+        };
+        
+        this.updateSessionStatus();
+        
+        console.log('✅ Sessão restaurada no playground');
+      }
+    } catch (error: any) {
+      console.warn('⚠️ Erro ao verificar sessão existente:', error);
+      // Se erro, limpar qualquer sessão inválida
+      this.sessionSyncService.clearStoredSession();
+    }
   }
 
   private setupEventListeners(): void {
@@ -182,6 +215,9 @@ export class PlaygroundManager {
         pageInfo: result.pageInfo || null
       };
       
+      // Notificar outras páginas sobre nova sessão
+      this.sessionSyncService.notifySessionCreated(result.sessionId, result.pageInfo);
+      
       this.updateSessionStatus();
       
     } catch (error: any) {
@@ -197,6 +233,10 @@ export class PlaygroundManager {
 
     try {
       await this.sharedServices.apiService.closeSession(this.currentSession.id);
+      
+      // Limpar sessão do localStorage
+      this.sessionSyncService.clearStoredSession();
+      
       this.currentSession = { id: null, active: false, executionCount: 0, pageInfo: null };
       this.updateSessionStatus();
     } catch (error: any) {
