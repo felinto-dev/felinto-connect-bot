@@ -94,6 +94,12 @@ export default class ApiService {
     });
   }
 
+  validateSession(sessionId: string): Promise<{ success: boolean, valid: boolean, sessionId?: string, pageInfo?: any, error?: string }> {
+    return this._fetch(`/api/session/${sessionId}/validate`, {
+      method: 'GET'
+    });
+  }
+
   takeScreenshot(sessionId: string): Promise<{ screenshot: string }> {
     return this._fetch('/api/session/screenshot', {
       method: 'POST',

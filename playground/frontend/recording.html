@@ -184,18 +184,34 @@
                 </div>
               </div>
               
-              <div class="recording-info" id="recordingInfo" style="display: none;">
-                <div class="info-item">
-                  <label>Ações gravadas:</label>
-                  <span id="actionsCount">0</span>
+              <div class="recording-info-container" id="recordingInfo" style="display: none;">
+                <div class="recording-info-header">
+                  <div class="recording-info-title">
+                    <i data-lucide="activity" class="info-icon"></i>
+                    <span>Status da Gravação</span>
+                  </div>
+                  <div class="recording-info-badge" id="recordingStatusBadge">
+                    <i data-lucide="circle" class="status-indicator"></i>
+                    <span id="recordingStatusText">Pronto</span>
+                  </div>
                 </div>
-                <div class="info-item">
-                  <label>Duração:</label>
-                  <span id="recordingDuration">00:00</span>
-                </div>
-                <div class="info-item">
-                  <label>Status:</label>
-                  <span id="recordingStatusText">Pronto</span>
+                <div class="recording-info-content">
+                  <div class="recording-stats">
+                    <div class="stat-item">
+                      <i data-lucide="hash" class="stat-icon"></i>
+                      <div class="stat-content">
+                        <span class="stat-label">Ações gravadas</span>
+                        <span class="stat-value" id="actionsCount">0</span>
+                      </div>
+                    </div>
+                    <div class="stat-item">
+                      <i data-lucide="clock" class="stat-icon"></i>
+                      <div class="stat-content">
+                        <span class="stat-label">Duração</span>
+                        <span class="stat-value" id="recordingDuration">00:00</span>
+                      </div>
+                    </div>
+                  </div>
                 </div>
               </div>
             </div>

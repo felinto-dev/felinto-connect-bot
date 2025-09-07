@@ -280,6 +280,50 @@ export class RecordingManager {
   }
 
   /**
+   * Validar se a sessão atual ainda é válida no backend
+   */
+  private async validateCurrentSession(): Promise<boolean> {
+    if (!this.currentSessionId) {
+      return false;
+    }
+
+    try {
+      // Usar o endpoint específico de validação de sessão
+      const result = await this.sharedServices.apiService.validateSession(this.currentSessionId);
+      
+      if (result.success && result.valid) {
+        console.log('✅ Sessão validada com sucesso');
+        return true;
+      } else {
+        console.warn('⚠️ Sessão não é mais válida:', result.error);
+        
+        // Limpar sessão inválida
+        this.currentSessionId = null;
+        if (this.sessionSyncService) {
+          this.sessionSyncService.clearStoredSession();
+        }
+        return false;
+      }
+    } catch (error: any) {
+      console.warn('⚠️ Erro ao validar sessão:', error.message);
+      
+      // Se erro indica sessão expirada, limpar sessão atual
+      if (error.message?.includes('Sessão não encontrada') || 
+          error.message?.includes('sessionExpired') ||
+          error.message?.includes('Sessão foi fechada')) {
+        
+        // Limpar sessão inválida
+        this.currentSessionId = null;
+        if (this.sessionSyncService) {
+          this.sessionSyncService.clearStoredSession();
+        }
+      }
+      
+      return false;
+    }
+  }
+
+  /**
    * Criar nova sessão automaticamente
    */
   private async createNewSession(): Promise<void> {
@@ -438,6 +482,7 @@ export class RecordingManager {
   private initializeUI(): void {
     this.updateRecordingUI();
     this.updateActionsCount();
+    this.updateButtonStates();
   }
 
   private async startRecording(): Promise<void> {
@@ -452,6 +497,28 @@ export class RecordingManager {
         if (!this.currentSessionId) {
           throw new Error('Não foi possível criar uma nova sessão');
         }
+      }
+
+      // Validar se a sessão ainda é válida no backend antes de tentar gravar
+      console.log('🔍 Validando sessão antes de iniciar gravação...');
+      const isSessionValid = await this.validateCurrentSession();
+      
+      if (!isSessionValid) {
+        console.log('⚠️ Sessão inválida detectada, criando nova sessão...');
+        await this.createNewSession();
+        
+        if (!this.currentSessionId) {
+          throw new Error('Não foi possível criar uma nova sessão após validação');
+        }
+      }
+
+      // Verificar se já existe uma gravação ativa para esta sessão
+      console.log('🔍 Verificando se há gravação ativa...');
+      const hasActiveRecording = await this.sharedServices.apiService.hasActiveRecording(this.currentSessionId);
+      
+      if (hasActiveRecording) {
+        console.log('⚠️ Já existe uma gravação ativa para esta sessão');
+        throw new Error('Já existe uma gravação ativa para esta sessão. Pare a gravação atual antes de iniciar uma nova.');
       }
 
       // Carregar configurações atuais da UI
@@ -498,10 +565,23 @@ export class RecordingManager {
 
     } catch (error: any) {
       console.error('❌ Erro ao iniciar gravação:', error);
-      this.uiState.error = error.message;
+      
+      // Mensagem de erro mais específica para problemas de sessão
+      let errorMessage = error.message;
+      if (error.message?.includes('Sessão não encontrada') || 
+          error.message?.includes('sessionExpired')) {
+        errorMessage = 'Sessão expirou. Tente novamente - uma nova sessão será criada automaticamente.';
+      } else if (error.message?.includes('Não foi possível criar uma nova sessão')) {
+        errorMessage = 'Erro ao criar sessão. Verifique se o Chrome está rodando com debug habilitado.';
+      }
+      
+      // Reset completo do estado da UI
+      this.resetRecordingState();
+      this.uiState.error = errorMessage;
       this.uiState.currentStatus = 'error';
       this.updateRecordingUI();
-      this.showError('Erro ao iniciar gravação', error.message);
+      this.updateButtonStates();
+      this.showError('Erro ao iniciar gravação', errorMessage);
     }
   }
 
@@ -542,15 +622,10 @@ export class RecordingManager {
       
       const response = await this.sharedServices.apiService.stopRecording(this.uiState.recordingId);
       
-      // Atualizar estado
-      this.uiState.isRecording = false;
-      this.uiState.isPaused = false;
+      // Reset do estado da gravação
+      this.resetRecordingState();
       this.uiState.currentStatus = 'stopped';
       this.uiState.eventCount = response.stats.totalEvents;
-
-      // Parar timers
-    this.stopRecordingTimer();
-      this.stopStatusPolling();
 
       // Atualizar UI
     this.updateRecordingUI();
@@ -658,6 +733,9 @@ export class RecordingManager {
     const statusContainer = document.getElementById('recordingStatusContainer');
     const recordingInfo = document.getElementById('recordingInfo');
     const statusText = document.getElementById('recordingStatusText');
+    const statusBadge = document.getElementById('recordingStatusBadge');
+    const actionsCount = document.getElementById('actionsCount');
+    const duration = document.getElementById('recordingDuration');
 
     if (this.uiState.isRecording) {
       if (startBtn) startBtn.style.display = 'none';
@@ -669,14 +747,44 @@ export class RecordingManager {
         startBtn.disabled = false; // Sempre habilitado quando não está gravando
       }
       if (statusContainer) statusContainer.style.display = 'none';
-      if (recordingInfo && !this.uiState.startTime) recordingInfo.style.display = 'none';
+      // Sempre esconder recordingInfo quando não está gravando, independente de startTime
+      if (recordingInfo && this.uiState.currentStatus !== 'recording') {
+        recordingInfo.style.display = 'none';
+      }
     }
 
-    // Atualizar texto de status
-    if (statusText) {
-      const message = STATUS_MESSAGES[this.uiState.currentStatus.toUpperCase() as keyof typeof STATUS_MESSAGES] || 
-                     STATUS_MESSAGES.IDLE;
-      statusText.textContent = message;
+    // Atualizar texto de status e badge
+    if (statusText && statusBadge) {
+      let statusMessage = 'Pronto';
+      let badgeClass = '';
+      
+      if (this.uiState.currentStatus === 'recording') {
+        statusMessage = this.uiState.isPaused ? 'Pausado' : 'Gravando...';
+        badgeClass = this.uiState.isPaused ? 'paused' : 'recording';
+      } else if (this.uiState.currentStatus === 'stopped') {
+        statusMessage = 'Finalizada';
+        badgeClass = 'completed';
+      } else if (this.uiState.currentStatus === 'error') {
+        statusMessage = 'Erro';
+        badgeClass = 'error';
+      }
+      
+      statusText.textContent = statusMessage;
+      
+      // Atualizar classes do badge
+      statusBadge.className = 'recording-info-badge';
+      if (badgeClass) {
+        statusBadge.classList.add(badgeClass);
+      }
+    }
+
+    // Atualizar contadores
+    if (actionsCount) {
+      actionsCount.textContent = this.uiState.eventCount.toString();
+    }
+    
+    if (duration) {
+      duration.textContent = formatDuration(this.uiState.elapsedTime);
     }
   }
 
@@ -741,6 +849,27 @@ export class RecordingManager {
     if (lastActionTimeElement && this.uiState.lastEventTime) {
       lastActionTimeElement.textContent = formatTimestamp(this.uiState.lastEventTime.getTime());
     }
+  }
+
+  /**
+   * Resetar completamente o estado da gravação
+   */
+  private resetRecordingState(): void {
+    console.log('🔄 Resetando estado da gravação...');
+    
+    // Parar timers se estiverem rodando
+    this.stopRecordingTimer();
+    this.stopStatusPolling();
+    
+    // Reset do estado
+    this.uiState.isRecording = false;
+    this.uiState.isPaused = false;
+    this.uiState.recordingId = undefined;
+    this.uiState.startTime = undefined;
+    this.uiState.elapsedTime = 0;
+    this.uiState.lastEventTime = undefined;
+    this.uiState.currentStatus = 'idle';
+    this.uiState.error = undefined;
   }
 
   /**

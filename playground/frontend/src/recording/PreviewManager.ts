@@ -4,6 +4,7 @@ import type {
   PreviewState,
   ConnectionStatus 
 } from '../shared/types/recording';
+import { truncateUrl } from '../shared/utils/recording';
 
 export class PreviewManager {
   private sharedServices: SharedServices;
@@ -261,8 +262,10 @@ export class PreviewManager {
   private updatePreviewUrl(url: string): void {
     const previewUrlElement = document.getElementById('previewUrl');
     if (previewUrlElement) {
-      previewUrlElement.textContent = url;
-      previewUrlElement.title = url;
+      // Truncar URL para evitar quebra de layout, mas manter URL completa no tooltip
+      const truncatedUrl = truncateUrl(url, 60);
+      previewUrlElement.textContent = truncatedUrl;
+      previewUrlElement.title = url; // URL completa no tooltip
     }
   }
 

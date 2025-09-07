@@ -287,7 +287,7 @@ class SessionManager {
    */
   async takeScreenshot(
     sessionId: string,
-    options: object = {},
+    options: any = {},
   ): Promise<string> {
     const session = this.getSession(sessionId);
 
@@ -296,12 +296,20 @@ class SessionManager {
     }
 
     try {
-      const screenshot = await session.page.screenshot({
-        type: 'png',
+      // Se quality for especificado, usar JPEG; caso contrário, PNG
+      const screenshotOptions = {
+        type: options.quality ? 'jpeg' : 'png',
         encoding: 'base64',
         fullPage: false,
         ...options,
-      });
+      } as any;
+
+      // Remover quality se type for png
+      if (screenshotOptions.type === 'png' && screenshotOptions.quality) {
+        delete screenshotOptions.quality;
+      }
+
+      const screenshot = await session.page.screenshot(screenshotOptions);
 
       return screenshot as string;
     } catch (error: any) {

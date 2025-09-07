@@ -478,6 +478,7 @@ export class RecordingService {
   private async captureScreenshot(type: string = 'auto'): Promise<void> {
     try {
       const screenshot = await this.page.screenshot({
+        type: 'jpeg',
         encoding: 'base64',
         fullPage: false,
         quality: 80
@@ -485,7 +486,7 @@ export class RecordingService {
 
       await this.addEvent({
         type: 'screenshot',
-        screenshot: `data:image/png;base64,${screenshot}`,
+        screenshot: `data:image/jpeg;base64,${screenshot}`,
         metadata: {
           screenshotType: type,
           timestamp: Date.now()

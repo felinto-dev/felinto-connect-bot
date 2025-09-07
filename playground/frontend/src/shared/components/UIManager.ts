@@ -1,6 +1,7 @@
 import { LogType } from "../types/common";
 import { PageInfo } from "../types/api";
 import { ExecuteCodeResponse } from "../types/api";
+import { truncateUrl } from "../utils/recording";
 
 interface ExtractionData {
   hasData: boolean;
@@ -234,7 +235,13 @@ export default class UIManager {
     const currentTitle = document.getElementById('currentTitle');
     const lastUpdate = document.getElementById('lastUpdate');
     
-    if (currentUrl) currentUrl.textContent = pageInfo.url || '-';
+    if (currentUrl) {
+      const url = pageInfo.url || '-';
+      // Truncar URL para evitar quebra de layout, mas manter URL completa no tooltip
+      const truncatedUrl = url !== '-' ? truncateUrl(url, 50) : url;
+      currentUrl.textContent = truncatedUrl;
+      currentUrl.title = url; // URL completa no tooltip
+    }
     if (currentTitle) currentTitle.textContent = pageInfo.title || '-';
     if (lastUpdate) lastUpdate.textContent = pageInfo.timestamp ? new Date(pageInfo.timestamp).toLocaleString() : '-';
   }

@@ -489,9 +489,12 @@ app.post('/api/session/screenshot', async (req: Request, res: Response) => {
     
     broadcast({ type: 'success', message: '✅ Screenshot capturado!' });
     
+    // Determinar o tipo de imagem baseado nas opções
+    const imageType = options.quality ? 'jpeg' : 'png';
+    
     res.json({ 
       success: true, 
-      screenshot: `data:image/png;base64,${screenshot}`,
+      screenshot: `data:image/${imageType};base64,${screenshot}`,
       message: 'Screenshot capturado com sucesso!'
     });
 
@@ -568,6 +571,56 @@ app.get('/api/sessions/stats', (req: Request, res: Response) => {
     console.error('Erro ao obter estatísticas:', error);
     
     res.status(500).json({ 
+      error: error.message,
+      stack: process.env.NODE_ENV === 'development' ? error.stack : undefined
+    });
+  }
+});
+
+// ==========================================
+// ENDPOINT DE VALIDAÇÃO DE SESSÃO
+// ==========================================
+
+// Validate session endpoint
+app.get('/api/session/:sessionId/validate', async (req: Request, res: Response) => {
+  try {
+    const { sessionId } = req.params;
+    
+    if (!sessionId) {
+      return res.status(400).json({
+        success: false,
+        error: 'sessionId é obrigatório'
+      });
+    }
+
+    // Verificar se a sessão existe e ainda é válida
+    const isValid = await sessionManager.isSessionValid(sessionId);
+    
+    if (isValid) {
+      const session = sessionManager.getSession(sessionId);
+      const pageInfo = session ? await sessionManager.getPageInfo(session.page) : null;
+      
+      res.json({
+        success: true,
+        valid: true,
+        sessionId,
+        pageInfo
+      });
+    } else {
+      res.status(404).json({
+        success: false,
+        valid: false,
+        error: 'Sessão não encontrada ou inválida',
+        sessionExpired: true
+      });
+    }
+
+  } catch (error: any) {
+    console.error('Erro ao validar sessão:', error);
+    
+    res.status(500).json({
+      success: false,
+      valid: false,
       error: error.message,
       stack: process.env.NODE_ENV === 'development' ? error.stack : undefined
     });
@@ -987,6 +1040,7 @@ app.post('/api/recording/screenshot/:sessionId', async (req: Request, res: Respo
     
     // Capturar screenshot
     const screenshot = await session.page.screenshot({
+      type: 'jpeg',
       encoding: 'base64',
       fullPage,
       quality: Math.min(Math.max(quality, 10), 100) // Limitar entre 10-100
@@ -999,7 +1053,7 @@ app.post('/api/recording/screenshot/:sessionId', async (req: Request, res: Respo
 
     const response = {
       success: true,
-      screenshot: `data:image/png;base64,${screenshot}`,
+      screenshot: `data:image/jpeg;base64,${screenshot}`,
       metadata: {
         url: pageUrl,
         title: pageTitle,
@@ -1060,6 +1114,7 @@ app.get('/api/recording/preview/:sessionId', async (req: Request, res: Response)
 
     // Capturar screenshot atual (preview rápido)
     const screenshot = await session.page.screenshot({
+      type: 'jpeg',
       encoding: 'base64',
       fullPage: false,
       quality: 60 // Qualidade menor para preview rápido
@@ -1071,7 +1126,7 @@ app.get('/api/recording/preview/:sessionId', async (req: Request, res: Response)
 
     const response = {
       success: true,
-      preview: `data:image/png;base64,${screenshot}`,
+      preview: `data:image/jpeg;base64,${screenshot}`,
       metadata: {
         url: pageUrl,
         title: pageTitle,
