@@ -13,23 +13,27 @@ export class PreviewManager {
   private refreshInterval: number | null = null;
   private currentSessionId: string | null = null;
   private isFullscreen: boolean = false;
+  private focusCheckInterval: number | null = null;
 
   constructor(sharedServices: SharedServices) {
     this.sharedServices = sharedServices;
     
-    // Configuração padrão
+    // Configuração padrão - Smart refresh sempre ativo
     this.config = {
       autoRefresh: true,
       refreshInterval: 3000, // 3 segundos
       showCursor: true,
       highlightElements: true,
-      fullscreen: false
+      fullscreen: false,
+      smartRefresh: true // Sempre ativo, não configurável pelo usuário
     };
 
     // Estado inicial
     this.state = {
       isActive: false,
-      error: undefined
+      error: undefined,
+      isPageFocused: document.hasFocus(),
+      isCursorOverPreview: false
     };
   }
 
@@ -39,6 +43,7 @@ export class PreviewManager {
   public init(): void {
     this.setupEventListeners();
     this.initializeUI();
+    this.setupFocusAndCursorTracking();
   }
 
   /**
@@ -60,28 +65,6 @@ export class PreviewManager {
       this.refreshPreview();
     });
 
-    // Configurar auto-refresh checkbox (se existir)
-    const autoRefreshCheckbox = document.getElementById('autoRefreshPreview') as HTMLInputElement;
-    if (autoRefreshCheckbox) {
-      autoRefreshCheckbox.checked = this.config.autoRefresh;
-      autoRefreshCheckbox.addEventListener('change', (e) => {
-        this.config.autoRefresh = (e.target as HTMLInputElement).checked;
-        this.updateAutoRefresh();
-      });
-    }
-
-    // Configurar intervalo de refresh (se existir)
-    const refreshIntervalInput = document.getElementById('refreshInterval') as HTMLInputElement;
-    if (refreshIntervalInput) {
-      refreshIntervalInput.value = this.config.refreshInterval.toString();
-      refreshIntervalInput.addEventListener('change', (e) => {
-        const value = parseInt((e.target as HTMLInputElement).value);
-        if (value >= 1000 && value <= 30000) { // Entre 1s e 30s
-          this.config.refreshInterval = value;
-          this.updateAutoRefresh();
-        }
-      });
-    }
   }
 
   /**
@@ -90,6 +73,49 @@ export class PreviewManager {
   private initializeUI(): void {
     this.updatePreviewPlaceholder();
     this.updateButtonStates();
+  }
+
+  /**
+   * Configurar rastreamento de foco e cursor
+   */
+  private setupFocusAndCursorTracking(): void {
+    // Rastrear foco da página
+    window.addEventListener('focus', () => {
+      this.state.isPageFocused = true;
+      console.log('🔍 Página em foco - smart refresh pode ativar');
+      this.updateSmartRefresh();
+    });
+
+    window.addEventListener('blur', () => {
+      this.state.isPageFocused = false;
+      console.log('😴 Página perdeu foco - smart refresh pausado');
+      this.updateSmartRefresh();
+    });
+
+    // Rastrear cursor sobre área do preview
+    const previewContainer = document.querySelector('.preview-container');
+    if (previewContainer) {
+      previewContainer.addEventListener('mouseenter', () => {
+        this.state.isCursorOverPreview = true;
+        console.log('🖱️ Cursor sobre preview - smart refresh pode ativar');
+        this.updateSmartRefresh();
+      });
+
+      previewContainer.addEventListener('mouseleave', () => {
+        this.state.isCursorOverPreview = false;
+        console.log('🖱️ Cursor saiu do preview - smart refresh pausado');
+        this.updateSmartRefresh();
+      });
+    }
+
+    // Verificar foco periodicamente (fallback para casos edge)
+    this.focusCheckInterval = window.setInterval(() => {
+      const currentFocus = document.hasFocus();
+      if (currentFocus !== this.state.isPageFocused) {
+        this.state.isPageFocused = currentFocus;
+        this.updateSmartRefresh();
+      }
+    }, 5000); // Verificar a cada 5 segundos
   }
 
   /**
@@ -338,10 +364,10 @@ export class PreviewManager {
     
     if (this.config.autoRefresh && this.currentSessionId) {
       this.refreshInterval = window.setInterval(() => {
-        this.refreshPreview();
+        this.executeSmartRefresh();
       }, this.config.refreshInterval);
       
-      console.log(`🔄 Auto-refresh iniciado: ${this.config.refreshInterval}ms`);
+      console.log(`🔄 Auto-refresh iniciado: ${this.config.refreshInterval}ms (smart refresh sempre ativo)`);
     }
   }
 
@@ -354,6 +380,11 @@ export class PreviewManager {
       this.refreshInterval = null;
       console.log('⏸️ Auto-refresh parado');
     }
+
+    if (this.focusCheckInterval) {
+      clearInterval(this.focusCheckInterval);
+      this.focusCheckInterval = null;
+    }
   }
 
   /**
@@ -362,6 +393,40 @@ export class PreviewManager {
   private updateAutoRefresh(): void {
     if (this.state.isActive) {
       this.startAutoRefresh();
+    }
+  }
+
+  /**
+   * Executar smart refresh - só faz refresh se condições forem atendidas
+   */
+  private executeSmartRefresh(): void {
+    // Verificar condições do smart refresh (sempre ativo)
+    const shouldRefresh = this.state.isPageFocused && this.state.isCursorOverPreview;
+    
+    if (shouldRefresh) {
+      console.log('✅ Smart refresh: condições atendidas - fazendo refresh');
+      this.refreshPreview();
+    } else {
+      const reasons = [];
+      if (!this.state.isPageFocused) reasons.push('página não está em foco');
+      if (!this.state.isCursorOverPreview) reasons.push('cursor não está sobre preview');
+      
+      console.log(`⏸️ Smart refresh: pulando refresh (${reasons.join(', ')})`);
+    }
+  }
+
+  /**
+   * Atualizar smart refresh quando estado de foco/cursor muda
+   */
+  private updateSmartRefresh(): void {
+    // Se ambas condições estão atendidas e não fizemos refresh recentemente, fazer um refresh imediato
+    const shouldRefresh = this.state.isPageFocused && this.state.isCursorOverPreview;
+    const timeSinceLastUpdate = this.state.lastUpdate ? Date.now() - this.state.lastUpdate.getTime() : Infinity;
+    const minInterval = Math.max(1000, this.config.refreshInterval / 2); // Mínimo 1s ou metade do intervalo
+
+    if (shouldRefresh && timeSinceLastUpdate > minInterval) {
+      console.log('🚀 Smart refresh: fazendo refresh imediato (condições recém atendidas)');
+      this.refreshPreview();
     }
   }
 

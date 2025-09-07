@@ -120,6 +120,7 @@ export interface PreviewConfig {
   showCursor: boolean;
   highlightElements: boolean;
   fullscreen: boolean;
+  smartRefresh: boolean; // Só faz refresh quando página em foco e cursor sobre preview
 }
 
 // Estado do preview
@@ -129,6 +130,8 @@ export interface PreviewState {
   lastScreenshot?: string;
   lastUpdate?: Date;
   error?: string;
+  isPageFocused: boolean; // Se a página está em foco
+  isCursorOverPreview: boolean; // Se o cursor está sobre a área do preview
 }
 
 // Configurações para reprodução

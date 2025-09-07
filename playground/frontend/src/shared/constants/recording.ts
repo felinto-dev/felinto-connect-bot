@@ -77,7 +77,8 @@ export const DEFAULT_PREVIEW_CONFIG: PreviewConfig = {
   refreshInterval: 2000,
   showCursor: true,
   highlightElements: true,
-  fullscreen: false
+  fullscreen: false,
+  smartRefresh: true // Sempre ativo para economizar recursos
 };
 
 // Limites do sistema
