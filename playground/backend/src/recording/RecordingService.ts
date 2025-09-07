@@ -17,6 +17,11 @@ export class RecordingService {
   private isCapturing: boolean = false;
   private screenshotInterval?: NodeJS.Timeout;
   private eventListeners: Map<string, (...args: any[]) => void> = new Map();
+  
+  // Controle de debounce para navegação
+  private navigationTimeout?: NodeJS.Timeout;
+  private lastNavigationUrl: string = '';
+  private lastNavigationTime: number = 0;
 
   constructor(
     page: Page,
@@ -98,6 +103,12 @@ export class RecordingService {
       this.screenshotInterval = undefined;
     }
 
+    // Limpar timeout de navegação
+    if (this.navigationTimeout) {
+      clearTimeout(this.navigationTimeout);
+      this.navigationTimeout = undefined;
+    }
+
     // Remover todos os event listeners
     await this.removeEventListeners();
 
@@ -129,6 +140,12 @@ export class RecordingService {
     if (this.screenshotInterval) {
       clearInterval(this.screenshotInterval);
       this.screenshotInterval = undefined;
+    }
+
+    // Limpar timeout de navegação pendente
+    if (this.navigationTimeout) {
+      clearTimeout(this.navigationTimeout);
+      this.navigationTimeout = undefined;
     }
 
     this.recording.status = 'paused';
@@ -258,17 +275,70 @@ export class RecordingService {
    * Configurar listener para navegação
    */
   private async setupNavigationListener(): Promise<void> {
-    const navigationHandler = async () => {
-      if (!this.shouldCaptureEvent()) return;
-
-      await this.addEvent({
-        type: 'navigation',
-        url: await this.page.url(),
-        metadata: {
-          title: await this.page.title(),
-          timestamp: Date.now()
+    const navigationHandler = async (frame: any) => {
+      try {
+        if (!this.shouldCaptureEvent()) return;
+        
+        // Verificar se é o frame principal usando a propriedade _frameManager
+        // ou comparando com o mainFrame da página
+        const isMainFrame = frame === this.page.mainFrame();
+        if (!isMainFrame) {
+          return;
         }
-      });
+
+        const currentUrl = await this.page.url();
+        const currentTime = Date.now();
+        
+        // Verificar se é uma navegação duplicada (mesma URL em menos de 1 segundo)
+        if (this.lastNavigationUrl === currentUrl && 
+            (currentTime - this.lastNavigationTime) < 1000) {
+          console.log(`🔄 Navegação duplicada ignorada: ${currentUrl}`);
+          return;
+        }
+
+        // Limpar timeout anterior se existir
+        if (this.navigationTimeout) {
+          clearTimeout(this.navigationTimeout);
+        }
+
+        // Implementar debounce de 300ms para navegação
+        this.navigationTimeout = setTimeout(async () => {
+          try {
+            // Verificar novamente se deve capturar (pode ter mudado durante o timeout)
+            if (!this.shouldCaptureEvent()) return;
+
+            const finalUrl = await this.page.url();
+            const finalTime = Date.now();
+
+            // Verificação final de duplicação
+            if (this.lastNavigationUrl === finalUrl && 
+                (finalTime - this.lastNavigationTime) < 1000) {
+              return;
+            }
+
+            // Atualizar controle de duplicação
+            this.lastNavigationUrl = finalUrl;
+            this.lastNavigationTime = finalTime;
+
+            await this.addEvent({
+              type: 'navigation',
+              url: finalUrl,
+              metadata: {
+                title: await this.page.title(),
+                timestamp: finalTime
+              }
+            });
+
+            console.log(`🧭 Navegação capturada: ${finalUrl}`);
+
+          } catch (error) {
+            console.error('Erro ao capturar evento de navegação (timeout):', error);
+          }
+        }, 300);
+
+      } catch (error) {
+        console.error('Erro no navigationHandler:', error);
+      }
     };
 
     this.page.on('framenavigated', navigationHandler);
