@@ -13,8 +13,10 @@ import type {
   RecordingWebSocketMessage,
   TimelineItem
 } from '../shared/types/recording';
+import type { AppConfig } from '../shared/types/config';
 import { 
   DEFAULT_RECORDING_CONFIG,
+  DEFAULT_RECORDING_URL,
   DEFAULT_SELECTED_EVENTS,
   ALL_RECORDING_EVENTS,
   STATUS_MESSAGES,
@@ -45,6 +47,7 @@ export class RecordingManager {
   private currentSessionId: string | null = null;
   private capturedEvents: RecordingEvent[] = [];
   private timelineItems: TimelineItem[] = [];
+  private recordingUrl: string;
   public previewManager: PreviewManager;
   public timelineManager: TimelineManager;
   public playbackManager: PlaybackManager;
@@ -70,6 +73,9 @@ export class RecordingManager {
 
     // Inicializar configuração da UI
     this.uiConfig = { ...DEFAULT_RECORDING_CONFIG };
+    
+    // Adicionar propriedade para URL de gravação
+    this.recordingUrl = DEFAULT_RECORDING_URL;
 
     // Inicializar status de conexão
     this.connectionStatus = {
@@ -277,6 +283,41 @@ export class RecordingManager {
     if (delayInput) {
       this.uiConfig.delay = parseInt(delayInput.value) || 500;
     }
+
+    // Carregar URL de gravação da configuração do playground
+    const urlInput = document.getElementById('recordingInitialUrl') as HTMLInputElement;
+    if (urlInput) {
+      // Sempre carregar a URL do playground
+      const playgroundConfig = this.loadPlaygroundConfig();
+      const playgroundUrl = playgroundConfig.initialUrl || DEFAULT_RECORDING_URL;
+      
+      // Preencher o campo com a URL do playground
+      urlInput.value = playgroundUrl;
+      this.recordingUrl = playgroundUrl;
+      
+      console.log('📋 URL do playground carregada:', playgroundUrl);
+      console.log('📋 Config do playground:', playgroundConfig);
+    } else {
+      console.error('❌ Campo URL não encontrado!');
+    }
+  }
+
+  /**
+   * Carregar configuração do playground do localStorage
+   */
+  private loadPlaygroundConfig(): AppConfig {
+    try {
+      const saved = localStorage.getItem('playground-config');
+      if (saved) {
+        const config = JSON.parse(saved);
+        console.log('📋 Configuração do playground carregada:', config.initialUrl);
+        return config;
+      }
+      return {};
+    } catch (error) {
+      console.error('❌ Erro ao carregar config do playground:', error);
+      return {};
+    }
   }
 
   /**
@@ -329,12 +370,14 @@ export class RecordingManager {
   private async createNewSession(): Promise<void> {
     try {
       console.log('🚀 Criando nova sessão automaticamente...');
+      console.log(`🌐 Usando URL inicial: ${this.recordingUrl}`);
       
       // Usar configuração padrão para criar sessão
       const defaultConfig = {
         browserWSEndpoint: '', // Será detectado automaticamente pelo backend
         headless: false,
-        devtools: true
+        devtools: true,
+        initialUrl: this.recordingUrl // Usar URL configurada
       };
 
       const result = await this.sharedServices.apiService.createSession(defaultConfig);
@@ -395,6 +438,8 @@ export class RecordingManager {
     // Preview controls
     document.getElementById('takePreviewScreenshot')?.addEventListener('click', () => this.takePreviewScreenshot());
     document.getElementById('fullscreenPreview')?.addEventListener('click', () => this.toggleFullscreenPreview());
+
+    // URL input listener removido - campo agora é somente leitura
   }
 
   private async checkConnectionStatus(): Promise<void> {

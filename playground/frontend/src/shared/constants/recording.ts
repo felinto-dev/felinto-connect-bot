@@ -42,6 +42,9 @@ export const DEFAULT_RECORDING_CONFIG: RecordingUIConfig = {
   screenshotInterval: 5000
 };
 
+// URL padrão para gravação
+export const DEFAULT_RECORDING_URL = 'https://twitter.com/login';
+
 // Configurações padrão de captura
 export const DEFAULT_CAPTURE_SETTINGS: CaptureSettings = {
   debounceTime: 100,
