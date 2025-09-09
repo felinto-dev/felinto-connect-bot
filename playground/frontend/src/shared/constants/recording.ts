@@ -61,7 +61,18 @@ export const DEFAULT_CAPTURE_SETTINGS: CaptureSettings = {
   ],
   customEvents: [],
   screenshotQuality: 0.8,
-  maxScreenshotSize: 500 // KB
+  maxScreenshotSize: 500, // KB
+  
+  // Configurações padrão para captura inteligente de digitação
+  intelligentTyping: {
+    enabled: true,
+    completionDelay: 1000, // 1 segundo de espera após parar de digitar
+    captureOnTab: true,
+    captureOnEnter: true,
+    captureOnBlur: true,
+    minValueLength: 1, // capturar qualquer valor
+    maxDebounceTime: 3000 // máximo 3 segundos de espera
+  }
 };
 
 

@@ -358,6 +358,118 @@ export class RecordingManager {
   }
 
   /**
+   * Configurar listeners para captura inteligente de digitação
+   */
+  private setupIntelligentTypingConfig(): void {
+    // Configurar toggle da seção
+    this.setupIntelligentTypingToggle();
+    
+    // Checkbox principal
+    const enabledCheckbox = document.getElementById('intelligentTypingEnabled') as HTMLInputElement;
+    const configContainer = document.querySelector('.intelligent-typing-config') as HTMLElement;
+    
+    if (enabledCheckbox) {
+      enabledCheckbox.addEventListener('change', () => {
+        const isEnabled = enabledCheckbox.checked;
+        
+        // Habilitar/desabilitar outros controles
+        const inputs = configContainer.querySelectorAll('input:not(#intelligentTypingEnabled)');
+        inputs.forEach(input => {
+          (input as HTMLInputElement).disabled = !isEnabled;
+        });
+        
+        // Adicionar classe visual
+        if (isEnabled) {
+          configContainer.classList.remove('disabled');
+        } else {
+          configContainer.classList.add('disabled');
+        }
+        
+        console.log(`🎯 Captura inteligente ${isEnabled ? 'habilitada' : 'desabilitada'}`);
+      });
+    }
+    
+    // Listeners para mudanças nos valores
+    const completionDelayInput = document.getElementById('completionDelay') as HTMLInputElement;
+    const maxDebounceTimeInput = document.getElementById('maxDebounceTime') as HTMLInputElement;
+    
+    if (completionDelayInput) {
+      completionDelayInput.addEventListener('change', () => {
+        const value = parseInt(completionDelayInput.value);
+        console.log(`⏱️ Tempo de conclusão atualizado: ${value}ms`);
+      });
+    }
+    
+    if (maxDebounceTimeInput) {
+      maxDebounceTimeInput.addEventListener('change', () => {
+        const value = parseInt(maxDebounceTimeInput.value);
+        console.log(`⏰ Tempo máximo de debounce atualizado: ${value}ms`);
+      });
+    }
+    
+    // Listeners para checkboxes de captura
+    ['captureOnTab', 'captureOnEnter', 'captureOnBlur'].forEach(id => {
+      const checkbox = document.getElementById(id) as HTMLInputElement;
+      if (checkbox) {
+        checkbox.addEventListener('change', () => {
+          console.log(`✅ ${id}: ${checkbox.checked ? 'habilitado' : 'desabilitado'}`);
+        });
+      }
+    });
+  }
+
+  /**
+   * Configurar toggle da seção de captura inteligente
+   */
+  private setupIntelligentTypingToggle(): void {
+    const toggleBtn = document.getElementById('toggleIntelligentTyping') as HTMLButtonElement;
+    const configContainer = document.getElementById('intelligentTypingConfig') as HTMLElement;
+    const toggleIcon = toggleBtn?.querySelector('.toggle-icon') as HTMLElement;
+    const toggleText = toggleBtn?.querySelector('.toggle-text') as HTMLElement;
+    
+    if (toggleBtn && configContainer) {
+      toggleBtn.addEventListener('click', () => {
+        const isVisible = configContainer.style.display !== 'none';
+        
+        if (isVisible) {
+          // Ocultar seção
+          configContainer.style.display = 'none';
+          toggleBtn.classList.remove('expanded');
+          if (toggleText) toggleText.textContent = 'Mostrar';
+          console.log('🔽 Configurações de captura inteligente ocultadas');
+        } else {
+          // Mostrar seção
+          configContainer.style.display = 'block';
+          toggleBtn.classList.add('expanded');
+          if (toggleText) toggleText.textContent = 'Ocultar';
+          console.log('🔼 Configurações de captura inteligente exibidas');
+        }
+      });
+    }
+  }
+
+  /**
+   * Obter configurações de captura inteligente
+   */
+  private getIntelligentTypingConfig() {
+    const enabledCheckbox = document.getElementById('intelligentTypingEnabled') as HTMLInputElement;
+    const completionDelayInput = document.getElementById('completionDelay') as HTMLInputElement;
+    const maxDebounceTimeInput = document.getElementById('maxDebounceTime') as HTMLInputElement;
+    const captureOnTabCheckbox = document.getElementById('captureOnTab') as HTMLInputElement;
+    const captureOnEnterCheckbox = document.getElementById('captureOnEnter') as HTMLInputElement;
+    const captureOnBlurCheckbox = document.getElementById('captureOnBlur') as HTMLInputElement;
+    
+    return {
+      enabled: enabledCheckbox?.checked ?? true,
+      completionDelay: parseInt(completionDelayInput?.value ?? '1000'),
+      maxDebounceTime: parseInt(maxDebounceTimeInput?.value ?? '3000'),
+      captureOnTab: captureOnTabCheckbox?.checked ?? true,
+      captureOnEnter: captureOnEnterCheckbox?.checked ?? true,
+      captureOnBlur: captureOnBlurCheckbox?.checked ?? true
+    };
+  }
+
+  /**
    * Obter configuração atual para enviar ao backend
    */
   private getRecordingConfig(): Partial<import('../shared/types/recording').RecordingConfig> {
@@ -368,11 +480,16 @@ export class RecordingManager {
       captureScreenshots: this.uiConfig.autoScreenshot,
       screenshotInterval: this.uiConfig.screenshotInterval,
       maxEvents: RECORDING_LIMITS.MAX_EVENTS,
-      maxDuration: RECORDING_LIMITS.MAX_DURATION
+      maxDuration: RECORDING_LIMITS.MAX_DURATION,
+      // Adicionar configurações de captura inteligente
+      intelligentTyping: this.getIntelligentTypingConfig()
     };
   }
 
   private setupEventListeners(): void {
+    // Configurações de captura inteligente
+    this.setupIntelligentTypingConfig();
+    
     // Botões de controle de gravação
     document.getElementById('startRecordingBtn')?.addEventListener('click', () => this.startRecording());
     document.getElementById('pauseRecordingBtn')?.addEventListener('click', () => this.pauseRecording());

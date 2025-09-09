@@ -230,33 +230,12 @@ export function generateUniqueSelector(element: Element): string {
 }
 
 /**
- * Mascarar valores sensíveis
+ * Mascarar valores sensíveis (DESABILITADO - captura completa)
  */
 export function maskSensitiveValue(value: string, fieldType?: string): string {
-  if (!value) return value;
-  
-  // Campos de senha
-  if (fieldType?.toLowerCase().includes('password')) {
-    return '*'.repeat(value.length);
-  }
-  
-  // Emails (mostrar apenas domínio)
-  if (value.includes('@')) {
-    const [, domain] = value.split('@');
-    return `***@${domain}`;
-  }
-  
-  // Números de cartão (mostrar apenas últimos 4 dígitos)
-  if (/^\d{13,19}$/.test(value.replace(/\s/g, ''))) {
-    return `**** **** **** ${value.slice(-4)}`;
-  }
-  
-  // Valores longos (mostrar apenas início e fim)
-  if (value.length > 20) {
-    return `${value.slice(0, 5)}...${value.slice(-5)}`;
-  }
-  
-  return value;
+  // Retorna o valor completo sem mascaramento
+  // Todas as informações digitadas são capturadas integralmente
+  return value || '';
 }
 
 /**

@@ -241,33 +241,138 @@ export class RecordingService {
   }
 
   /**
-   * Configurar listener para digitação
+   * Configurar listener para digitação com captura inteligente
    */
   private async setupTypeListener(): Promise<void> {
     const inputHandler = async (event: any) => {
       if (!this.shouldCaptureEvent()) return;
 
       const value = this.maskSensitiveValue(event.target.value, event.target.type);
+      const selector = event.selector || await this.getElementSelector(event.target);
       
       await this.addEvent({
         type: 'type',
-        selector: await this.getElementSelector(event.target),
+        selector: selector,
         value: value,
         metadata: {
           inputType: event.target.type,
-          tagName: event.target.tagName.toLowerCase()
+          tagName: event.target.tagName.toLowerCase(),
+          captureReason: event.captureReason || 'input'
         }
       });
     };
 
+    const keyHandler = async (event: any) => {
+      if (!this.shouldCaptureEvent()) return;
+
+      // Capturar imediatamente em teclas especiais
+      if (event.key === 'Tab' || event.key === 'Enter') {
+        const value = this.maskSensitiveValue(event.target.value, event.target.type);
+        const selector = await this.getElementSelector(event.target);
+        
+        await this.addEvent({
+          type: 'type',
+          selector: selector,
+          value: value,
+          metadata: {
+            inputType: event.target.type,
+            tagName: event.target.tagName.toLowerCase(),
+            triggerKey: event.key,
+            captureReason: 'special_key'
+          }
+        });
+      }
+    };
+
+    const blurHandler = async (event: any) => {
+      if (!this.shouldCaptureEvent()) return;
+
+      const value = this.maskSensitiveValue(event.target.value, event.target.type);
+      const selector = await this.getElementSelector(event.target);
+      
+      await this.addEvent({
+        type: 'type',
+        selector: selector,
+        value: value,
+        metadata: {
+          inputType: event.target.type,
+          tagName: event.target.tagName.toLowerCase(),
+          captureReason: 'blur'
+        }
+      });
+    };
+
+    // Sistema de debounce inteligente
     await this.page.evaluateOnNewDocument(() => {
+      const debounceTimers = new Map();
+      const DEBOUNCE_DELAY = 1000; // 1 segundo
+      const MAX_DEBOUNCE_TIME = 3000; // máximo 3 segundos
+
+      (window as any).__recordingDebounceInput = (selector: string, value: string, inputType: string, tagName: string) => {
+        // Limpar timer anterior se existir
+        if (debounceTimers.has(selector)) {
+          clearTimeout(debounceTimers.get(selector));
+        }
+
+        // Criar novo timer
+        const timer = setTimeout(() => {
+          (window as any).__recordingInputHandler?.({
+            target: {
+              value: value,
+              type: inputType,
+              tagName: tagName
+            },
+            selector: selector,
+            captureReason: 'debounce_completion'
+          });
+          debounceTimers.delete(selector);
+        }, DEBOUNCE_DELAY);
+
+        debounceTimers.set(selector, timer);
+
+        // Timer de segurança para evitar espera infinita
+        setTimeout(() => {
+          if (debounceTimers.has(selector)) {
+            clearTimeout(debounceTimers.get(selector));
+            (window as any).__recordingInputHandler?.({
+              target: {
+                value: value,
+                type: inputType,
+                tagName: tagName
+              },
+              selector: selector,
+              captureReason: 'max_debounce_reached'
+            });
+            debounceTimers.delete(selector);
+          }
+        }, MAX_DEBOUNCE_TIME);
+      };
+
+      // Event listeners
       document.addEventListener('input', (event) => {
         (window as any).__recordingInputHandler?.(event);
+      }, true);
+
+      document.addEventListener('keydown', (event) => {
+        if (event.target && (event.target as HTMLElement).matches('input, textarea, [contenteditable]')) {
+          (window as any).__recordingKeyHandler?.(event);
+        }
+      }, true);
+
+      document.addEventListener('blur', (event) => {
+        if (event.target && (event.target as HTMLElement).matches('input, textarea, [contenteditable]')) {
+          (window as any).__recordingBlurHandler?.(event);
+        }
       }, true);
     });
 
     await this.page.exposeFunction('__recordingInputHandler', inputHandler);
+    await this.page.exposeFunction('__recordingKeyHandler', keyHandler);
+    await this.page.exposeFunction('__recordingBlurHandler', blurHandler);
+    
     this.eventListeners.set('input', inputHandler);
+    this.eventListeners.set('input-key', keyHandler);
+    this.eventListeners.set('input-blur', blurHandler);
   }
 
   /**
@@ -421,24 +526,34 @@ export class RecordingService {
   }
 
   /**
-   * Configurar listener para teclas especiais
+   * Configurar listener para teclas especiais (melhorado)
    */
   private async setupKeyPressListener(): Promise<void> {
     const keyHandler = async (event: any) => {
       if (!this.shouldCaptureEvent()) return;
 
-      // Capturar apenas teclas especiais
+      // Capturar teclas especiais e de navegação
       const specialKeys = ['Enter', 'Tab', 'Escape', 'Backspace', 'Delete', 'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'];
       
       if (specialKeys.includes(event.key)) {
+        // Para TAB e ENTER, também verificar se há campo ativo para capturar valor
+        if ((event.key === 'Tab' || event.key === 'Enter') && event.target && 
+            event.target.matches && event.target.matches('input, textarea, [contenteditable]')) {
+          // Este evento será tratado pelo inputHandler via keyHandler específico
+          return;
+        }
+
         await this.addEvent({
           type: 'key_press',
           value: event.key,
+          selector: event.target ? await this.getElementSelector(event.target) : undefined,
           metadata: {
             code: event.code,
             ctrlKey: event.ctrlKey,
             shiftKey: event.shiftKey,
-            altKey: event.altKey
+            altKey: event.altKey,
+            targetType: event.target?.tagName?.toLowerCase(),
+            isNavigationKey: ['Tab', 'Enter'].includes(event.key)
           }
         });
       }
@@ -446,11 +561,11 @@ export class RecordingService {
 
     await this.page.evaluateOnNewDocument(() => {
       document.addEventListener('keydown', (event) => {
-        (window as any).__recordingKeyHandler?.(event);
+        (window as any).__recordingGlobalKeyHandler?.(event);
       }, true);
     });
 
-    await this.page.exposeFunction('__recordingKeyHandler', keyHandler);
+    await this.page.exposeFunction('__recordingGlobalKeyHandler', keyHandler);
     this.eventListeners.set('keydown', keyHandler);
   }
 
@@ -649,28 +764,12 @@ export class RecordingService {
   }
 
   /**
-   * Mascarar valores sensíveis
+   * Mascarar valores sensíveis (DESABILITADO - captura completa)
    */
   private maskSensitiveValue(value: string, inputType?: string): string {
-    if (!value) return value;
-
-    // Campos de senha
-    if (inputType === 'password') {
-      return '*'.repeat(value.length);
-    }
-
-    // Emails (mostrar apenas domínio)
-    if (inputType === 'email' && value.includes('@')) {
-      const [, domain] = value.split('@');
-      return `***@${domain}`;
-    }
-
-    // Números longos (possíveis cartões)
-    if (/^\d{13,19}$/.test(value.replace(/\s/g, ''))) {
-      return `**** **** **** ${value.slice(-4)}`;
-    }
-
-    return value;
+    // Retorna o valor completo sem mascaramento
+    // Todas as informações digitadas são capturadas integralmente
+    return value || '';
   }
 
   /**

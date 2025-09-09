@@ -193,6 +193,17 @@ export interface CaptureSettings {
   customEvents: string[]; // eventos customizados para capturar
   screenshotQuality: number; // qualidade do screenshot (0-1)
   maxScreenshotSize: number; // tamanho máximo em KB
+  
+  // Configurações de captura inteligente de digitação
+  intelligentTyping: {
+    enabled: boolean; // habilitar captura inteligente
+    completionDelay: number; // ms para esperar conclusão da digitação
+    captureOnTab: boolean; // capturar quando TAB é pressionado
+    captureOnEnter: boolean; // capturar quando ENTER é pressionado
+    captureOnBlur: boolean; // capturar quando campo perde foco
+    minValueLength: number; // tamanho mínimo para capturar
+    maxDebounceTime: number; // tempo máximo de espera
+  };
 }
 
 // Filtros para eventos
