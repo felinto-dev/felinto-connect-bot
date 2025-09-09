@@ -26,7 +26,8 @@
 		"lib:publish": "cd lib && npm publish"
 	},
 	"devDependencies": {
-		"@changesets/cli": "^2.27.9"
+		"@changesets/cli": "^2.27.9",
+		"@anthropic-ai/claude-code": "latest"
 	},
 	"pnpm": {
 		"overrides": {
