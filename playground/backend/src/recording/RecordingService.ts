@@ -23,6 +23,14 @@ export class RecordingService {
   private lastNavigationUrl: string = '';
   private lastNavigationTime: number = 0;
 
+  // Armazenar estados dos inputs para evitar duplicação e debounce inteligente
+  private inputStates: Map<string, { 
+    value: string, 
+    lastChange: number, 
+    lastCapture: number,
+    capturedByKeyboard: boolean 
+  }> = new Map();
+
   constructor(
     page: Page,
     recording: RecordingData,
@@ -45,6 +53,7 @@ export class RecordingService {
     console.log(`🎬 Iniciando captura de eventos para gravação: ${this.recording.id}`);
     
     this.isCapturing = true;
+    console.log(`✅ Estado após iniciar: isCapturing=${this.isCapturing}, status=${this.recording.status}`);
     
     try {
       // Configurar captura de eventos baseado na configuração
@@ -56,6 +65,7 @@ export class RecordingService {
       }
 
       // Registrar evento de início
+      console.log(`🌐 Adicionando evento page_load...`);
       await this.addEvent({
         type: 'page_load',
         metadata: {
@@ -64,6 +74,7 @@ export class RecordingService {
           timestamp: Date.now()
         }
       });
+      console.log(`✅ Evento page_load adicionado com sucesso`);
 
       this.broadcastFn({
         type: 'recording_status',
@@ -286,21 +297,29 @@ export class RecordingService {
 
   /**
    * Configurar polling inteligente para detectar mudanças em inputs
+   * Otimizado para trabalhar em conjunto com interceptação de TAB/Enter
    */
   private async setupInputPolling(): Promise<void> {
-    console.log('📊 Configurando polling de inputs...');
+    console.log('📊 Configurando polling de inputs otimizado...');
 
-    // Armazenar estado anterior dos inputs
-    const inputStates = new Map<string, { value: string, lastChange: number }>();
+    // Limpar estados ao iniciar para garantir consistência
+    this.inputStates.clear();
 
-    // Função de polling que roda a cada 200ms
+    // Função de polling que roda com menor frequência
     const pollInputs = async () => {
       if (!this.shouldCaptureEvent()) return;
 
       try {
         const currentInputs = await this.page.evaluate(() => {
           const inputs = document.querySelectorAll('input, textarea, [contenteditable]');
-          const results: Array<{selector: string, value: string, type: string, tagName: string}> = [];
+          const results: Array<{
+            selector: string, 
+            value: string, 
+            type: string, 
+            tagName: string,
+            isFocused: boolean,
+            valueLength: number
+          }> = [];
           
           inputs.forEach((input, index) => {
             const element = input as HTMLInputElement;
@@ -315,11 +334,15 @@ export class RecordingService {
               selector = `${element.tagName.toLowerCase()}:nth-of-type(${index + 1})`;
             }
             
+            const value = element.value || element.textContent || '';
+            
             results.push({
               selector,
-              value: element.value || element.textContent || '',
+              value,
               type: element.type || 'text',
-              tagName: element.tagName.toLowerCase()
+              tagName: element.tagName.toLowerCase(),
+              isFocused: element === document.activeElement,
+              valueLength: value.length
             });
           });
           
@@ -330,17 +353,42 @@ export class RecordingService {
         for (const input of currentInputs) {
           const key = input.selector;
           const currentTime = Date.now();
-          const previousState = inputStates.get(key);
+          const previousState = this.inputStates.get(key);
           
           if (!previousState) {
             // Primeiro registro
-            inputStates.set(key, { value: input.value, lastChange: currentTime });
+            this.inputStates.set(key, { 
+              value: input.value, 
+              lastChange: currentTime,
+              lastCapture: 0,
+              capturedByKeyboard: false
+            });
           } else if (previousState.value !== input.value) {
             // Valor mudou
             console.log(`🎯 Mudança detectada em ${key}: "${previousState.value}" -> "${input.value}"`);
             
-            // Só capturar se passou tempo suficiente desde a última mudança (debounce)
-            if (currentTime - previousState.lastChange > 1000) { // Aumentar para 1 segundo
+            // Sistema híbrido: TAB prioritário, polling como backup mínimo
+            let debounceTime = 2500; // 2.5 segundos - backup mínimo
+
+            const timeSinceLastChange = currentTime - previousState.lastChange;
+            const timeSinceLastCapture = currentTime - previousState.lastCapture;
+            
+            // Condições de backup de emergência
+            const shouldCapture = (
+              timeSinceLastChange > debounceTime &&
+              !input.isFocused && // Apenas se o campo perdeu o foco
+              input.valueLength >= 2 &&
+              timeSinceLastCapture > 3500 && // Mais de 3.5s desde a última captura
+              !previousState.capturedByKeyboard
+            );
+            
+            if (shouldCapture) {
+              console.log(`🆘 Captura de EMERGÊNCIA via polling - ${key}: "${input.value}"`);
+            } else if (previousState.capturedByKeyboard && input.valueLength >= 2) {
+              console.log(`🚫 Polling bloqueado - ${key}: "${input.value}" já foi capturado via TAB`);
+            }
+            
+            if (shouldCapture) {
               await this.addEvent({
                 type: 'type',
                 selector: input.selector,
@@ -348,14 +396,25 @@ export class RecordingService {
                 metadata: {
                   inputType: input.type,
                   tagName: input.tagName,
-                  captureReason: 'polling_detection',
-                  previousValue: previousState.value
+                  captureReason: 'polling_detection_optimized',
+                  previousValue: previousState.value,
+                  isFocused: input.isFocused,
+                  debounceTime: debounceTime,
+                  valueLength: input.valueLength
                 }
               });
+              
+              // Marcar como capturado
+              previousState.lastCapture = currentTime;
             }
             
-            // Atualizar estado
-            inputStates.set(key, { value: input.value, lastChange: currentTime });
+            // Sempre atualizar estado da mudança
+            this.inputStates.set(key, { 
+              ...previousState,
+              value: input.value, 
+              lastChange: currentTime,
+              capturedByKeyboard: false // Reset flag
+            });
           }
         }
       } catch (error) {
@@ -363,8 +422,8 @@ export class RecordingService {
       }
     };
 
-    // Iniciar polling
-    const pollingInterval = setInterval(pollInputs, 200); // A cada 200ms
+    // Iniciar polling com frequência muito baixa
+    const pollingInterval = setInterval(pollInputs, 2000); // A cada 2 segundos
     
     // Armazenar referência para limpeza
     this.eventListeners.set('input-polling', () => {
@@ -372,7 +431,25 @@ export class RecordingService {
       console.log('🛑 Polling de inputs interrompido');
     });
 
-    console.log('✅ Polling de inputs iniciado (200ms)');
+    // Expor função para marcar campos como capturados via teclado
+    this.eventListeners.set('mark-keyboard-capture', (selector: string) => {
+      const state = this.inputStates.get(selector);
+      if (state) {
+        state.capturedByKeyboard = true;
+        state.lastCapture = Date.now();
+        
+        // Limpar flag após 3 segundos para permitir futuras capturas
+        setTimeout(() => {
+          const currentState = this.inputStates.get(selector);
+          if (currentState) {
+            currentState.capturedByKeyboard = false;
+            console.log(`🔓 Flag de captura via TAB limpa para: ${selector}`);
+          }
+        }, 3000);
+      }
+    });
+
+    console.log('✅ Polling de inputs otimizado iniciado (500ms, debounce inteligente)');
   }
 
   /**
@@ -388,40 +465,99 @@ export class RecordingService {
         try {
           const keyEvent = JSON.parse(eventData);
           
+          console.log(`⌨️ Tecla detectada: ${keyEvent.key}`);
+          
           if (keyEvent.key === 'Tab' || keyEvent.key === 'Enter') {
-            // Capturar valor atual do campo ativo
-            const activeElementData = await this.page.evaluate(() => {
-              const activeElement = document.activeElement as HTMLInputElement;
-              if (activeElement && activeElement.matches('input, textarea, [contenteditable]')) {
-                let selector = '';
-                if (activeElement.id) {
-                  selector = `#${activeElement.id}`;
-                } else if (activeElement.name) {
-                  selector = `[name="${activeElement.name}"]`;
-                } else {
-                  selector = activeElement.tagName.toLowerCase();
+            console.log(`🎯 TAB/Enter detectado! Processando campo...`);
+            
+            // Usar dados do campo atual se disponíveis (capturados ANTES da mudança de foco)
+            let fieldData = null;
+            
+            if (keyEvent.currentField) {
+              // Dados já capturados pelo JavaScript injetado
+              fieldData = {
+                selector: keyEvent.currentField.selector,
+                value: keyEvent.currentField.value,
+                type: keyEvent.currentField.type,
+                tagName: keyEvent.currentField.tagName,
+                valueLength: keyEvent.currentField.value.length
+              };
+              console.log(`📋 Usando dados pré-capturados do campo: ${fieldData.selector}`);
+            } else {
+              // Fallback: tentar capturar do campo ativo (pode já ter mudado o foco)
+              fieldData = await this.page.evaluate(() => {
+                const activeElement = document.activeElement as HTMLInputElement;
+                if (activeElement && activeElement.matches('input, textarea, [contenteditable]')) {
+                  let selector = '';
+                  if (activeElement.id) {
+                    selector = `#${activeElement.id}`;
+                  } else if (activeElement.name) {
+                    selector = `[name="${activeElement.name}"]`;
+                  } else {
+                    const inputs = Array.from(document.querySelectorAll('input, textarea, [contenteditable]'));
+                    const index = inputs.indexOf(activeElement);
+                    selector = `${activeElement.tagName.toLowerCase()}:nth-of-type(${index + 1})`;
+                  }
+                  
+                  return {
+                    selector,
+                    value: activeElement.value || activeElement.textContent || '',
+                    type: activeElement.type || 'text',
+                    tagName: activeElement.tagName.toLowerCase(),
+                    valueLength: (activeElement.value || activeElement.textContent || '').length
+                  };
                 }
-                
-                return {
-                  selector,
-                  value: activeElement.value || activeElement.textContent || '',
-                  type: activeElement.type || 'text',
-                  tagName: activeElement.tagName.toLowerCase()
-                };
-              }
-              return null;
-            });
+                return null;
+              });
+              console.log(`🔄 Usando fallback para capturar campo ativo`);
+            }
 
-            if (activeElementData) {
+            // Capturar se temos dados do campo e tem conteúdo
+            if (fieldData && fieldData.valueLength > 0) {
+              console.log(`⌨️ ✅ Captura IMEDIATA via ${keyEvent.key}: ${fieldData.selector} = "${fieldData.value}" (${fieldData.valueLength} chars)`);
+              
               await this.addEvent({
                 type: 'type',
-                selector: activeElementData.selector,
-                value: this.maskSensitiveValue(activeElementData.value, activeElementData.type),
+                selector: fieldData.selector,
+                value: this.maskSensitiveValue(fieldData.value, fieldData.type),
                 metadata: {
-                  inputType: activeElementData.type,
-                  tagName: activeElementData.tagName,
+                  inputType: fieldData.type,
+                  tagName: fieldData.tagName,
                   triggerKey: keyEvent.key,
-                  captureReason: 'keyboard_interception'
+                  captureReason: 'tab_enter_immediate',
+                  valueLength: fieldData.valueLength,
+                  priority: 'highest',
+                  method: 'keyboard_navigation'
+                }
+              });
+
+              // Marcar campo como capturado via teclado para evitar duplicação
+              const markFunction = this.eventListeners.get('mark-keyboard-capture') as Function;
+              if (markFunction) {
+                markFunction(fieldData.selector);
+                console.log(`🔒 Campo marcado como capturado via TAB: ${fieldData.selector}`);
+              }
+            } else if (fieldData) {
+              console.log(`⌨️ ⏭️ Campo vazio ignorado: ${fieldData.selector} (${fieldData.valueLength} chars)`);
+            } else {
+              console.log(`⌨️ ❌ Nenhum campo encontrado para ${keyEvent.key}`);
+            }
+
+            // Capturar também a tecla pressionada como evento separado (apenas se capturou campo)
+            if (fieldData && fieldData.valueLength > 0) {
+              await this.addEvent({
+                type: 'key_press',
+                value: keyEvent.key,
+                selector: fieldData.selector, // Associar à campo que foi capturado
+                metadata: {
+                  code: keyEvent.code,
+                  ctrlKey: keyEvent.ctrlKey,
+                  shiftKey: keyEvent.shiftKey,
+                  altKey: keyEvent.altKey,
+                  captureReason: 'navigation_key',
+                  associatedField: fieldData.selector,
+                  fieldValue: fieldData.value,
+                  action: `Pressed ${keyEvent.key} after typing "${fieldData.value}"`
                 }
               });
             }
@@ -432,20 +568,59 @@ export class RecordingService {
       }
     });
 
-    // Injetar interceptador de teclado na página
-    await this.page.evaluateOnNewDocument(() => {
+    // Injetar interceptador de teclado na página atual E futuras páginas
+    const keyboardScript = () => {
       document.addEventListener('keydown', (event) => {
         if (event.target && (event.target as HTMLElement).matches('input, textarea, [contenteditable]')) {
-          console.log('KEYBOARD_EVENT:' + JSON.stringify({
-            key: event.key,
-            code: event.code,
-            ctrlKey: event.ctrlKey,
-            shiftKey: event.shiftKey,
-            altKey: event.altKey
-          }));
+          const element = event.target as HTMLInputElement;
+          
+          // Para TAB/Enter, capturar dados do campo ATUAL (antes da mudança de foco)
+          if (event.key === 'Tab' || event.key === 'Enter') {
+            let selector = '';
+            if (element.id) {
+              selector = `#${element.id}`;
+            } else if (element.name) {
+              selector = `[name="${element.name}"]`;
+            } else {
+              const inputs = Array.from(document.querySelectorAll('input, textarea, [contenteditable]'));
+              const index = inputs.indexOf(element);
+              selector = `${element.tagName.toLowerCase()}:nth-of-type(${index + 1})`;
+            }
+            
+            console.log('KEYBOARD_EVENT:' + JSON.stringify({
+              key: event.key,
+              code: event.code,
+              ctrlKey: event.ctrlKey,
+              shiftKey: event.shiftKey,
+              altKey: event.altKey,
+              // Dados do campo ATUAL (antes da mudança de foco)
+              currentField: {
+                selector: selector,
+                value: element.value || element.textContent || '',
+                type: element.type || 'text',
+                tagName: element.tagName.toLowerCase()
+              }
+            }));
+          } else {
+            // Para outras teclas, apenas registrar
+            console.log('KEYBOARD_EVENT:' + JSON.stringify({
+              key: event.key,
+              code: event.code,
+              ctrlKey: event.ctrlKey,
+              shiftKey: event.shiftKey,
+              altKey: event.altKey
+            }));
+          }
         }
       }, true);
-    });
+    };
+
+    // Injetar na página atual (se já carregada)
+    await this.page.evaluate(keyboardScript);
+    console.log('✅ Script de teclado injetado na página atual');
+
+    // Injetar em futuras páginas
+    await this.page.evaluateOnNewDocument(keyboardScript);
 
     console.log('✅ Interceptação de teclado configurada');
   }
@@ -463,7 +638,19 @@ export class RecordingService {
         try {
           const focusEvent = JSON.parse(eventData);
           
-          if (focusEvent.type === 'blur' && focusEvent.value) {
+          // Verificar se já foi capturado via teclado para evitar duplicatas
+          const state = this.inputStates.get(focusEvent.selector);
+          console.log(`🔄 Verificando evento de blur para ${focusEvent.selector}. Estado:`, state);
+
+          if (state && state.capturedByKeyboard) {
+            console.log(`🔄 ⏭️ Ignorando blur - ${focusEvent.selector}: já foi capturado via TAB/Enter. Flag: ${state.capturedByKeyboard}`);
+            return;
+          }
+          
+          if (focusEvent.type === 'blur' && focusEvent.value && focusEvent.valueLength >= 2) {
+            console.log(`🔄 ✅ Captura BACKUP via blur: ${focusEvent.selector} = "${focusEvent.value}" (${focusEvent.valueLength} chars)`);
+            
+            // Capturar valor ao perder foco (backup para casos perdidos por TAB/Enter)
             await this.addEvent({
               type: 'type',
               selector: focusEvent.selector,
@@ -471,9 +658,26 @@ export class RecordingService {
               metadata: {
                 inputType: focusEvent.inputType,
                 tagName: focusEvent.tagName,
-                captureReason: 'blur_interception'
+                captureReason: 'blur_backup_safety',
+                valueLength: focusEvent.valueLength,
+                priority: 'medium',
+                method: 'focus_lost_backup'
               }
             });
+
+            // Marcar como capturado para evitar duplicação em polling futuro
+            if (state) {
+              state.lastCapture = Date.now();
+            } else {
+              this.inputStates.set(focusEvent.selector, {
+                value: focusEvent.value,
+                lastChange: Date.now(),
+                lastCapture: Date.now(),
+                capturedByKeyboard: false
+              });
+            }
+          } else if (focusEvent.type === 'blur' && focusEvent.value) {
+            console.log(`🔄 ⏭️ Ignorando blur: ${focusEvent.selector} = "${focusEvent.value}" (muito curto: ${focusEvent.valueLength} chars)`);
           }
         } catch (error) {
           console.error('❌ Erro ao processar evento de foco:', error);
@@ -496,12 +700,14 @@ export class RecordingService {
             selector = element.tagName.toLowerCase();
           }
           
+          const value = element.value || element.textContent || '';
           console.log('FOCUS_EVENT:' + JSON.stringify({
             type: 'blur',
             selector,
-            value: element.value || element.textContent || '',
+            value,
             inputType: element.type || 'text',
-            tagName: element.tagName.toLowerCase()
+            tagName: element.tagName.toLowerCase(),
+            valueLength: value.length
           }));
         }
       }, true);
@@ -796,13 +1002,15 @@ export class RecordingService {
     this.recording.metadata.totalEvents = this.recording.events.length;
 
     // Broadcast evento em tempo real
-    this.broadcastFn({
+    const broadcastMessage = {
       type: 'recording_event',
       message: `Evento capturado: ${event.type}`,
       sessionId: this.recording.sessionId,
       recordingId: this.recording.id,
       data: event
-    });
+    };
+    
+    this.broadcastFn(broadcastMessage);
 
     console.log(`📝 Evento capturado: ${event.type} - Total: ${this.recording.events.length}`);
   }

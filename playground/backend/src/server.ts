@@ -668,16 +668,16 @@ app.post('/api/recording/start', async (req: Request, res: Response) => {
     // Gerar ID da gravação
     const recordingId = generateRecordingId();
     
-    // Configuração padrão da gravação
+    // Configuração padrão da gravação (otimizada)
     const recordingConfig: RecordingConfig = {
       sessionId,
-      events: config?.events || ['click', 'type', 'navigation', 'wait'],
+      events: config?.events || ['click', 'type', 'navigation', 'key_press', 'wait'],
       mode: config?.mode || 'smart',
-      delay: config?.delay || 500,
+      delay: config?.delay || 300, // Reduzido para melhor responsividade
       captureScreenshots: config?.captureScreenshots || false,
       screenshotInterval: config?.screenshotInterval || 5000,
       maxDuration: config?.maxDuration,
-      maxEvents: config?.maxEvents || 1000
+      maxEvents: config?.maxEvents || 1500 // Aumentado para suportar mais eventos
     };
 
     // Obter informações da página atual

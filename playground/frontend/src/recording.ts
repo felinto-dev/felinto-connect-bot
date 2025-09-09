@@ -113,11 +113,15 @@ class RecordingApp {
    * Verificar se a mensagem é relacionada à gravação
    */
   private isRecordingMessage(data: any): boolean {
-    return data.type && (
+    const isRecording = data.type && (
       data.type === 'recording_event' ||
       data.type === 'recording_status' ||
       data.recordingId
     );
+    
+    // Removido log de debug para limpeza da saída
+    
+    return isRecording;
   }
 
   /**

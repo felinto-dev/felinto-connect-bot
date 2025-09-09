@@ -603,6 +603,10 @@ export class RecordingManager {
     if (this.uiState.isRecording) return;
 
     try {
+      // Limpar estado anterior para garantir consistência
+      this.resetRecordingState();
+      this.clearCapturedEvents();
+      
       // Verificar se há sessão ativa, se não houver, criar uma
       if (!this.currentSessionId) {
         console.log('🔄 Nenhuma sessão ativa, criando nova sessão...');
@@ -1630,6 +1634,11 @@ export class RecordingManager {
       case 'type':
         details = event.value ? 
           `"${truncateText(event.value, 30)}"` : 
+          '';
+        break;
+      case 'key_press':
+        details = event.value ? 
+          `Tecla: <strong>${event.value}</strong>` : 
           '';
         break;
       case 'navigation':
