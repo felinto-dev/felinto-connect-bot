@@ -39,7 +39,7 @@ export const DEFAULT_RECORDING_CONFIG: RecordingUIConfig = {
   mode: 'smart' as RecordingMode,
   delay: 500,
   autoScreenshot: false,
-  screenshotInterval: 5000
+  screenshotInterval: 0 // 0 significa sem screenshots automáticos por intervalo
 };
 
 // URL padrão para gravação
@@ -91,8 +91,8 @@ export const RECORDING_LIMITS = {
   MAX_SCREENSHOT_SIZE: 1024, // KB
   MIN_DELAY: 0,
   MAX_DELAY: 10000,
-  MIN_SCREENSHOT_INTERVAL: 1000,
-  MAX_SCREENSHOT_INTERVAL: 60000
+  MIN_SCREENSHOT_INTERVAL: 0, // 0 = desativado (screenshots apenas em eventos)
+  MAX_SCREENSHOT_INTERVAL: 0 // Desativado - screenshots são baseados em eventos
 };
 
 // Velocidades de reprodução disponíveis

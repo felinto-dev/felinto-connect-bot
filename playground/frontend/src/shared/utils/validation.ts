@@ -45,14 +45,9 @@ export class ValidationService {
       }
     }
 
-    // Validar screenshot interval
-    if (config.screenshotInterval !== undefined) {
-      if (config.screenshotInterval < RECORDING_LIMITS.MIN_SCREENSHOT_INTERVAL) {
-        warnings.push(`Intervalo de screenshot muito baixo, recomendado: ${RECORDING_LIMITS.MIN_SCREENSHOT_INTERVAL}ms`);
-      }
-      if (config.screenshotInterval > RECORDING_LIMITS.MAX_SCREENSHOT_INTERVAL) {
-        warnings.push(`Intervalo de screenshot muito alto, recomendado: ${RECORDING_LIMITS.MAX_SCREENSHOT_INTERVAL}ms`);
-      }
+    // Validar screenshot interval (agora baseado em eventos, não em intervalo)
+    if (config.screenshotInterval !== undefined && config.screenshotInterval > 0) {
+      warnings.push('Screenshots automáticos por intervalo foram desativados. Agora screenshots são capturados apenas em eventos de click e navegação.');
     }
 
     // Validar limites

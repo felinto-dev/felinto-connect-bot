@@ -78,7 +78,7 @@ export interface RecordingUIConfig {
   mode: RecordingMode;
   delay: number;
   autoScreenshot: boolean;
-  screenshotInterval: number;
+  screenshotInterval: number; // 0 = desativado, screenshots apenas em eventos específicos
 }
 
 // Estado da UI de gravação

@@ -50,12 +50,7 @@ export class RecordingService {
       // Configurar captura de eventos baseado na configuração
       await this.setupEventListeners();
       
-      // Iniciar screenshots automáticos se configurado
-      if (this.config.captureScreenshots && this.config.screenshotInterval) {
-        this.startAutomaticScreenshots();
-      }
-
-      // Capturar screenshot inicial
+      // Capturar screenshot inicial se configurado
       if (this.config.captureScreenshots) {
         await this.captureScreenshot('initial');
       }
@@ -95,13 +90,8 @@ export class RecordingService {
 
     console.log(`🛑 Parando captura de eventos para gravação: ${this.recording.id}`);
     
-    this.isCapturing = false;
-
-    // Parar screenshots automáticos
-    if (this.screenshotInterval) {
-      clearInterval(this.screenshotInterval);
-      this.screenshotInterval = undefined;
-    }
+    // Primeiro parar screenshots automáticos para prevenir novas capturas
+    this.stopAutomaticScreenshots();
 
     // Limpar timeout de navegação
     if (this.navigationTimeout) {
@@ -109,13 +99,20 @@ export class RecordingService {
       this.navigationTimeout = undefined;
     }
 
+    // Capturar screenshot final ANTES de definir isCapturing = false
+    if (this.config.captureScreenshots) {
+      try {
+        await this.captureScreenshot('final');
+      } catch (error) {
+        console.warn('⚠️ Erro ao capturar screenshot final:', error);
+      }
+    }
+
+    // Agora sim definir isCapturing = false e remover listeners
+    this.isCapturing = false;
+
     // Remover todos os event listeners
     await this.removeEventListeners();
-
-    // Capturar screenshot final
-    if (this.config.captureScreenshots) {
-      await this.captureScreenshot('final');
-    }
 
     this.broadcastFn({
       type: 'recording_status',
@@ -137,10 +134,7 @@ export class RecordingService {
     console.log(`⏸️ Pausando captura para gravação: ${this.recording.id}`);
     
     // Parar screenshots automáticos temporariamente
-    if (this.screenshotInterval) {
-      clearInterval(this.screenshotInterval);
-      this.screenshotInterval = undefined;
-    }
+    this.stopAutomaticScreenshots();
 
     // Limpar timeout de navegação pendente
     if (this.navigationTimeout) {
@@ -162,11 +156,6 @@ export class RecordingService {
     console.log(`▶️ Resumindo captura para gravação: ${this.recording.id}`);
     
     this.recording.status = 'recording';
-
-    // Reiniciar screenshots automáticos se configurado
-    if (this.config.captureScreenshots && this.config.screenshotInterval) {
-      this.startAutomaticScreenshots();
-    }
   }
 
   /**
@@ -218,6 +207,7 @@ export class RecordingService {
     const clickHandler = async (event: any) => {
       if (!this.shouldCaptureEvent()) return;
 
+      // Capturar evento de click
       await this.addEvent({
         type: 'click',
         coordinates: { x: event.clientX, y: event.clientY },
@@ -229,6 +219,15 @@ export class RecordingService {
           altKey: event.altKey
         }
       });
+
+      // Capturar screenshot após click se configurado
+      if (this.config.captureScreenshots) {
+        try {
+          await this.captureScreenshot('click');
+        } catch (error) {
+          console.warn('⚠️ Erro ao capturar screenshot após click:', error);
+        }
+      }
     };
 
     await this.page.evaluateOnNewDocument(() => {
@@ -329,6 +328,15 @@ export class RecordingService {
               }
             });
 
+            // Capturar screenshot após navegação se configurado
+            if (this.config.captureScreenshots) {
+              try {
+                await this.captureScreenshot('navigation');
+              } catch (error) {
+                console.warn('⚠️ Erro ao capturar screenshot após navegação:', error);
+              }
+            }
+
             console.log(`🧭 Navegação capturada: ${finalUrl}`);
 
           } catch (error) {
@@ -381,6 +389,8 @@ export class RecordingService {
 
   /**
    * Configurar listener para hover
+   * NOTA: Eventos de hover NÃO capturam screenshots automaticamente
+   * Apenas registram o movimento do mouse sobre elementos
    */
   private async setupHoverListener(): Promise<void> {
     const hoverHandler = async (event: any) => {
@@ -573,6 +583,20 @@ export class RecordingService {
   /**
    * Iniciar screenshots automáticos
    */
+  /**
+   * Parar screenshots automáticos
+   */
+  private stopAutomaticScreenshots(): void {
+    if (this.screenshotInterval) {
+      clearInterval(this.screenshotInterval);
+      this.screenshotInterval = undefined;
+      console.log('📸 Screenshots automáticos parados');
+    }
+  }
+
+  /**
+   * Iniciar screenshots automáticos
+   */
   private startAutomaticScreenshots(): void {
     if (this.screenshotInterval || !this.config.screenshotInterval) {
       return;
@@ -583,6 +607,7 @@ export class RecordingService {
         await this.captureScreenshot('automatic');
       }
     }, this.config.screenshotInterval);
+    console.log(`📸 Screenshots automáticos iniciados (${this.config.screenshotInterval}ms)`);
   }
 
   /**

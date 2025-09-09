@@ -81,7 +81,7 @@ export interface RecordingConfig {
   mode: RecordingMode;
   delay: number; // ms entre ações
   captureScreenshots: boolean;
-  screenshotInterval?: number; // ms
+  screenshotInterval?: number; // ms - 0 = desativado (screenshots apenas em eventos)
   maxDuration?: number; // ms
   maxEvents?: number;
 }
