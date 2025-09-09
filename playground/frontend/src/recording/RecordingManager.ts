@@ -502,7 +502,6 @@ export class RecordingManager {
     // Botões de ações
     document.getElementById('clearActionsBtn')?.addEventListener('click', () => this.clearActions());
     document.getElementById('exportActionsBtn')?.addEventListener('click', () => this.exportActions());
-    document.getElementById('refreshPreviewBtn')?.addEventListener('click', () => this.refreshPreview());
 
     
     // Preview controls
@@ -1428,9 +1427,6 @@ export class RecordingManager {
     }
   }
 
-  private refreshPreview(): void {
-    this.previewManager.refreshPreview();
-  }
 
   
   private takePreviewScreenshot(): void {

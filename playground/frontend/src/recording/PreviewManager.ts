@@ -60,10 +60,6 @@ export class PreviewManager {
       this.toggleFullscreen();
     });
 
-    // Botão de refresh
-    document.getElementById('refreshPreviewBtn')?.addEventListener('click', () => {
-      this.refreshPreview();
-    });
 
   }
 
@@ -135,7 +131,7 @@ export class PreviewManager {
       }
       
       // Capturar preview inicial
-      this.refreshPreview();
+      this.captureScreenshot();
       
       console.log(`📺 Preview ativado para sessão: ${sessionId}`);
     } else {
@@ -152,49 +148,6 @@ export class PreviewManager {
     this.updatePreviewPlaceholder();
   }
 
-  /**
-   * Atualizar preview
-   */
-  public async refreshPreview(): Promise<void> {
-    if (!this.currentSessionId) {
-      this.showError('Nenhuma sessão ativa para capturar preview. Use "Iniciar Gravação" para criar uma sessão automaticamente.');
-      return;
-    }
-
-    try {
-      console.log('🔄 Atualizando preview...');
-      
-      const response = await this.sharedServices.apiService.getPreview(this.currentSessionId);
-      
-      if (response.success && response.preview) {
-        this.displayPreview(response.preview, response.metadata);
-        this.state.error = undefined;
-        this.state.lastUpdate = new Date();
-        
-        console.log('✅ Preview atualizado');
-      } else {
-        throw new Error(response.error || 'Erro ao obter preview');
-      }
-
-    } catch (error: any) {
-      console.error('❌ Erro ao atualizar preview:', error);
-      
-      // Verificar se é erro de sessão fechada
-      if (error.message?.includes('sessionExpired') || 
-          error.message?.includes('Sessão foi fechada') ||
-          error.message?.includes('Sessão não encontrada')) {
-        
-        console.warn('⚠️ Sessão expirada detectada, parando auto-refresh');
-        this.handleSessionExpired();
-        return;
-      }
-      
-      this.showError(`Erro ao atualizar preview: ${error.message}`);
-      this.state.error = error.message;
-    }
-
-    this.updatePreviewInfo();
-  }
 
   /**
    * Capturar screenshot de alta qualidade
@@ -342,7 +295,7 @@ export class PreviewManager {
           <i data-lucide="alert-circle" class="placeholder-icon"></i>
           <p>Erro ao carregar preview</p>
           <small>${this.state.error}</small>
-          <button class="btn btn-small btn-secondary" onclick="window.recordingApp?.recordingManager?.previewManager?.refreshPreview()">
+          <button class="btn btn-small btn-secondary" onclick="window.recordingApp?.recordingManager?.previewManager?.captureScreenshot()">
             <i data-lucide="refresh-cw"></i>
             Tentar novamente
           </button>
@@ -405,7 +358,7 @@ export class PreviewManager {
     
     if (shouldRefresh) {
       console.log('✅ Smart refresh: condições atendidas - fazendo refresh');
-      this.refreshPreview();
+      this.captureScreenshot();
     } else {
       const reasons = [];
       if (!this.state.isPageFocused) reasons.push('página não está em foco');
@@ -426,7 +379,7 @@ export class PreviewManager {
 
     if (shouldRefresh && timeSinceLastUpdate > minInterval) {
       console.log('🚀 Smart refresh: fazendo refresh imediato (condições recém atendidas)');
-      this.refreshPreview();
+      this.captureScreenshot();
     }
   }
 
@@ -457,7 +410,6 @@ export class PreviewManager {
   private updateButtonStates(): void {
     const screenshotBtn = document.getElementById('takePreviewScreenshot') as HTMLButtonElement;
     const fullscreenBtn = document.getElementById('fullscreenPreview') as HTMLButtonElement;
-    const refreshBtn = document.getElementById('refreshPreviewBtn') as HTMLButtonElement;
 
     const isEnabled = this.state.isActive && this.currentSessionId !== null;
 
@@ -473,9 +425,6 @@ export class PreviewManager {
       }
     }
 
-    if (refreshBtn) {
-      refreshBtn.disabled = !isEnabled;
-    }
 
     // Reinicializar ícones Lucide
     if (typeof window.lucide !== 'undefined') {
