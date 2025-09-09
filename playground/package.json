@@ -13,11 +13,20 @@
     "install:all": "pnpm install && cd frontend && pnpm install && cd ../backend && pnpm install",
     "build": "cd frontend && pnpm run build"
   },
-  "keywords": ["debug", "playground", "puppeteer", "chrome", "automation"],
+  "keywords": [
+    "debug",
+    "playground",
+    "puppeteer",
+    "chrome",
+    "automation"
+  ],
   "author": "",
   "license": "MIT",
   "devDependencies": {
     "concurrently": "^9.2.1"
   },
-  "packageManager": "pnpm@10.10.0"
+  "packageManager": "pnpm@10.10.0",
+  "dependencies": {
+    "node-fetch": "^3.3.2"
+  }
 }

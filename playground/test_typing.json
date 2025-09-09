@@ -1,0 +1,4 @@
+{
+  "sessionId": "5ba4c018-6b26-46ba-998b-97baf7526902",
+  "code": "const userField = await page.$('#user_login'); await userField.click(); await userField.type('usuario_teste', {delay: 100}); await new Promise(r => setTimeout(r, 2000));"
+}

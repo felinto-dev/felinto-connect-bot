@@ -204,6 +204,8 @@ export class RecordingService {
    * Configurar listener para clicks
    */
   private async setupClickListener(): Promise<void> {
+    console.log('🖱️ Configurando listener de clicks...');
+
     const clickHandler = async (event: any) => {
       if (!this.shouldCaptureEvent()) return;
 
@@ -230,150 +232,288 @@ export class RecordingService {
       }
     };
 
+    // CORREÇÃO: Expor função ANTES de injetar código JavaScript
+    try {
+      await this.page.exposeFunction('__recordingClickHandler', clickHandler);
+      console.log('✅ Função de click exposta com sucesso');
+    } catch (error) {
+      console.error('❌ Erro ao expor função de click:', error);
+      throw error;
+    }
+
     await this.page.evaluateOnNewDocument(() => {
       document.addEventListener('click', (event) => {
-        (window as any).__recordingClickHandler?.(event);
+        if ((window as any).__recordingClickHandler) {
+          (window as any).__recordingClickHandler(event);
+        }
       }, true);
     });
 
-    await this.page.exposeFunction('__recordingClickHandler', clickHandler);
+    console.log('✅ Configuração de listener de click concluída');
     this.eventListeners.set('click', clickHandler);
   }
 
   /**
-   * Configurar listener para digitação com captura inteligente
+   * Configurar interceptação de eventos via Puppeteer API (Opção 1)
    */
   private async setupTypeListener(): Promise<void> {
-    const inputHandler = async (event: any) => {
-      if (!this.shouldCaptureEvent()) return;
+    console.log('🎯 Configurando interceptação de eventos via Puppeteer...');
 
-      const value = this.maskSensitiveValue(event.target.value, event.target.type);
-      const selector = event.selector || await this.getElementSelector(event.target);
+    // Habilitar interceptação de eventos via CDP
+    const client = await this.page.target().createCDPSession();
+    
+    try {
+      // Habilitar domínio Runtime para interceptar eventos
+      await client.send('Runtime.enable');
+      await client.send('DOM.enable');
       
-      await this.addEvent({
-        type: 'type',
-        selector: selector,
-        value: value,
-        metadata: {
-          inputType: event.target.type,
-          tagName: event.target.tagName.toLowerCase(),
-          captureReason: event.captureReason || 'input'
-        }
-      });
-    };
+      console.log('✅ CDP habilitado para interceptação');
+    } catch (error) {
+      console.error('❌ Erro ao habilitar CDP:', error);
+    }
 
-    const keyHandler = async (event: any) => {
+    // Configurar interceptação de mudanças nos inputs via polling inteligente
+    await this.setupInputPolling();
+    
+    // Configurar interceptação de eventos de teclado via Puppeteer
+    await this.setupKeyboardInterception();
+    
+    // Configurar interceptação de eventos de foco/blur
+    await this.setupFocusInterception();
+
+    console.log('✅ Interceptação de eventos configurada');
+  }
+
+  /**
+   * Configurar polling inteligente para detectar mudanças em inputs
+   */
+  private async setupInputPolling(): Promise<void> {
+    console.log('📊 Configurando polling de inputs...');
+
+    // Armazenar estado anterior dos inputs
+    const inputStates = new Map<string, { value: string, lastChange: number }>();
+
+    // Função de polling que roda a cada 200ms
+    const pollInputs = async () => {
       if (!this.shouldCaptureEvent()) return;
 
-      // Capturar imediatamente em teclas especiais
-      if (event.key === 'Tab' || event.key === 'Enter') {
-        const value = this.maskSensitiveValue(event.target.value, event.target.type);
-        const selector = await this.getElementSelector(event.target);
-        
-        await this.addEvent({
-          type: 'type',
-          selector: selector,
-          value: value,
-          metadata: {
-            inputType: event.target.type,
-            tagName: event.target.tagName.toLowerCase(),
-            triggerKey: event.key,
-            captureReason: 'special_key'
-          }
+      try {
+        const currentInputs = await this.page.evaluate(() => {
+          const inputs = document.querySelectorAll('input, textarea, [contenteditable]');
+          const results: Array<{selector: string, value: string, type: string, tagName: string}> = [];
+          
+          inputs.forEach((input, index) => {
+            const element = input as HTMLInputElement;
+            let selector = '';
+            
+            // Gerar seletor único
+            if (element.id) {
+              selector = `#${element.id}`;
+            } else if (element.name) {
+              selector = `[name="${element.name}"]`;
+            } else {
+              selector = `${element.tagName.toLowerCase()}:nth-of-type(${index + 1})`;
+            }
+            
+            results.push({
+              selector,
+              value: element.value || element.textContent || '',
+              type: element.type || 'text',
+              tagName: element.tagName.toLowerCase()
+            });
+          });
+          
+          return results;
         });
+
+        // Verificar mudanças
+        for (const input of currentInputs) {
+          const key = input.selector;
+          const currentTime = Date.now();
+          const previousState = inputStates.get(key);
+          
+          if (!previousState) {
+            // Primeiro registro
+            inputStates.set(key, { value: input.value, lastChange: currentTime });
+          } else if (previousState.value !== input.value) {
+            // Valor mudou
+            console.log(`🎯 Mudança detectada em ${key}: "${previousState.value}" -> "${input.value}"`);
+            
+            // Só capturar se passou tempo suficiente desde a última mudança (debounce)
+            if (currentTime - previousState.lastChange > 1000) { // Aumentar para 1 segundo
+              await this.addEvent({
+                type: 'type',
+                selector: input.selector,
+                value: this.maskSensitiveValue(input.value, input.type),
+                metadata: {
+                  inputType: input.type,
+                  tagName: input.tagName,
+                  captureReason: 'polling_detection',
+                  previousValue: previousState.value
+                }
+              });
+            }
+            
+            // Atualizar estado
+            inputStates.set(key, { value: input.value, lastChange: currentTime });
+          }
+        }
+      } catch (error) {
+        console.error('❌ Erro no polling de inputs:', error);
       }
     };
 
-    const blurHandler = async (event: any) => {
-      if (!this.shouldCaptureEvent()) return;
+    // Iniciar polling
+    const pollingInterval = setInterval(pollInputs, 200); // A cada 200ms
+    
+    // Armazenar referência para limpeza
+    this.eventListeners.set('input-polling', () => {
+      clearInterval(pollingInterval);
+      console.log('🛑 Polling de inputs interrompido');
+    });
 
-      const value = this.maskSensitiveValue(event.target.value, event.target.type);
-      const selector = await this.getElementSelector(event.target);
-      
-      await this.addEvent({
-        type: 'type',
-        selector: selector,
-        value: value,
-        metadata: {
-          inputType: event.target.type,
-          tagName: event.target.tagName.toLowerCase(),
-          captureReason: 'blur'
-        }
-      });
-    };
+    console.log('✅ Polling de inputs iniciado (200ms)');
+  }
 
-    // Sistema de debounce inteligente
-    await this.page.evaluateOnNewDocument(() => {
-      const debounceTimers = new Map();
-      const DEBOUNCE_DELAY = 1000; // 1 segundo
-      const MAX_DEBOUNCE_TIME = 3000; // máximo 3 segundos
+  /**
+   * Configurar interceptação de eventos de teclado
+   */
+  private async setupKeyboardInterception(): Promise<void> {
+    console.log('⌨️ Configurando interceptação de teclado...');
 
-      (window as any).__recordingDebounceInput = (selector: string, value: string, inputType: string, tagName: string) => {
-        // Limpar timer anterior se existir
-        if (debounceTimers.has(selector)) {
-          clearTimeout(debounceTimers.get(selector));
-        }
-
-        // Criar novo timer
-        const timer = setTimeout(() => {
-          (window as any).__recordingInputHandler?.({
-            target: {
-              value: value,
-              type: inputType,
-              tagName: tagName
-            },
-            selector: selector,
-            captureReason: 'debounce_completion'
-          });
-          debounceTimers.delete(selector);
-        }, DEBOUNCE_DELAY);
-
-        debounceTimers.set(selector, timer);
-
-        // Timer de segurança para evitar espera infinita
-        setTimeout(() => {
-          if (debounceTimers.has(selector)) {
-            clearTimeout(debounceTimers.get(selector));
-            (window as any).__recordingInputHandler?.({
-              target: {
-                value: value,
-                type: inputType,
-                tagName: tagName
-              },
-              selector: selector,
-              captureReason: 'max_debounce_reached'
+    // Interceptar eventos de teclado via Puppeteer
+    this.page.on('console', async (msg) => {
+      if (msg.text().startsWith('KEYBOARD_EVENT:')) {
+        const eventData = msg.text().replace('KEYBOARD_EVENT:', '');
+        try {
+          const keyEvent = JSON.parse(eventData);
+          
+          if (keyEvent.key === 'Tab' || keyEvent.key === 'Enter') {
+            // Capturar valor atual do campo ativo
+            const activeElementData = await this.page.evaluate(() => {
+              const activeElement = document.activeElement as HTMLInputElement;
+              if (activeElement && activeElement.matches('input, textarea, [contenteditable]')) {
+                let selector = '';
+                if (activeElement.id) {
+                  selector = `#${activeElement.id}`;
+                } else if (activeElement.name) {
+                  selector = `[name="${activeElement.name}"]`;
+                } else {
+                  selector = activeElement.tagName.toLowerCase();
+                }
+                
+                return {
+                  selector,
+                  value: activeElement.value || activeElement.textContent || '',
+                  type: activeElement.type || 'text',
+                  tagName: activeElement.tagName.toLowerCase()
+                };
+              }
+              return null;
             });
-            debounceTimers.delete(selector);
+
+            if (activeElementData) {
+              await this.addEvent({
+                type: 'type',
+                selector: activeElementData.selector,
+                value: this.maskSensitiveValue(activeElementData.value, activeElementData.type),
+                metadata: {
+                  inputType: activeElementData.type,
+                  tagName: activeElementData.tagName,
+                  triggerKey: keyEvent.key,
+                  captureReason: 'keyboard_interception'
+                }
+              });
+            }
           }
-        }, MAX_DEBOUNCE_TIME);
-      };
+        } catch (error) {
+          console.error('❌ Erro ao processar evento de teclado:', error);
+        }
+      }
+    });
 
-      // Event listeners
-      document.addEventListener('input', (event) => {
-        (window as any).__recordingInputHandler?.(event);
-      }, true);
-
+    // Injetar interceptador de teclado na página
+    await this.page.evaluateOnNewDocument(() => {
       document.addEventListener('keydown', (event) => {
         if (event.target && (event.target as HTMLElement).matches('input, textarea, [contenteditable]')) {
-          (window as any).__recordingKeyHandler?.(event);
-        }
-      }, true);
-
-      document.addEventListener('blur', (event) => {
-        if (event.target && (event.target as HTMLElement).matches('input, textarea, [contenteditable]')) {
-          (window as any).__recordingBlurHandler?.(event);
+          console.log('KEYBOARD_EVENT:' + JSON.stringify({
+            key: event.key,
+            code: event.code,
+            ctrlKey: event.ctrlKey,
+            shiftKey: event.shiftKey,
+            altKey: event.altKey
+          }));
         }
       }, true);
     });
 
-    await this.page.exposeFunction('__recordingInputHandler', inputHandler);
-    await this.page.exposeFunction('__recordingKeyHandler', keyHandler);
-    await this.page.exposeFunction('__recordingBlurHandler', blurHandler);
-    
-    this.eventListeners.set('input', inputHandler);
-    this.eventListeners.set('input-key', keyHandler);
-    this.eventListeners.set('input-blur', blurHandler);
+    console.log('✅ Interceptação de teclado configurada');
   }
+
+  /**
+   * Configurar interceptação de eventos de foco/blur
+   */
+  private async setupFocusInterception(): Promise<void> {
+    console.log('🔄 Configurando interceptação de foco/blur...');
+
+    // Interceptar eventos de foco via console
+    this.page.on('console', async (msg) => {
+      if (msg.text().startsWith('FOCUS_EVENT:')) {
+        const eventData = msg.text().replace('FOCUS_EVENT:', '');
+        try {
+          const focusEvent = JSON.parse(eventData);
+          
+          if (focusEvent.type === 'blur' && focusEvent.value) {
+            await this.addEvent({
+              type: 'type',
+              selector: focusEvent.selector,
+              value: this.maskSensitiveValue(focusEvent.value, focusEvent.inputType),
+              metadata: {
+                inputType: focusEvent.inputType,
+                tagName: focusEvent.tagName,
+                captureReason: 'blur_interception'
+              }
+            });
+          }
+        } catch (error) {
+          console.error('❌ Erro ao processar evento de foco:', error);
+        }
+      }
+    });
+
+    // Injetar interceptador de foco na página
+    await this.page.evaluateOnNewDocument(() => {
+      document.addEventListener('blur', (event) => {
+        if (event.target && (event.target as HTMLElement).matches('input, textarea, [contenteditable]')) {
+          const element = event.target as HTMLInputElement;
+          let selector = '';
+          
+          if (element.id) {
+            selector = `#${element.id}`;
+          } else if (element.name) {
+            selector = `[name="${element.name}"]`;
+          } else {
+            selector = element.tagName.toLowerCase();
+          }
+          
+          console.log('FOCUS_EVENT:' + JSON.stringify({
+            type: 'blur',
+            selector,
+            value: element.value || element.textContent || '',
+            inputType: element.type || 'text',
+            tagName: element.tagName.toLowerCase()
+          }));
+        }
+      }, true);
+    });
+
+    console.log('✅ Interceptação de foco/blur configurada');
+    
+    this.eventListeners.set('input', () => {});
+    this.eventListeners.set('input-key', () => {});
+    this.eventListeners.set('input-blur', () => {});
+  }
+
 
   /**
    * Configurar listener para navegação
