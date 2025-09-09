@@ -95,23 +95,6 @@ export interface RecordingUIState {
   error?: string;
 }
 
-// Configurações para timeline
-export interface TimelineConfig {
-  showEventTypes: Set<RecordingEventType>;
-  groupByType: boolean;
-  showTimestamps: boolean;
-  showScreenshots: boolean;
-  zoomLevel: number;
-}
-
-// Item da timeline
-export interface TimelineItem {
-  event: RecordingEvent;
-  displayTime: string;
-  relativeTime: number;
-  isVisible: boolean;
-  cssClass: string;
-}
 
 // Configurações para preview
 export interface PreviewConfig {

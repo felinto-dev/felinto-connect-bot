@@ -7,7 +7,6 @@ import type {
   RecordingMode, 
   RecordingUIConfig,
   CaptureSettings,
-  TimelineConfig,
   PreviewConfig 
 } from '../types/recording';
 
@@ -65,14 +64,6 @@ export const DEFAULT_CAPTURE_SETTINGS: CaptureSettings = {
   maxScreenshotSize: 500 // KB
 };
 
-// Configurações padrão da timeline
-export const DEFAULT_TIMELINE_CONFIG: TimelineConfig = {
-  showEventTypes: new Set(ALL_RECORDING_EVENTS),
-  groupByType: false,
-  showTimestamps: true,
-  showScreenshots: true,
-  zoomLevel: 1
-};
 
 // Configurações padrão do preview
 export const DEFAULT_PREVIEW_CONFIG: PreviewConfig = {

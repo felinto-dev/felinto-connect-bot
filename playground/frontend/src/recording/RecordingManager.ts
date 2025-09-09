@@ -1,6 +1,5 @@
 import { SharedServices } from '../shared';
 import { PreviewManager } from './PreviewManager';
-import { TimelineManager } from './TimelineManager';
 import { PlaybackManager } from './PlaybackManager';
 import type { 
   RecordingUIState, 
@@ -10,8 +9,7 @@ import type {
   RecordingMode,
   RecordingEvent,
   RecordingStats,
-  RecordingWebSocketMessage,
-  TimelineItem
+  RecordingWebSocketMessage
 } from '../shared/types/recording';
 import type { AppConfig } from '../shared/types/config';
 import { 
@@ -25,7 +23,6 @@ import {
 import { 
   formatDuration, 
   formatTimestamp, 
-  eventsToTimelineItems,
   getEventIcon,
   getEventColor,
   debounce,
@@ -46,10 +43,8 @@ export class RecordingManager {
   private statusCheckInterval: number | null = null;
   private currentSessionId: string | null = null;
   private capturedEvents: RecordingEvent[] = [];
-  private timelineItems: TimelineItem[] = [];
   private recordingUrl: string;
   public previewManager: PreviewManager;
-  public timelineManager: TimelineManager;
   public playbackManager: PlaybackManager;
   public sessionSyncService: SessionSyncService;
   private debouncedUpdateUI: () => void;
@@ -87,9 +82,6 @@ export class RecordingManager {
     // Inicializar PreviewManager
     this.previewManager = new PreviewManager(this.sharedServices);
     
-    // Inicializar TimelineManager
-    this.timelineManager = new TimelineManager(this.sharedServices);
-    
     // Inicializar PlaybackManager
     this.playbackManager = new PlaybackManager(this.sharedServices);
     
@@ -103,9 +95,7 @@ export class RecordingManager {
     this.initializeUI();
     this.loadUIConfiguration();
     this.previewManager.init();
-    this.timelineManager.init();
     this.playbackManager.init();
-    this.setupTimelineCallback();
     this.setupKeyboardShortcuts();
     this.setupSessionSync();
   }
@@ -144,15 +134,7 @@ export class RecordingManager {
       enabled: () => this.uiState.isRecording
     });
 
-    // Atalhos de timeline
-    window.keyboardManager.register({
-      key: 'p',
-      ctrlKey: true,
-      action: () => this.playTimeline(),
-      description: 'Reproduzir timeline',
-      enabled: () => this.capturedEvents.length > 0
-    });
-
+    
     // Atalhos de exportação
     window.keyboardManager.register({
       key: 'e',
@@ -162,15 +144,7 @@ export class RecordingManager {
       enabled: () => !this.uiState.isRecording && this.uiState.eventCount > 0
     });
 
-    // Atalhos de importação
-    window.keyboardManager.register({
-      key: 'i',
-      ctrlKey: true,
-      action: () => this.playbackManager.showImportModal(),
-      description: 'Importar gravação',
-      enabled: () => true // Sempre habilitado, criará sessão se necessário
-    });
-
+    
     // Atalho para limpar ações
     window.keyboardManager.register({
       key: 'Delete',
@@ -244,18 +218,7 @@ export class RecordingManager {
     }
   }
 
-  /**
-   * Configurar callback da timeline para sincronizar com preview
-   */
-  private setupTimelineCallback(): void {
-    this.timelineManager.setEventPlaybackCallback((event: RecordingEvent, index: number) => {
-      console.log(`🎬 Timeline reproduzindo evento ${index + 1}: ${event.type}`);
-      
-      // Aqui poderia sincronizar com preview, destacar elementos, etc.
-      // Por enquanto, apenas log
-    });
-  }
-
+  
   /**
    * Carregar configurações da UI dos elementos HTML
    */
@@ -272,17 +235,11 @@ export class RecordingManager {
     
     this.uiConfig.selectedEvents = selectedEvents;
 
-    // Carregar modo de gravação
-    const modeSelect = document.getElementById('recordingMode') as HTMLSelectElement;
-    if (modeSelect) {
-      this.uiConfig.mode = modeSelect.value as RecordingMode;
-    }
+    // Modo de gravação hardcoded como 'smart'
+    this.uiConfig.mode = 'smart';
 
-    // Carregar delay
-    const delayInput = document.getElementById('recordingDelay') as HTMLInputElement;
-    if (delayInput) {
-      this.uiConfig.delay = parseInt(delayInput.value) || 500;
-    }
+    // Delay hardcoded como 500ms
+    this.uiConfig.delay = 500;
 
     // Carregar URL de gravação da configuração do playground
     const urlInput = document.getElementById('recordingInitialUrl') as HTMLInputElement;
@@ -430,11 +387,7 @@ export class RecordingManager {
     document.getElementById('exportActionsBtn')?.addEventListener('click', () => this.exportActions());
     document.getElementById('refreshPreviewBtn')?.addEventListener('click', () => this.refreshPreview());
 
-    // Timeline controls
-    document.getElementById('playTimelineBtn')?.addEventListener('click', () => this.playTimeline());
-    document.getElementById('pauseTimelineBtn')?.addEventListener('click', () => this.pauseTimeline());
-    document.getElementById('stopTimelineBtn')?.addEventListener('click', () => this.stopTimeline());
-
+    
     // Preview controls
     document.getElementById('takePreviewScreenshot')?.addEventListener('click', () => this.takePreviewScreenshot());
     document.getElementById('fullscreenPreview')?.addEventListener('click', () => this.toggleFullscreenPreview());
@@ -1362,18 +1315,7 @@ export class RecordingManager {
     this.previewManager.refreshPreview();
   }
 
-  private playTimeline(): void {
-    this.timelineManager.playTimeline();
-  }
-
-  private pauseTimeline(): void {
-    this.timelineManager.pauseTimeline();
-  }
-
-  private stopTimeline(): void {
-    this.timelineManager.stopTimeline();
-  }
-
+  
   private takePreviewScreenshot(): void {
     this.previewManager.captureScreenshot();
   }
@@ -1411,9 +1353,6 @@ export class RecordingManager {
 
     // Destruir PreviewManager
     this.previewManager.destroy();
-    
-    // Destruir TimelineManager
-    this.timelineManager.destroy();
     
     // Destruir PlaybackManager
     this.playbackManager.destroy();
@@ -1484,12 +1423,7 @@ export class RecordingManager {
     this.uiState.eventCount = this.capturedEvents.length;
     this.uiState.lastEventTime = new Date(eventData.timestamp);
 
-    // Atualizar timeline
-    this.updateTimeline();
     
-    // Atualizar timeline manager
-    this.timelineManager.setEvents(this.capturedEvents, this.uiState.startTime?.getTime() || Date.now());
-
     // Atualizar contadores na UI
     this.updateActionsCount();
 
@@ -1653,14 +1587,7 @@ export class RecordingManager {
     return parts.join('\n');
   }
 
-  /**
-   * Atualizar timeline (método simplificado)
-   */
-  private updateTimeline(): void {
-    // O TimelineManager agora gerencia a timeline
-    // Este método é mantido para compatibilidade
-  }
-
+  
   /**
    * Obter eventos capturados
    */
@@ -1673,15 +1600,10 @@ export class RecordingManager {
    */
   public clearCapturedEvents(): void {
     this.capturedEvents = [];
-    this.timelineItems = [];
     this.uiState.eventCount = 0;
-    
-    // Limpar timeline manager
-    this.timelineManager.setEvents([], Date.now());
     
     this.updateActionsCount();
     this.clearActionsUI();
-    this.clearTimelineUI();
   }
 
   /**
@@ -1700,24 +1622,4 @@ export class RecordingManager {
     }
   }
 
-  /**
-   * Limpar UI da timeline
-   */
-  private clearTimelineUI(): void {
-    const timelineTrack = document.getElementById('timelineTrack');
-    if (timelineTrack) {
-      timelineTrack.innerHTML = `
-        <div class="timeline-empty">
-          <i data-lucide="activity" class="empty-icon"></i>
-          <p>Timeline vazia</p>
-          <small>A timeline será preenchida conforme as ações são gravadas</small>
-        </div>
-      `;
-    }
-      
-      // Reinicializar ícones
-      if (typeof window.lucide !== 'undefined') {
-        window.lucide.createIcons();
-      }
   }
-}

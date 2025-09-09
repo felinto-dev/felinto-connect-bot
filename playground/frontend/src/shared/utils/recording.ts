@@ -7,7 +7,6 @@ import type {
   RecordingEventType, 
   RecordingData,
   RecordingStats,
-  TimelineItem,
   EventFilters,
   FilteredEvents
 } from '../types/recording';
@@ -123,29 +122,6 @@ export function calculateRecordingStats(recording: RecordingData): RecordingStat
   };
 }
 
-/**
- * Converter eventos para itens de timeline
- */
-export function eventsToTimelineItems(
-  events: RecordingEvent[], 
-  startTime: number,
-  config?: { showEventTypes?: Set<RecordingEventType> }
-): TimelineItem[] {
-  return events.map(event => {
-    const relativeTime = calculateRelativeTime(event.timestamp, startTime);
-    const displayTime = formatTimestamp(event.timestamp);
-    const isVisible = !config?.showEventTypes || config.showEventTypes.has(event.type);
-    const cssClass = `timeline-item ${getEventColor(event.type)}`;
-    
-    return {
-      event,
-      displayTime,
-      relativeTime,
-      isVisible,
-      cssClass
-    };
-  });
-}
 
 /**
  * Filtrar eventos baseado em critérios

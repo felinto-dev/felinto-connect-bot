@@ -121,15 +121,7 @@ export class ValidationService {
       }
     }
 
-    // Verificar timeline
-    if (!data.timeline) {
-      warnings.push('Informações de timeline não encontradas');
-    } else {
-      if (!data.timeline.startTime || !data.timeline.duration) {
-        warnings.push('Informações de timing incompletas');
-      }
-    }
-
+    
     return {
       isValid: errors.length === 0,
       errors,
