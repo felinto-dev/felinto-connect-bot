@@ -45,17 +45,47 @@ export function calculateRelativeTime(eventTimestamp: number, startTime: number)
 }
 
 /**
- * Obter ícone para tipo de evento
+ * Obter ícone para um tipo de evento
  */
 export function getEventIcon(eventType: RecordingEventType): string {
-  return EVENT_ICONS[eventType] || 'circle';
+  const ICON_MAP: Record<RecordingEventType, string> = {
+    click: 'mouse-pointer',
+    type: 'keyboard',
+    navigation: 'navigation',
+    scroll: 'scroll',
+    hover: 'move',
+    key_press: 'command',
+    form_submit: 'send',
+    form_focus: 'focus',
+    form_input_change: 'edit-3',
+    form_navigation: 'corner-down-right',
+    screenshot: 'camera',
+    wait: 'clock',
+    page_load: 'refresh-cw',
+  };
+  return ICON_MAP[eventType] || 'help-circle';
 }
 
 /**
- * Obter classe CSS para tipo de evento
+ * Obter cor para um tipo de evento
  */
 export function getEventColor(eventType: RecordingEventType): string {
-  return EVENT_COLORS[eventType] || 'event-default';
+  const COLOR_MAP: Record<string, string> = {
+    click: 'blue',
+    type: 'green',
+    navigation: 'purple',
+    scroll: 'gray',
+    hover: 'yellow',
+    key_press: 'indigo',
+    form_submit: 'green',
+    form_focus: 'blue',
+    form_input_change: 'green',
+    form_navigation: 'indigo',
+    screenshot: 'orange',
+    wait: 'gray',
+    page_load: 'red',
+  };
+  return COLOR_MAP[eventType] || 'gray';
 }
 
 /**

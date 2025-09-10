@@ -1601,17 +1601,11 @@ export class RecordingManager {
     // Criar elemento do evento
     const eventElement = this.createEventElement(event);
     
-    // Adicionar ao início da lista (eventos mais recentes primeiro)
-    actionsList.insertBefore(eventElement, actionsList.firstChild);
+    // Adicionar ao final da lista (ordem cronológica: mais antigas no topo)
+    actionsList.appendChild(eventElement);
 
-    // Limitar número de eventos visíveis (performance)
-    const maxVisibleEvents = 50;
-    const eventElements = actionsList.querySelectorAll('.action-item');
-    if (eventElements.length > maxVisibleEvents) {
-      for (let i = maxVisibleEvents; i < eventElements.length; i++) {
-        eventElements[i].remove();
-      }
-    }
+    // Scroll automático para mostrar a ação mais recente
+    eventElement.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
   }
 
   /**
@@ -1624,49 +1618,62 @@ export class RecordingManager {
     const timeStr = formatTimestamp(event.timestamp);
     const icon = getEventIcon(event.type);
     
+    let title = event.type;
     let details = '';
-    switch (event.type) {
-      case 'click':
-        details = event.coordinates ? 
-          `(${event.coordinates.x}, ${event.coordinates.y})` : 
-          '';
-        break;
-      case 'type':
-        details = event.value ? 
-          `"${truncateText(event.value, 30)}"` : 
-          '';
-        break;
-      case 'key_press':
-        details = event.value ? 
-          `Tecla: <strong>${event.value}</strong>` : 
-          '';
-        break;
-      case 'navigation':
-        details = event.url ? truncateUrl(event.url, 50) : '';
-        break;
-      case 'scroll':
-        details = event.coordinates ? 
-          `Y: ${event.coordinates.y}` : 
-          '';
-        break;
-      default:
-        details = event.selector ? truncateSelector(event.selector, 35) : '';
+
+    // Lógica aprimorada para detalhes do evento
+    if (event.type.startsWith('form_')) {
+      title = event.metadata?.action || event.type;
+      
+      if (event.type === 'form_input_change' && event.value) {
+        details = `<span class="action-value">"${truncateText(event.value, 40)}"</span>`;
+      }
+      
+    } else {
+       switch (event.type) {
+        case 'click':
+          title = `User clicked on element`;
+          details = event.selector ? `<code>${truncateSelector(event.selector, 40)}</code>` : '';
+          break;
+        case 'type':
+          title = `User typed in field`;
+          details = event.value ? `"${truncateText(event.value, 30)}"` : '';
+          break;
+        case 'key_press':
+          title = `User pressed key: <strong>${event.value}</strong>`;
+          break;
+        case 'navigation':
+          title = `Navigated to URL`;
+          details = event.url ? truncateUrl(event.url, 50) : '';
+          break;
+        case 'scroll':
+          title = `Scrolled on page`;
+          details = event.coordinates ? `Position: ${event.coordinates.y}px` : '';
+          break;
+        default:
+          title = `Event: ${event.type}`;
+          details = event.selector ? truncateSelector(event.selector, 35) : '';
+      }
     }
 
-    // Criar tooltip com informações completas
     const fullDetails = this.createEventTooltip(event);
     
     eventDiv.innerHTML = `
-      <div class="action-header">
-        <div class="action-info">
+      <div class="action-content">
+        <div class="action-header">
           <i data-lucide="${icon}" class="action-icon"></i>
-          <span class="action-type">${event.type}</span>
-          <span class="action-time">${timeStr}</span>
+          <div class="action-info">
+            <div class="action-text-content">
+              <span class="action-title" title="${fullDetails}">${title}</span>
+              ${details ? `<span class="action-details">${details}</span>` : ''}
+            </div>
+          </div>
+          <div class="action-time-container">
+            ${event.screenshot ? '<i data-lucide="camera" class="screenshot-indicator" title="Screenshot capturado"></i>' : ''}
+            <span class="action-time">${timeStr}</span>
+          </div>
         </div>
-        ${event.screenshot ? '<i data-lucide="camera" class="screenshot-indicator" title="Screenshot capturado"></i>' : ''}
       </div>
-      ${details ? `<div class="action-details" title="${fullDetails}">${details}</div>` : ''}
-      ${event.selector ? `<div class="action-selector" title="${event.selector}">${truncateSelector(event.selector, 40)}</div>` : ''}
     `;
 
     // Reinicializar ícones Lucide

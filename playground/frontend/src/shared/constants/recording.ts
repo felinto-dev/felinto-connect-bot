@@ -21,7 +21,7 @@ export const DEFAULT_SELECTED_EVENTS: Set<RecordingEventType> = new Set([
 // Todos os eventos disponíveis
 export const ALL_RECORDING_EVENTS: RecordingEventType[] = [
   'click',
-  'type',
+  // 'type', // Substituído por 'form'
   'navigation', 
   'scroll',
   'hover',
@@ -29,7 +29,8 @@ export const ALL_RECORDING_EVENTS: RecordingEventType[] = [
   'screenshot',
   'page_load',
   'form_submit',
-  'key_press'
+  // 'key_press', // Capturado dentro de 'form'
+  'form'
 ];
 
 // Configurações padrão de gravação
@@ -112,6 +113,7 @@ export const EXPORT_FORMATS = [
 export const EVENT_ICONS: Record<RecordingEventType, string> = {
   'click': 'mouse-pointer',
   'type': 'keyboard', 
+  'form': 'keyboard',
   'navigation': 'navigation',
   'scroll': 'scroll',
   'hover': 'move',
@@ -119,13 +121,17 @@ export const EVENT_ICONS: Record<RecordingEventType, string> = {
   'screenshot': 'camera',
   'page_load': 'refresh-cw',
   'form_submit': 'send',
-  'key_press': 'command'
+  'key_press': 'command',
+  'form_focus': 'focus',
+  'form_input_change': 'edit-3',
+  'form_navigation': 'corner-down-right'
 };
 
 // Cores para tipos de eventos (classes CSS)
 export const EVENT_COLORS: Record<RecordingEventType, string> = {
   'click': 'event-click',
-  'type': 'event-type',
+  'type': 'event-type', 
+  'form': 'event-type',
   'navigation': 'event-navigation', 
   'scroll': 'event-scroll',
   'hover': 'event-hover',
@@ -133,7 +139,10 @@ export const EVENT_COLORS: Record<RecordingEventType, string> = {
   'screenshot': 'event-screenshot',
   'page_load': 'event-page-load',
   'form_submit': 'event-form-submit',
-  'key_press': 'event-key-press'
+  'key_press': 'event-key-press',
+  'form_focus': 'event-click',
+  'form_input_change': 'event-type',
+  'form_navigation': 'event-key-press'
 };
 
 // Descrições dos modos de gravação
@@ -147,6 +156,7 @@ export const RECORDING_MODE_DESCRIPTIONS: Record<RecordingMode, string> = {
 export const EVENT_TYPE_DESCRIPTIONS: Record<RecordingEventType, string> = {
   'click': 'Cliques do mouse em elementos da página',
   'type': 'Eventos de formulário, como preenchimento de campos',
+  'form': 'Interações completas com formulários (foco, preenchimento e navegação)',
   'navigation': 'Mudanças de URL e navegação entre páginas',
   'scroll': 'Rolagem da página ou elementos específicos',
   'hover': 'Movimento do mouse sobre elementos (hover)',
@@ -154,7 +164,10 @@ export const EVENT_TYPE_DESCRIPTIONS: Record<RecordingEventType, string> = {
   'screenshot': 'Capturas de tela automáticas ou manuais',
   'page_load': 'Carregamento completo de páginas',
   'form_submit': 'Envio de formulários',
-  'key_press': 'Teclas especiais (Enter, Tab, Esc, etc.)'
+  'key_press': 'Teclas especiais (Enter, Tab, Esc, etc.)',
+  'form_focus': 'Foco em um campo de formulário',
+  'form_input_change': 'Preenchimento de um campo de formulário',
+  'form_navigation': 'Navegação entre campos com Tab ou Enter'
 };
 
 // Mensagens de status

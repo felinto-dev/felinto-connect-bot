@@ -173,6 +173,9 @@ export class RecordingService {
    * Configurar event listeners baseado na configuração
    */
   private async setupEventListeners(): Promise<void> {
+    // Configurar listener de console para debug ANTES de outros listeners
+    await this.setupConsoleListener();
+
     const events = this.config.events;
 
     // Click events
@@ -209,6 +212,12 @@ export class RecordingService {
     if (events.includes('form_submit')) {
       await this.setupFormSubmitListener();
     }
+
+    // Form interaction events (new)
+    if (events.includes('form')) {
+      // await this.setupFormListener_Legacy();
+      await this.setupCDPFormListener();
+    }
   }
 
   /**
@@ -219,6 +228,15 @@ export class RecordingService {
 
     const clickHandler = async (event: any) => {
       if (!this.shouldCaptureEvent()) return;
+
+      // Se a captura de formulário estiver ativa, verificar se o clique foi em um campo de formulário
+      if (this.config.events.includes('form')) {
+        const targetTagName = (event.target?.tagName || '').toLowerCase();
+        if (['input', 'textarea', 'select'].includes(targetTagName)) {
+          // O evento de foco será tratado pelo setupFormListener
+          return;
+        }
+      }
 
       // Capturar evento de click
       await this.addEvent({
@@ -243,13 +261,18 @@ export class RecordingService {
       }
     };
 
-    // CORREÇÃO: Expor função ANTES de injetar código JavaScript
+    // CORREÇÃO: Tentar expor função, ignorar se já existir
     try {
       await this.page.exposeFunction('__recordingClickHandler', clickHandler);
       console.log('✅ Função de click exposta com sucesso');
-    } catch (error) {
-      console.error('❌ Erro ao expor função de click:', error);
-      throw error;
+    } catch (error: any) {
+      if (error.message.includes('already exists')) {
+        console.log('⚠️ Função de click já existe, reutilizando...');
+        // Função já existe, continuar normalmente
+      } else {
+        console.error('❌ Erro ao expor função de click:', error);
+        throw error;
+      }
     }
 
     await this.page.evaluateOnNewDocument(() => {
@@ -834,7 +857,15 @@ export class RecordingService {
       }, true);
     });
 
-    await this.page.exposeFunction('__recordingScrollHandler', scrollHandler);
+    try {
+      await this.page.exposeFunction('__recordingScrollHandler', scrollHandler);
+    } catch (error: any) {
+      if (error.message.includes('already exists')) {
+        console.log('⚠️ Função de scroll já existe, reutilizando...');
+      } else {
+        throw error;
+      }
+    }
     this.eventListeners.set('scroll', scrollHandler);
   }
 
@@ -867,7 +898,15 @@ export class RecordingService {
       }, true);
     });
 
-    await this.page.exposeFunction('__recordingHoverHandler', hoverHandler);
+    try {
+      await this.page.exposeFunction('__recordingHoverHandler', hoverHandler);
+    } catch (error: any) {
+      if (error.message.includes('already exists')) {
+        console.log('⚠️ Função de hover já existe, reutilizando...');
+      } else {
+        throw error;
+      }
+    }
     this.eventListeners.set('hover', hoverHandler);
   }
 
@@ -885,7 +924,7 @@ export class RecordingService {
         // Para TAB e ENTER, também verificar se há campo ativo para capturar valor
         if ((event.key === 'Tab' || event.key === 'Enter') && event.target && 
             event.target.matches && event.target.matches('input, textarea, [contenteditable]')) {
-          // Este evento será tratado pelo inputHandler via keyHandler específico
+          // Este evento será tratado pelo inputHandler ou pelo novo formListener
           return;
         }
 
@@ -911,7 +950,15 @@ export class RecordingService {
       }, true);
     });
 
-    await this.page.exposeFunction('__recordingGlobalKeyHandler', keyHandler);
+    try {
+      await this.page.exposeFunction('__recordingGlobalKeyHandler', keyHandler);
+    } catch (error: any) {
+      if (error.message.includes('already exists')) {
+        console.log('⚠️ Função de key já existe, reutilizando...');
+      } else {
+        throw error;
+      }
+    }
     this.eventListeners.set('keydown', keyHandler);
   }
 
@@ -938,9 +985,463 @@ export class RecordingService {
       }, true);
     });
 
-    await this.page.exposeFunction('__recordingSubmitHandler', submitHandler);
+    try {
+      await this.page.exposeFunction('__recordingSubmitHandler', submitHandler);
+    } catch (error: any) {
+      if (error.message.includes('already exists')) {
+        console.log('⚠️ Função de submit já existe, reutilizando...');
+      } else {
+        throw error;
+      }
+    }
     this.eventListeners.set('submit', submitHandler);
   }
+
+  /**
+   * Configurar um listener para a console do browser para debug
+   */
+  private async setupConsoleListener(): Promise<void> {
+    this.page.on('console', (msg) => {
+      const text = msg.text();
+      // Ignorar mensagens que já são tratadas por outros listeners legados
+      if (text.startsWith('KEYBOARD_EVENT:') || text.startsWith('FOCUS_EVENT:')) {
+        return;
+      }
+      console.log(`[Browser Console]: ${text}`);
+    });
+    console.log('📡 Listener da console do browser configurado.');
+  }
+
+  /**
+   * Configurar listener unificado para interações de formulário via CDP (Chrome DevTools Protocol)
+   * Esta é uma abordagem mais robusta que a injeção de script padrão.
+   */
+  private async setupCDPFormListener(): Promise<void> {
+    console.log('📝 Configurando listener de formulários via CDP...');
+
+    try {
+      const client = await this.page.target().createCDPSession();
+
+      // Habilitar domínios necessários
+      await client.send('Runtime.enable');
+      await client.send('Page.enable');
+      
+      // Função para configurar o binding
+      const setupBinding = async () => {
+        try {
+          // Criar o binding
+          await client.send('Runtime.addBinding', { name: 'formEventBinding' });
+          console.log('✅ CDP binding criado: formEventBinding');
+          
+          // Injetar o script na página atual
+          await client.send('Runtime.evaluate', {
+            expression: `
+              // Debug: verificar se o binding foi criado
+              console.log('[RECORDER] Binding available:', typeof window.formEventBinding);
+              
+              // Armazenar o timestamp da última captura para evitar duplicidade
+              window.__lastInputChangeTimes = window.__lastInputChangeTimes || {};
+
+              const getElementDetails = (element) => {
+                if (!element) return { selector: 'unknown', tagName: 'unknown', inputType: 'unknown', label: '', value: '' };
+                try {
+                    let selector = 'unknown';
+                    if (element.id) selector = '#' + element.id;
+                    else if (element.name) selector = '[name="' + element.name + '"]';
+                    else if (element.className && typeof element.className === 'string') {
+                        const classes = element.className.trim().split(/\\s+/).map(c => '.' + c).join('');
+                        if (classes) selector = element.tagName.toLowerCase() + classes;
+                    } else {
+                        selector = element.tagName.toLowerCase();
+                    }
+
+                    let label = '';
+                    if (element.id) {
+                        const labelEl = document.querySelector('label[for="' + element.id + '"]');
+                        if (labelEl) label = labelEl.textContent?.trim() || '';
+                    }
+                    if (!label) {
+                        label = element.placeholder || element.name || '';
+                    }
+
+                    return {
+                        selector,
+                        tagName: element.tagName.toLowerCase(),
+                        inputType: element.type || 'textarea',
+                        label,
+                        value: element.value || ''
+                    };
+                } catch (e) {
+                    console.error('[RECORDER SCRIPT] Error in getElementDetails:', e);
+                    return { selector: 'error', tagName: 'error', inputType: 'error', label: 'error', value: '' };
+                }
+              };
+
+              const sendEventToBackend = (data) => {
+                try {
+                  if (typeof window.formEventBinding === 'function') {
+                    console.log('[RECORDER] Sending event:', data.type, data.selector);
+                    window.formEventBinding(JSON.stringify(data));
+                  } else {
+                    console.error('[RECORDER] formEventBinding not available!');
+                  }
+                } catch (e) {
+                  console.error('[RECORDER] Error sending event:', e);
+                }
+              };
+              
+              const eventHandler = (event) => {
+                try {
+                  const target = event.target;
+                  console.log('[RECORDER] Event captured:', event.type, 'on', target.tagName);
+                  
+                  if (!target || !target.matches || !target.matches('input, textarea, select')) return;
+
+                  const details = getElementDetails(target);
+                  const now = Date.now();
+
+                  switch (event.type) {
+                    case 'focusin':
+                      console.log('[RECORDER] Focusin on:', details.selector);
+                      sendEventToBackend({ type: 'focus', ...details });
+                      break;
+                    
+                    case 'focusout':
+                      const lastCaptureTime = window.__lastInputChangeTimes[details.selector] || 0;
+                      if (now - lastCaptureTime > 100) {
+                          console.log('[RECORDER] Focusout on:', details.selector, 'value:', details.value);
+                          sendEventToBackend({ type: 'input_change', ...details });
+                      }
+                      break;
+                      
+                    case 'keydown':
+                      if (event.key === 'Tab' || event.key === 'Enter') {
+                          console.log('[RECORDER] Key navigation:', event.key, 'on:', details.selector);
+                          window.__lastInputChangeTimes[details.selector] = now;
+                          sendEventToBackend({ type: 'input_change', ...details });
+                          sendEventToBackend({ type: 'navigation', key: event.key, ...details });
+                      }
+                      break;
+                  }
+                } catch (e) {
+                  console.error('[RECORDER SCRIPT] Error in event handler:', e);
+                }
+              };
+
+              // Remover listeners existentes se houver
+              if (window.__formEventHandlerInstalled) {
+                document.removeEventListener('focusin', eventHandler, true);
+                document.removeEventListener('focusout', eventHandler, true);
+                document.removeEventListener('keydown', eventHandler, true);
+              }
+
+              // Adicionar listeners na fase de CAPTURA para máxima prioridade
+              document.addEventListener('focusin', eventHandler, true);
+              document.addEventListener('focusout', eventHandler, true);
+              document.addEventListener('keydown', eventHandler, true);
+              
+              window.__formEventHandlerInstalled = true;
+              console.log('[RECORDER] Event handlers installed successfully');
+            `
+          });
+          
+        } catch (error) {
+          console.error('❌ Erro ao configurar binding:', error);
+        }
+      };
+
+      // Configurar o binding inicialmente
+      await setupBinding();
+
+      // Reconfigurar o binding a cada navegação
+      client.on('Page.frameNavigated', async (event) => {
+        if (event.frame.parentId) return; // Ignorar subframes
+        console.log('🔄 Página navegada, reconfigurando binding...');
+        await setupBinding();
+      });
+
+      // Escutar por eventos que chegam na "ponte"
+      client.on('Runtime.bindingCalled', async (event) => {
+        if (event.name === 'formEventBinding') {
+          if (!this.shouldCaptureEvent()) return;
+
+          try {
+            const eventData = JSON.parse(event.payload);
+            console.log(`[CDP Binding Called]: ${eventData.type}`, eventData.selector);
+
+            switch (eventData.type) {
+              case 'focus':
+                await this.addEvent({
+                  type: 'form_focus',
+                  selector: eventData.selector,
+                  metadata: {
+                    tagName: eventData.tagName,
+                    inputType: eventData.inputType,
+                    label: eventData.label,
+                    action: `User focused on field '${eventData.label || eventData.selector}'`
+                  }
+                });
+                break;
+
+              case 'input_change':
+                if (eventData.value && eventData.value.length > 0) {
+                  await this.addEvent({
+                    type: 'form_input_change',
+                    selector: eventData.selector,
+                    value: this.maskSensitiveValue(eventData.value, eventData.inputType),
+                    metadata: {
+                      tagName: eventData.tagName,
+                      inputType: eventData.inputType,
+                      label: eventData.label,
+                      valueLength: eventData.value.length,
+                      action: `User filled field '${eventData.label || eventData.selector}'`
+                    }
+                  });
+                }
+                break;
+
+              case 'navigation':
+                await this.addEvent({
+                  type: 'form_navigation',
+                  selector: eventData.selector,
+                  value: eventData.key,
+                  metadata: {
+                    tagName: eventData.tagName,
+                    inputType: eventData.inputType,
+                    label: eventData.label,
+                    key: eventData.key,
+                    action: `User pressed '${eventData.key}' to navigate from field '${eventData.label || eventData.selector}'`
+                  }
+                });
+                break;
+            }
+          } catch (error) {
+            console.error('❌ Erro ao processar evento do binding:', error);
+          }
+        }
+      });
+
+      console.log('✅ Listener de formulários via CDP binding configurado com sucesso.');
+
+    } catch (error) {
+      console.error('❌ Falha ao configurar listener de formulários via CDP:', error);
+    }
+  }
+
+  /**
+   * Configurar listener unificado para interações de formulário
+   */
+  private async setupFormListener_Legacy(): Promise<void> {
+    console.log('📝 Configurando listener unificado de formulários...');
+
+    const formEventHandler = async (eventData: any) => {
+      if (!this.shouldCaptureEvent()) return;
+
+      console.log(`📝 Evento de formulário recebido:`, eventData);
+
+      switch (eventData.type) {
+        case 'focus':
+          await this.addEvent({
+            type: 'form_focus',
+            selector: eventData.selector,
+            metadata: {
+              tagName: eventData.tagName,
+              inputType: eventData.inputType,
+              label: eventData.label,
+              action: `User focused on field '${eventData.label || eventData.selector}'`
+            }
+          });
+          break;
+
+        case 'input_change':
+          // Apenas capturar se houver valor
+          if (eventData.value && eventData.value.length > 0) {
+            await this.addEvent({
+              type: 'form_input_change',
+              selector: eventData.selector,
+              value: this.maskSensitiveValue(eventData.value, eventData.inputType),
+              metadata: {
+                tagName: eventData.tagName,
+                inputType: eventData.inputType,
+                label: eventData.label,
+                valueLength: eventData.value.length,
+                action: `User filled field '${eventData.label || eventData.selector}'`
+              }
+            });
+          }
+          break;
+
+        case 'navigation':
+          await this.addEvent({
+            type: 'form_navigation',
+            selector: eventData.selector,
+            value: eventData.key,
+            metadata: {
+              tagName: eventData.tagName,
+              inputType: eventData.inputType,
+              label: eventData.label,
+              key: eventData.key,
+              action: `User pressed '${eventData.key}' to navigate from field '${eventData.label || eventData.selector}'`
+            }
+          });
+          break;
+      }
+    };
+
+    // Expor a função que receberá os eventos do browser
+    await this.page.exposeFunction('__recordingFormEventHandler', formEventHandler);
+
+    // Injetar o script no navegador para capturar as interações de formulário
+    await this.page.evaluateOnNewDocument(() => {
+      // Armazenar o timestamp da última captura para evitar duplicidade
+      (window as any).__lastInputChangeTimes = (window as any).__lastInputChangeTimes || {};
+
+      const getElementLabel = (element: HTMLElement): string => {
+        try {
+          if (element.id) {
+            const label = document.querySelector(`label[for="${element.id}"]`);
+            if (label) return label.textContent?.trim() || '';
+          }
+          const parent = element.parentElement;
+          if (parent) {
+            const label = parent.querySelector('label');
+            if (label) return label.textContent?.trim() || '';
+          }
+          return (element as HTMLInputElement).placeholder || (element as HTMLInputElement).name || '';
+        } catch (e) {
+          console.error('Recording script error in getElementLabel:', e);
+          return '';
+        }
+      };
+      
+      const getElementSelector = (element: HTMLElement): string => {
+        try {
+          if (element.id) return `#${element.id}`;
+          if (element.name) return `[name="${element.name}"]`;
+          // Tornar a verificação de className mais robusta
+          if (element.className && typeof element.className === 'string') {
+            const classes = element.className.trim().split(/\s+/).map(c => `.${c}`).join('');
+            if(classes) return `${element.tagName.toLowerCase()}${classes}`;
+          }
+          return element.tagName.toLowerCase();
+        } catch (e) {
+            console.error('Recording script error in getElementSelector:', e);
+            return 'unknown';
+        }
+      };
+
+      const createEventData = (element: HTMLInputElement | HTMLTextAreaElement) => {
+        return {
+          selector: getElementSelector(element),
+          tagName: element.tagName.toLowerCase(),
+          inputType: (element as HTMLInputElement).type || 'textarea',
+          label: getElementLabel(element),
+          value: element.value
+        };
+      };
+
+      // Adicionar listeners de depuração adicionais
+      document.addEventListener('mousedown', (event) => {
+        try {
+          const target = event.target as HTMLElement;
+          const targetInfo = target ? `tagName: ${target.tagName}, id: ${target.id}, name: ${target.name}` : 'null';
+          console.log(`[RECORDER DEBUG] mousedown event. Target -> ${targetInfo}`);
+        } catch (e) {
+          console.error('Recording script error (mousedown):', e);
+        }
+      }, true);
+
+      document.addEventListener('keyup', (event) => {
+        try {
+          const target = event.target as HTMLElement;
+          const targetInfo = target ? `tagName: ${target.tagName}` : 'null';
+          console.log(`[RECORDER DEBUG] keyup event. Key: ${event.key}, Target -> ${targetInfo}`);
+        } catch (e) {
+          console.error('Recording script error (keyup):', e);
+        }
+      }, true);
+
+
+      // 1. Capturar Foco
+      document.addEventListener('focusin', (event) => {
+        try {
+          const target = event.target as HTMLInputElement;
+          const targetInfo = target ? `tagName: ${target.tagName}, id: ${target.id}, name: ${target.name}` : 'null';
+          console.log(`[RECORDER DEBUG] focusin event. Target -> ${targetInfo}`);
+          if (target && target.matches('input, textarea, select')) {
+            const eventData = {
+              type: 'focus',
+              ...createEventData(target)
+            };
+            (window as any).__recordingFormEventHandler?.(eventData);
+          }
+        } catch (e) {
+          console.error('Recording script error (focusin):', e);
+        }
+      }, true); // <-- USAR FASE DE CAPTURA
+
+      // 2. Capturar Mudança de Input (ao sair do campo)
+      document.addEventListener('focusout', (event) => {
+        try {
+          const target = event.target as HTMLInputElement;
+          if (target && target.matches('input, textarea, select')) {
+            const selector = getElementSelector(target);
+            const now = Date.now();
+            const lastCaptureTime = (window as any).__lastInputChangeTimes[selector] || 0;
+
+            // Se a captura foi feita pelo 'keydown' (Tab/Enter) nos últimos 50ms, ignorar
+            if (now - lastCaptureTime < 50) {
+              return;
+            }
+            
+            const eventData = {
+              type: 'input_change',
+              ...createEventData(target)
+            };
+            (window as any).__recordingFormEventHandler?.(eventData);
+          }
+        } catch (e) {
+          console.error('Recording script error (focusout):', e);
+        }
+      }, true); // <-- USAR FASE DE CAPTURA
+
+      // 3. Capturar Navegação (Tab) e Submissão (Enter)
+      document.addEventListener('keydown', (event) => {
+        try {
+          const target = event.target as HTMLInputElement;
+          const targetInfo = target ? `tagName: ${target.tagName}` : 'null';
+          console.log(`[RECORDER DEBUG] keydown event. Key: ${event.key}, Target -> ${targetInfo}`);
+          if (target && target.matches('input, textarea, select') && (event.key === 'Tab' || event.key === 'Enter')) {
+            const selector = getElementSelector(target);
+            
+            // Registrar o timestamp para prevenir o 'focusout' de disparar novamente
+            (window as any).__lastInputChangeTimes[selector] = Date.now();
+
+            // Primeiro, garantir que o valor atual seja capturado
+            const inputChangeEventData = {
+              type: 'input_change',
+              ...createEventData(target)
+            };
+            (window as any).__recordingFormEventHandler?.(inputChangeEventData);
+            
+            // Depois, registrar o evento de navegação
+            const navEventData = {
+              type: 'navigation',
+              key: event.key,
+              ...createEventData(target)
+            };
+            (window as any).__recordingFormEventHandler?.(navEventData);
+          }
+        } catch (e) {
+          console.error('Recording script error (keydown):', e);
+        }
+      }, true); // <-- USAR FASE DE CAPTURA
+    });
+
+    console.log('✅ Listener unificado de formulários configurado.');
+    this.eventListeners.set('form', formEventHandler);
+  }
+
 
   /**
    * Remover todos os event listeners
