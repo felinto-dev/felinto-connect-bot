@@ -14,8 +14,7 @@ import type {
 export const DEFAULT_SELECTED_EVENTS: Set<RecordingEventType> = new Set([
   'click',
   'type', 
-  'navigation',
-  'wait'
+  'navigation'
 ]);
 
 // Todos os eventos disponíveis
@@ -23,9 +22,6 @@ export const ALL_RECORDING_EVENTS: RecordingEventType[] = [
   'click',
   // 'type', // Substituído por 'form'
   'navigation', 
-  'scroll',
-  'hover',
-  'wait',
   'screenshot',
   'page_load',
   'form_submit',
@@ -115,9 +111,6 @@ export const EVENT_ICONS: Record<RecordingEventType, string> = {
   'type': 'keyboard', 
   'form': 'keyboard',
   'navigation': 'navigation',
-  'scroll': 'scroll',
-  'hover': 'move',
-  'wait': 'clock',
   'screenshot': 'camera',
   'page_load': 'refresh-cw',
   'form_submit': 'send',
@@ -133,9 +126,6 @@ export const EVENT_COLORS: Record<RecordingEventType, string> = {
   'type': 'event-type', 
   'form': 'event-type',
   'navigation': 'event-navigation', 
-  'scroll': 'event-scroll',
-  'hover': 'event-hover',
-  'wait': 'event-wait',
   'screenshot': 'event-screenshot',
   'page_load': 'event-page-load',
   'form_submit': 'event-form-submit',
@@ -158,9 +148,6 @@ export const EVENT_TYPE_DESCRIPTIONS: Record<RecordingEventType, string> = {
   'type': 'Eventos de formulário, como preenchimento de campos',
   'form': 'Interações completas com formulários (foco, preenchimento e navegação)',
   'navigation': 'Mudanças de URL e navegação entre páginas',
-  'scroll': 'Rolagem da página ou elementos específicos',
-  'hover': 'Movimento do mouse sobre elementos (hover)',
-  'wait': 'Pausas e esperas durante a navegação',
   'screenshot': 'Capturas de tela automáticas ou manuais',
   'page_load': 'Carregamento completo de páginas',
   'form_submit': 'Envio de formulários',

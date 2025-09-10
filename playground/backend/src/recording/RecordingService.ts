@@ -193,15 +193,6 @@ export class RecordingService {
       await this.setupNavigationListener();
     }
 
-    // Scroll events
-    if (events.includes('scroll')) {
-      await this.setupScrollListener();
-    }
-
-    // Hover events
-    if (events.includes('hover')) {
-      await this.setupHoverListener();
-    }
 
     // Key press events
     if (events.includes('key_press')) {
@@ -827,88 +818,7 @@ export class RecordingService {
     this.eventListeners.set('navigation', navigationHandler);
   }
 
-  /**
-   * Configurar listener para scroll
-   */
-  private async setupScrollListener(): Promise<void> {
-    const scrollHandler = async (scrollData: any) => {
-      if (!this.shouldCaptureEvent()) return;
 
-      await this.addEvent({
-        type: 'scroll',
-        coordinates: { x: scrollData.scrollX, y: scrollData.scrollY },
-        metadata: {
-          scrollTop: scrollData.scrollY,
-          scrollLeft: scrollData.scrollX
-        }
-      });
-    };
-
-    await this.page.evaluateOnNewDocument(() => {
-      let scrollTimeout: NodeJS.Timeout;
-      document.addEventListener('scroll', () => {
-        clearTimeout(scrollTimeout);
-        scrollTimeout = setTimeout(() => {
-          (window as any).__recordingScrollHandler?.({
-            scrollX: window.scrollX,
-            scrollY: window.scrollY
-          });
-        }, 100); // Debounce scroll events
-      }, true);
-    });
-
-    try {
-      await this.page.exposeFunction('__recordingScrollHandler', scrollHandler);
-    } catch (error: any) {
-      if (error.message.includes('already exists')) {
-        console.log('⚠️ Função de scroll já existe, reutilizando...');
-      } else {
-        throw error;
-      }
-    }
-    this.eventListeners.set('scroll', scrollHandler);
-  }
-
-  /**
-   * Configurar listener para hover
-   * NOTA: Eventos de hover NÃO capturam screenshots automaticamente
-   * Apenas registram o movimento do mouse sobre elementos
-   */
-  private async setupHoverListener(): Promise<void> {
-    const hoverHandler = async (event: any) => {
-      if (!this.shouldCaptureEvent()) return;
-
-      await this.addEvent({
-        type: 'hover',
-        coordinates: { x: event.clientX, y: event.clientY },
-        selector: await this.getElementSelector(event.target),
-        metadata: {
-          eventType: event.type
-        }
-      });
-    };
-
-    await this.page.evaluateOnNewDocument(() => {
-      let hoverTimeout: NodeJS.Timeout;
-      document.addEventListener('mouseover', (event) => {
-        clearTimeout(hoverTimeout);
-        hoverTimeout = setTimeout(() => {
-          (window as any).__recordingHoverHandler?.(event);
-        }, 200); // Debounce hover events
-      }, true);
-    });
-
-    try {
-      await this.page.exposeFunction('__recordingHoverHandler', hoverHandler);
-    } catch (error: any) {
-      if (error.message.includes('already exists')) {
-        console.log('⚠️ Função de hover já existe, reutilizando...');
-      } else {
-        throw error;
-      }
-    }
-    this.eventListeners.set('hover', hoverHandler);
-  }
 
   /**
    * Configurar listener para teclas especiais (melhorado)

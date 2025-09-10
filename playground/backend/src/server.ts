@@ -671,7 +671,7 @@ app.post('/api/recording/start', async (req: Request, res: Response) => {
     // Configuração padrão da gravação (otimizada)
     const recordingConfig: RecordingConfig = {
       sessionId,
-      events: config?.events || ['click', 'navigation', 'wait', 'form_submit', 'form'],
+      events: config?.events || ['click', 'navigation', 'form_submit', 'form'],
       mode: config?.mode || 'smart',
       delay: config?.delay || 300, // Reduzido para melhor responsividade
       captureScreenshots: config?.captureScreenshots || false,

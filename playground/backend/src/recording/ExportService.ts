@@ -183,22 +183,6 @@ export class ExportService {
         }
         break;
 
-      case 'scroll':
-        if (event.coordinates) {
-          code += `  await page.evaluate(() => window.scrollTo(${event.coordinates!.x}, ${event.coordinates!.y}));\n`;
-        }
-        break;
-
-      case 'hover':
-        if (event.selector) {
-          code += `  await page.hover('${event.selector}');\n`;
-        }
-        break;
-
-      case 'wait':
-        const waitTime = event.duration || 1000;
-        code += `  await page.waitForTimeout(${waitTime});\n`;
-        break;
 
       case 'key_press':
         if (event.value) {

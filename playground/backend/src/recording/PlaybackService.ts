@@ -268,17 +268,6 @@ export class PlaybackService {
           await this.executeNavigationEvent(event);
           break;
         
-        case 'scroll':
-          await this.executeScrollEvent(event);
-          break;
-        
-        case 'hover':
-          await this.executeHoverEvent(event);
-          break;
-        
-        case 'wait':
-          await this.executeWaitEvent(event);
-          break;
         
         case 'key_press':
           await this.executeKeyPressEvent(event);
@@ -349,33 +338,8 @@ export class PlaybackService {
     }
   }
 
-  /**
-   * Executar evento de scroll
-   */
-  private async executeScrollEvent(event: RecordingEvent): Promise<void> {
-    if (event.coordinates) {
-      await this.page.evaluate((x, y) => {
-        window.scrollTo(x, y);
-      }, event.coordinates.x, event.coordinates.y);
-    }
-  }
 
-  /**
-   * Executar evento de hover
-   */
-  private async executeHoverEvent(event: RecordingEvent): Promise<void> {
-    if (event.selector) {
-      await this.page.hover(event.selector);
-    }
-  }
 
-  /**
-   * Executar evento de espera
-   */
-  private async executeWaitEvent(event: RecordingEvent): Promise<void> {
-    const waitTime = (event.duration || 1000) / this.config.speed;
-    await this.wait(waitTime);
-  }
 
   /**
    * Executar evento de tecla

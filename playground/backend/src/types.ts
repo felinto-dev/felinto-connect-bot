@@ -60,15 +60,12 @@ export type RecordingEventType =
   | 'click'
   | 'type'
   | 'navigation'
-  | 'scroll'
-  | 'hover'
   | 'key_press'
   | 'form_submit'
   | 'form_focus' // Foco em um campo de formulário
   | 'form_input_change' // Mudança de valor em um campo (após digitação)
   | 'form_navigation' // Navegação entre campos (ex: Tab)
   | 'screenshot'
-  | 'wait'
   | 'page_load'
   | 'form_submit'
   | 'key_press';
