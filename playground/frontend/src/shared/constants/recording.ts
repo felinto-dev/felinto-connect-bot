@@ -146,7 +146,7 @@ export const RECORDING_MODE_DESCRIPTIONS: Record<RecordingMode, string> = {
 // Descrições dos tipos de eventos
 export const EVENT_TYPE_DESCRIPTIONS: Record<RecordingEventType, string> = {
   'click': 'Cliques do mouse em elementos da página',
-  'type': 'Digitação em campos de texto e formulários',
+  'type': 'Eventos de formulário, como preenchimento de campos',
   'navigation': 'Mudanças de URL e navegação entre páginas',
   'scroll': 'Rolagem da página ou elementos específicos',
   'hover': 'Movimento do mouse sobre elementos (hover)',
