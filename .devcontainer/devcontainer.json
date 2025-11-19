@@ -8,10 +8,25 @@
 		"--env-file",
 		"${localWorkspaceFolder}/.env"
 	],
+	"mounts": [
+		{
+			"source": "${env:HOME}/.qwen/oauth_creds.json",
+			"target": "/home/node/.qwen/oauth_creds.json",
+			"type": "bind"
+		},
+		{
+			"source": "${env:HOME}/.gemini/oauth_creds.json",
+			"target": "/home/node/.gemini/oauth_creds.json",
+			"type": "bind"
+		}
+	],
 	// Features to add to the dev container. More info: https://containers.dev/features.
 	// "features": {},
 	// Use 'forwardPorts' to make a list of ports inside the container available locally.
-	"forwardPorts": [3000, 3001],
+	"forwardPorts": [
+		3000,
+		3001
+	],
 	// Port attributes for auto-opening
 	"portsAttributes": {
 		"3000": {
@@ -26,7 +41,7 @@
 		}
 	},
 	// Use 'postCreateCommand' to run commands after the container is created.
-	"postCreateCommand": "pnpm install",
+	"postCreateCommand": "pnpm install && npm install -g @anthropic-ai/claude-code",
 	"customizations": {
 		"vscode": {
 			"extensions": [
