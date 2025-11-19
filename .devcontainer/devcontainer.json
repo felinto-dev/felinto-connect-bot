@@ -30,7 +30,9 @@
 	"customizations": {
 		"vscode": {
 			"extensions": [
-				"Anthropic.claude-code"
+				"Anthropic.claude-code",
+				"Traycer.traycer-vscode",
+				"kilocode.kilo-code"
 			]
 		}
 	}
