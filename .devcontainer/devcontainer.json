@@ -20,6 +20,11 @@
 			"type": "bind"
 		}
 	],
+	"remoteEnv": {
+		"ANTHROPIC_BASE_URL": "${localEnv:ANTHROPIC_BASE_URL}",
+		"ANTHROPIC_AUTH_TOKEN": "${localEnv:ANTHROPIC_AUTH_TOKEN}",
+		"ANTHROPIC_DEFAULT_SONNET_MODEL": "glm-4.6"
+	},
 	// Features to add to the dev container. More info: https://containers.dev/features.
 	// "features": {},
 	// Use 'forwardPorts' to make a list of ports inside the container available locally.
