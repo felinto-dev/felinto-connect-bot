@@ -3,7 +3,9 @@
     "allow": [
       "Bash(npm run build:*)",
       "Bash(npx tsc:*)",
-      "Read(///**)"
+      "Read(///**)",
+      "Bash(pnpm playground:backend-nestjs:*)",
+      "Bash(pnpm build)"
     ],
     "deny": [],
     "ask": []
