@@ -7,19 +7,19 @@ export class AppConfigService {
   constructor(private configService: ConfigService) {}
 
   getPort(): number {
-    return this.configService?.get<number>('port', 3002) || 3002;
+    return this.configService?.get<number>('port') ?? 3002;
   }
 
   getNodeEnv(): string {
-    return this.configService?.get<string>('nodeEnv', 'development') || 'development';
+    return this.configService?.get<string>('nodeEnv') ?? 'development';
   }
 
   getTwoCaptchaConfig(): TwoCaptchaConfig {
-    return this.configService?.get<TwoCaptchaConfig>('twoCaptcha', {}) || {};
+    return this.configService?.get<TwoCaptchaConfig>('twoCaptcha') ?? {};
   }
 
   getChromeConfig(): ChromeConfig {
-    return this.configService?.get<ChromeConfig>('chrome') || {
+    return this.configService?.get<ChromeConfig>('chrome') ?? {
       headless: {
         width: 1920,
         height: 1080,
@@ -30,7 +30,7 @@ export class AppConfigService {
   }
 
   getProxyConfig(): ProxyConfig {
-    return this.configService?.get<ProxyConfig>('proxy', {}) || {};
+    return this.configService?.get<ProxyConfig>('proxy') ?? {};
   }
 
   // Helper method to get the entire configuration
