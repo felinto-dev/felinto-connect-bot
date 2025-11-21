@@ -5,7 +5,8 @@
       "Bash(npx tsc:*)",
       "Read(///**)",
       "Bash(pnpm playground:backend-nestjs:*)",
-      "Bash(pnpm build)"
+      "Bash(pnpm build)",
+      "Bash(pnpm dev)"
     ],
     "deny": [],
     "ask": []
