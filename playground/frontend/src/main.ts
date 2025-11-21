@@ -255,6 +255,7 @@ class PlaygroundApp {
     
     if (!endpointInput || !validateButton) return;
     
+    
     const endpoint = endpointInput.value.trim();
     if (!endpoint) {
       this.uiManager.log('Por favor, insira uma URL WebSocket para validar', 'error');
@@ -271,15 +272,20 @@ class PlaygroundApp {
     validateButton.classList.add('loading');
     validateButton.innerHTML = `<span>Validando...</span>`;
     
+    
     this.uiManager.log(`Validando conexão com ${endpoint}...`, 'info');
     
     try {
       const data = await this.sharedServices.apiService.validateWebSocketEndpoint(endpoint);
       this.uiManager.log(`✅ Conexão válida! Chrome ${data.Browser || 'versão desconhecida'}`, 'success');
       this.uiManager.showButtonSuccess(validateButton, originalContent);
+      
+      
     } catch (error: any) {
       this.uiManager.log(`❌ Erro na validação: ${error.message}`, 'error');
       this.uiManager.showButtonError(validateButton, originalContent, 'connection');
+      
+      
     } finally {
       validateButton.disabled = false;
       validateButton.classList.remove('loading');
