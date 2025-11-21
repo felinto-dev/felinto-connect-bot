@@ -55,6 +55,9 @@
 				"kilocode.kilo-code"
 			]
 		}
+	},
+	"features": {
+		"ghcr.io/devcontainers-extra/features/nestjs-cli:2": {}
 	}
 	// Configure tool-specific properties.
 	// "customizations": {},
