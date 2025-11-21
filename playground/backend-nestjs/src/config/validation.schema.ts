@@ -23,7 +23,7 @@ export const validationSchema = Joi.object({
     .description('Chrome headless height screen resolution'),
 
   CHROME_HEADLESS_WS_URL: Joi.string()
-    .uri()
+    .uri({ scheme: ['ws', 'wss', 'http', 'https'] })
     .optional()
     .description('Chrome headless WebSocket URL'),
 
