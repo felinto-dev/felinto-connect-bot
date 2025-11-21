@@ -6,7 +6,11 @@
       "Read(///**)",
       "Bash(pnpm playground:backend-nestjs:*)",
       "Bash(pnpm build)",
-      "Bash(pnpm dev)"
+      "Bash(pnpm dev)",
+      "Bash(pnpm add:*)",
+      "Bash(pnpm run build:*)",
+      "Bash(timeout:*)",
+      "Bash(node test-validation-with-values:*)"
     ],
     "deny": [],
     "ask": []

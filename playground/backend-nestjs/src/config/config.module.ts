@@ -2,6 +2,7 @@ import { Module, Global } from '@nestjs/common';
 import { ConfigModule as NestConfigModule } from '@nestjs/config';
 import { AppConfigService } from './config.service';
 import configuration from './configuration';
+import { validationSchema } from './validation.schema';
 
 @Global()
 @Module({
@@ -11,6 +12,11 @@ import configuration from './configuration';
       load: [configuration],
       envFilePath: '../../../.env',
       cache: true,
+      validationSchema,
+      validationOptions: {
+        allowUnknown: true,
+        abortEarly: false,
+      },
     }),
   ],
   providers: [AppConfigService],

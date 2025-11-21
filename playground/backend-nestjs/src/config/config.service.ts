@@ -1,13 +1,10 @@
 import { Injectable } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import { Configuration, TwoCaptchaConfig, ChromeConfig, ProxyConfig } from './app.config';
 
 @Injectable()
 export class AppConfigService {
-  private configService: any;
-
-  setConfigService(configService: any) {
-    this.configService = configService;
-  }
+  constructor(private configService: ConfigService) {}
 
   getPort(): number {
     return this.configService?.get<number>('port', 3002) || 3002;

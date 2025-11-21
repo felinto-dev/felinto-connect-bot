@@ -1,0 +1,1 @@
+- Estou usando o pnpm. Não utilize comando npm neste projeto.
