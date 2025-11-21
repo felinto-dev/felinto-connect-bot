@@ -39,6 +39,16 @@ CHROME_HEADLESS_WS_URL=ws://chromium:3000
 CHROME_HEADLESS_ARGS=--no-sandbox,--disable-setuid-sandbox
 ```
 
+### CORS e Parsing JSON
+
+O backend NestJS está configurado para ter comportamento idêntico ao backend Express:
+
+- **CORS**: Configurado com `app.enableCors()` usando configurações padrão (mesmo que Express com `cors()`)
+- **JSON Parsing**: Configurado explicitamente com `app.use(json())` e `app.use(urlencoded({ extended: true }))`
+- **Limites**: Ambos os backends utilizam configurações padrão sem limites específicos de tamanho de payload
+
+Se forem necessárias configurações específicas de CORS ou limites de payload no futuro, ambos os backends deverão ser atualizados para manter comportamento consistente para o frontend.
+
 ## 🏗️ Estrutura
 
 ```
