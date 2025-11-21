@@ -19,14 +19,7 @@ export class AppConfigService {
   }
 
   getChromeConfig(): ChromeConfig {
-    return this.configService?.get<ChromeConfig>('chrome', {
-      headless: {
-        width: 1920,
-        height: 1080,
-        wsUrl: 'ws://chromium:3000',
-        args: [],
-      },
-    }) || {
+    return this.configService?.get<ChromeConfig>('chrome') || {
       headless: {
         width: 1920,
         height: 1080,
