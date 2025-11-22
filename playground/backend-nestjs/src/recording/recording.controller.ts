@@ -9,7 +9,8 @@ import {
   NotFoundException,
   ConflictException,
   BadRequestException,
-  InternalServerErrorException
+  InternalServerErrorException,
+  HttpException
 } from '@nestjs/common';
 import { RecordingService, RecordingNotFoundError, RecordingAlreadyActiveError, InvalidRecordingStatusError } from './recording.service';
 import { SessionService, SessionNotFoundError } from '../session/session.service';
@@ -193,17 +194,18 @@ export class RecordingController {
     @Param('sessionId') sessionId: string,
     @Body() dto: ScreenshotDto
   ): Promise<ScreenshotResponse> {
+    const session = await this.getActiveSessionOrThrow(sessionId);
     try {
-      const session = await this.getActiveSessionOrThrow(sessionId);
 
       console.log(`📸 Capturando screenshot da sessão: ${sessionId}`);
 
-      const quality = Math.min(Math.max(dto.quality || 80, 10), 100);
+      const requestedQuality = dto.quality || 80;
+      const effectiveQuality = Math.min(Math.max(requestedQuality, 10), 100);
       const screenshot = await session.page.screenshot({
         type: 'jpeg',
         encoding: 'base64',
         fullPage: dto.fullPage || false,
-        quality
+        quality: effectiveQuality
       });
 
       const pageUrl = await session.page.url();
@@ -220,7 +222,7 @@ export class RecordingController {
           title: pageTitle,
           viewport,
           timestamp: Date.now(),
-          quality,
+          quality: requestedQuality,
           fullPage: dto.fullPage || false,
           size
         }
@@ -229,7 +231,7 @@ export class RecordingController {
       console.log(`✅ Screenshot capturado: ${size}KB`);
       return response;
     } catch (error) {
-      if (error instanceof NotFoundException) {
+      if (error instanceof HttpException) {
         throw error;
       }
       throw new InternalServerErrorException({
@@ -243,8 +245,8 @@ export class RecordingController {
   @Get('preview/:sessionId')
   @HttpCode(HttpStatus.OK)
   async capturePreview(@Param('sessionId') sessionId: string): Promise<PreviewResponse> {
+    const session = await this.getActiveSessionOrThrow(sessionId);
     try {
-      const session = await this.getActiveSessionOrThrow(sessionId);
 
       const screenshot = await session.page.screenshot({
         type: 'jpeg',
@@ -267,7 +269,7 @@ export class RecordingController {
         }
       };
     } catch (error) {
-      if (error instanceof NotFoundException) {
+      if (error instanceof HttpException) {
         throw error;
       }
       throw new InternalServerErrorException({
@@ -281,8 +283,27 @@ export class RecordingController {
   @Get('page-info/:sessionId')
   @HttpCode(HttpStatus.OK)
   async getPageInfo(@Param('sessionId') sessionId: string): Promise<PageInfoResponse> {
+    if (!sessionId || sessionId.trim() === '') {
+      throw new BadRequestException({
+        success: false,
+        error: 'sessionId é obrigatório'
+      });
+    }
+
     try {
-      const session = await this.getActiveSessionOrThrow(sessionId);
+      let session;
+      try {
+        session = await this.sessionService.getSession(sessionId);
+      } catch (error) {
+        if (error instanceof SessionNotFoundError) {
+          throw new NotFoundException({
+            success: false,
+            error: 'Sessão não encontrada',
+            sessionExpired: true
+          });
+        }
+        throw error;
+      }
 
       const pageUrl = await session.page.url();
       const pageTitle = await session.page.title();
@@ -308,7 +329,7 @@ export class RecordingController {
         }
       };
     } catch (error) {
-      if (error instanceof NotFoundException) {
+      if (error instanceof HttpException) {
         throw error;
       }
       throw new InternalServerErrorException({
