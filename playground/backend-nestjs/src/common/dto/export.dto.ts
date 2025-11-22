@@ -1,5 +1,4 @@
-import { IsString, IsBoolean, IsEnum, IsNotEmpty, IsOptional } from 'class-validator';
-import { Type } from 'class-transformer';
+import { IsString, IsBoolean, IsEnum, IsNotEmpty } from 'class-validator';
 import { ExportOptions } from '../types/export.types';
 
 export enum ExportFormat {
@@ -24,7 +23,6 @@ export class ExportRecordingDto {
    * This field is required with a default value to ensure predictable behavior
    */
   @IsBoolean()
-  @Type(() => Boolean)
   includeScreenshots: boolean = false;
 
   /**
@@ -33,7 +31,6 @@ export class ExportRecordingDto {
    * This field is required with a default value to ensure predictable behavior
    */
   @IsBoolean()
-  @Type(() => Boolean)
   minifyOutput: boolean = false;
 
   /**
@@ -42,7 +39,6 @@ export class ExportRecordingDto {
    * This field is required with a default value to ensure predictable behavior
    */
   @IsBoolean()
-  @Type(() => Boolean)
   addComments: boolean = false;
 
   /**

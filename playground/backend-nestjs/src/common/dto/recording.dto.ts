@@ -9,7 +9,6 @@ import {
   Min,
   Max,
   ArrayNotEmpty,
-  ValidateNested,
 } from 'class-validator';
 import { Type } from 'class-transformer';
 import { RecordingEventType, RecordingMode, RecordingEventTypeEnum, RecordingModeEnum, RecordingConfig } from '../types/recording.types';
