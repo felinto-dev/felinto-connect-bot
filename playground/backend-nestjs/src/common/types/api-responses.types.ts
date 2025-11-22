@@ -35,3 +35,39 @@ export interface RecordingStatusResponse {
   currentEvent?: RecordingEvent;
   isActive: boolean;
 }
+
+export interface ScreenshotResponse {
+  success: boolean;
+  screenshot: string;
+  metadata: {
+    url: string;
+    title: string;
+    viewport: { width: number; height: number } | null;
+    timestamp: number;
+    quality: number;
+    fullPage: boolean;
+    size: number;
+  };
+}
+
+export interface PreviewResponse {
+  success: boolean;
+  preview: string;
+  metadata: {
+    url: string;
+    title: string;
+    timestamp: number;
+    isPreview: true;
+  };
+}
+
+export interface PageInfoResponse {
+  success: boolean;
+  pageInfo: {
+    url: string;
+    title: string;
+    viewport: { width: number; height: number } | null;
+    timestamp: number;
+    metrics: Record<string, number> | null;
+  };
+}

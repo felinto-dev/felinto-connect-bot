@@ -91,4 +91,8 @@ export class ScreenshotDto {
   @Min(0)
   @Max(100)
   quality?: number;
+
+  @IsOptional()
+  @IsBoolean()
+  fullPage?: boolean;
 }
