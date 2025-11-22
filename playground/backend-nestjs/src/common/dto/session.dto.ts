@@ -1,8 +1,11 @@
-import { IsString, IsBoolean, IsOptional, IsNotEmpty, IsObject } from 'class-validator';
-import { Type } from 'class-transformer';
+import { IsString, IsBoolean, IsOptional, IsNotEmpty } from 'class-validator';
 import { SessionConfig } from '../types/session.types';
 
-export class CreateSessionDto {
+/**
+ * DTO for creating sessions with backward compatibility to Express backend
+ * Supports both direct properties and nested config object for migration
+ */
+export class CreateSessionDto implements SessionConfig {
   @IsString()
   @IsNotEmpty()
   browserWSEndpoint: string;
@@ -11,27 +14,24 @@ export class CreateSessionDto {
   @IsBoolean()
   $debug?: boolean;
 
-  @IsOptional()
-  @IsObject()
-  config?: Record<string, unknown>;
+  // Index signature para permitir propriedades adicionais como no Express backend
+  [key: string]: unknown;
 
   /**
-   * Converte o DTO para SessionConfig, usando index signature diretamente
+   * Converte o DTO para SessionConfig preservando compatibilidade com Express backend
+   * Mantém todas as propriedades adicionais diretamente no objeto de configuração
    */
   toSessionConfig(): SessionConfig {
     const config: SessionConfig = {
       browserWSEndpoint: this.browserWSEndpoint,
     };
 
-    // Adicionar campo $debug se presente
-    if (this.$debug !== undefined) {
-      config.$debug = this.$debug;
-    }
-
-    // Adicionar campos de configuração adicionais usando index signature
-    if (this.config) {
-      Object.assign(config, this.config);
-    }
+    // Copiar todas as propriedades adicionais do DTO para o config
+    Object.keys(this).forEach(key => {
+      if (key !== 'browserWSEndpoint' && this[key] !== undefined) {
+        (config as any)[key] = this[key];
+      }
+    });
 
     return config;
   }

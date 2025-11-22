@@ -9,22 +9,6 @@ export enum ExportFormat {
   SELENIUM = 'selenium',
 }
 
-export class ExportOptionsDto {
-  @IsEnum(ExportFormat)
-  format: ExportFormat;
-
-  @IsBoolean()
-  @Type(() => Boolean)
-  includeScreenshots: boolean = false;
-
-  @IsBoolean()
-  @Type(() => Boolean)
-  minifyOutput: boolean = false;
-
-  @IsBoolean()
-  @Type(() => Boolean)
-  addComments: boolean = false;
-}
 
 export class ExportRecordingDto {
   @IsString()
@@ -34,21 +18,36 @@ export class ExportRecordingDto {
   @IsEnum(ExportFormat)
   format: ExportFormat;
 
+  /**
+   * Whether to include screenshots in the export
+   * Default: false
+   * This field is required with a default value to ensure predictable behavior
+   */
   @IsBoolean()
   @Type(() => Boolean)
   includeScreenshots: boolean = false;
 
+  /**
+   * Whether to minify the output file
+   * Default: false
+   * This field is required with a default value to ensure predictable behavior
+   */
   @IsBoolean()
   @Type(() => Boolean)
   minifyOutput: boolean = false;
 
+  /**
+   * Whether to add explanatory comments to the output
+   * Default: false
+   * This field is required with a default value to ensure predictable behavior
+   */
   @IsBoolean()
   @Type(() => Boolean)
   addComments: boolean = false;
 
   /**
-   * Convert ExportRecordingDto to ExportOptions instance
-   * This method ensures compatibility with the existing ExportService
+   * Convert ExportRecordingDto to ExportOptions domain type
+   * This method ensures compatibility with services expecting domain types
    */
   toExportOptions(): ExportOptions {
     return {

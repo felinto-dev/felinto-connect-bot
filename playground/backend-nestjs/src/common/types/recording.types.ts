@@ -1,3 +1,8 @@
+/**
+ * Recording event types - aligned with Express backend types.ts
+ * Note: The Express backend contains duplicate values ('form_submit' and 'key_press' appear twice)
+ * to maintain 1:1 compatibility. The set of unique values is identical.
+ */
 export enum RecordingEventTypeEnum {
   CLICK = 'click',
   TYPE = 'type',
@@ -11,17 +16,24 @@ export enum RecordingEventTypeEnum {
   PAGE_LOAD = 'page_load'
 }
 
+/**
+ * Recording event types - matches Express backend exactly including duplicates for 1:1 compatibility
+ * The duplicate entries ('form_submit' and 'key_press') are preserved to maintain identical structure
+ * to the Express backend types.ts file. Functionally, this has no impact as they represent the same values.
+ */
 export type RecordingEventType =
-  | RecordingEventTypeEnum.CLICK
-  | RecordingEventTypeEnum.TYPE
-  | RecordingEventTypeEnum.NAVIGATION
-  | RecordingEventTypeEnum.KEY_PRESS
-  | RecordingEventTypeEnum.FORM_SUBMIT
-  | RecordingEventTypeEnum.FORM_FOCUS
-  | RecordingEventTypeEnum.FORM_INPUT_CHANGE
-  | RecordingEventTypeEnum.FORM_NAVIGATION
-  | RecordingEventTypeEnum.SCREENSHOT
-  | RecordingEventTypeEnum.PAGE_LOAD;
+  | 'click'
+  | 'type'
+  | 'navigation'
+  | 'key_press'
+  | 'form_submit'
+  | 'form_focus' // Foco em um campo de formulário
+  | 'form_input_change' // Mudança de valor em um campo (após digitação)
+  | 'form_navigation' // Navegação entre campos (ex: Tab)
+  | 'screenshot'
+  | 'page_load'
+  | 'form_submit' // Duplicate maintained for 1:1 compatibility with Express backend
+  | 'key_press'; // Duplicate maintained for 1:1 compatibility with Express backend
 
 export enum RecordingModeEnum {
   SMART = 'smart',
@@ -33,6 +45,13 @@ export type RecordingMode = 'smart' | 'detailed' | 'minimal';
 
 export type RecordingStatus = 'idle' | 'recording' | 'paused' | 'stopped' | 'error';
 
+/**
+ * Recording configuration settings
+ * Note: sessionId is intentionally NOT included here as it belongs to RecordingData
+ * and the input DTOs (StartRecordingDto), not the configuration itself.
+ * This aligns with the Express backend domain model where sessionId is
+ * session-level metadata, not part of the recording configuration.
+ */
 export interface RecordingConfig {
   events: RecordingEventType[];
   mode: RecordingMode;

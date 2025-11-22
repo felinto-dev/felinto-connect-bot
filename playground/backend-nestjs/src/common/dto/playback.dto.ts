@@ -25,19 +25,31 @@ export class StartPlaybackDto {
   @IsNotEmpty()
   sessionId: string;
 
-  @IsOptional()
+  /**
+   * Speed multiplier for playback (0.1 to 5.0)
+   * Default: 1.0 (normal speed)
+   * This field is required with a default value to ensure predictable behavior
+   */
   @IsNumber()
   @Min(0.1)
   @Max(5)
-  speed?: number = 1;
+  speed: number = 1;
 
-  @IsOptional()
+  /**
+   * Whether to pause playback when an error occurs
+   * Default: true
+   * This field is required with a default value to ensure predictable behavior
+   */
   @IsBoolean()
-  pauseOnError?: boolean = true;
+  pauseOnError: boolean = true;
 
-  @IsOptional()
+  /**
+   * Whether to skip screenshots during playback
+   * Default: false
+   * This field is required with a default value to ensure predictable behavior
+   */
   @IsBoolean()
-  skipScreenshots?: boolean = false;
+  skipScreenshots: boolean = false;
 
   @IsOptional()
   @IsNumber()
