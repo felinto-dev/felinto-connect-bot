@@ -1,4 +1,4 @@
-import { Injectable, OnModuleDestroy, OnApplicationShutdown } from '@nestjs/common';
+import { Injectable, OnApplicationShutdown } from '@nestjs/common';
 import { RecordingService, RecordingNotFoundError } from '../recording/recording.service';
 import { SessionService, SessionNotFoundError } from '../session/session.service';
 import { WebsocketGateway } from '../websocket/websocket.gateway';
@@ -42,7 +42,7 @@ export class SessionOrRecordingNotFoundError extends Error {
 }
 
 @Injectable()
-export class PlaybackService implements OnModuleDestroy, OnApplicationShutdown {
+export class PlaybackService implements OnApplicationShutdown {
   private activePlaybackServices: Map<string, PlaybackCaptureService> = new Map();
 
   constructor(
@@ -218,10 +218,6 @@ export class PlaybackService implements OnModuleDestroy, OnApplicationShutdown {
       captureService.cleanup();
       this.activePlaybackServices.delete(recordingId);
     }
-  }
-
-  async onModuleDestroy() {
-    await this.cleanup();
   }
 
   async onApplicationShutdown(signal?: string) {

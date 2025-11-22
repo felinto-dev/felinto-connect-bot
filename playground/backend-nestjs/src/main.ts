@@ -9,25 +9,6 @@ import { WsAdapter } from '@nestjs/platform-ws';
 import { INestApplication } from '@nestjs/common';
 
 function setupGracefulShutdown(app: INestApplication) {
-  const setupSignalHandler = (signal: string, exitCode: number = 0) => {
-    const handler = async () => {
-      console.log(`\n🛑 Recebido sinal ${signal}. Iniciando shutdown gracioso...`);
-      try {
-        await app.close();
-        console.log('🎯 Shutdown gracioso concluído');
-        process.exit(exitCode);
-      } catch (error) {
-        console.error('❌ Erro durante shutdown:', error);
-        process.exit(1);
-      }
-    };
-    process.on(signal, handler);
-  };
-
-  // Handle SIGINT and SIGTERM
-  setupSignalHandler('SIGINT', 0);
-  setupSignalHandler('SIGTERM', 0);
-
   // Handle uncaught exceptions
   process.on('uncaughtException', async (error) => {
     console.error('💥 Uncaught Exception:', error);

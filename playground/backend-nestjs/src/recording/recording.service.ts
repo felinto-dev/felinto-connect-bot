@@ -1,4 +1,4 @@
-import { Injectable, OnModuleDestroy, OnApplicationShutdown } from '@nestjs/common';
+import { Injectable, OnApplicationShutdown } from '@nestjs/common';
 import { SessionService, SessionNotFoundError } from '../session/session.service';
 import { WebsocketGateway } from '../websocket/websocket.gateway';
 import { RecordingCaptureService } from './recording-capture.service';
@@ -33,7 +33,7 @@ export class InvalidRecordingStatusError extends Error {
 }
 
 @Injectable()
-export class RecordingService implements OnModuleDestroy, OnApplicationShutdown {
+export class RecordingService implements OnApplicationShutdown {
   private activeRecordings: Map<string, RecordingData> = new Map();
   private activeRecordingServices: Map<string, RecordingCaptureService> = new Map();
 
@@ -328,10 +328,6 @@ export class RecordingService implements OnModuleDestroy, OnApplicationShutdown 
   hasActiveRecording(sessionId: string): boolean {
     return Array.from(this.activeRecordings.values())
       .some(rec => rec.sessionId === sessionId && rec.status === 'recording');
-  }
-
-  async onModuleDestroy() {
-    await this.cleanup();
   }
 
   async onApplicationShutdown(signal?: string) {
