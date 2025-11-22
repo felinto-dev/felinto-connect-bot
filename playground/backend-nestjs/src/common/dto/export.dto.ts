@@ -1,4 +1,5 @@
-import { IsString, IsBoolean, IsEnum, IsNotEmpty } from 'class-validator';
+import { IsString, IsBoolean, IsEnum, IsNotEmpty, IsOptional } from 'class-validator';
+import { Type } from 'class-transformer';
 
 export enum ExportFormat {
   JSON = 'json',
@@ -7,20 +8,32 @@ export enum ExportFormat {
   SELENIUM = 'selenium',
 }
 
+export class ExportOptionsDto {
+  @IsEnum(ExportFormat)
+  format: ExportFormat;
+
+  @IsOptional()
+  @IsBoolean()
+  @Type(() => Boolean)
+  includeScreenshots?: boolean = false;
+
+  @IsOptional()
+  @IsBoolean()
+  @Type(() => Boolean)
+  minifyOutput?: boolean = false;
+
+  @IsOptional()
+  @IsBoolean()
+  @Type(() => Boolean)
+  addComments?: boolean = false;
+}
+
 export class ExportRecordingDto {
   @IsString()
   @IsNotEmpty()
   recordingId: string;
 
-  @IsEnum(ExportFormat)
-  format: ExportFormat;
-
-  @IsBoolean()
-  includeScreenshots: boolean;
-
-  @IsBoolean()
-  minifyOutput: boolean;
-
-  @IsBoolean()
-  addComments: boolean;
+  @IsNotEmpty()
+  @Type(() => ExportOptionsDto)
+  options: ExportOptionsDto;
 }
