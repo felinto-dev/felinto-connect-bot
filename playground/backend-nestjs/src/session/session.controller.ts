@@ -14,7 +14,7 @@ import {
   UseFilters,
 } from '@nestjs/common';
 import { SessionService, SessionNotFoundError } from './session.service';
-import { CreateSessionDto, ExecuteCodeDto, SessionIdDto, ScreenshotOptionsDto } from '../common/dto/session.dto';
+import { CreateSessionDto, ExecuteCodeDto, SessionIdDto, ScreenshotOptionsDto, TakeScreenshotDto } from '../common/dto/session.dto';
 
 @Controller('api/session')
 export class SessionController {
@@ -58,7 +58,7 @@ export class SessionController {
       };
     } catch (error) {
       if (error instanceof SessionNotFoundError) {
-        this.sessionService.notifySessionExpired();
+        this.sessionService.notifySessionExpired(executeCodeDto.sessionId);
         throw new NotFoundException({
           error: 'Sessão não encontrada',
           sessionExpired: true,
@@ -75,19 +75,15 @@ export class SessionController {
 
   @Post('screenshot')
   @HttpCode(HttpStatus.OK)
-  async takeScreenshot(
-    @Body() body: { sessionId: string; options?: ScreenshotOptionsDto }
-  ) {
-    const { sessionId, options } = body;
-
+  async takeScreenshot(@Body() dto: TakeScreenshotDto) {
     try {
       this.sessionService.notifyScreenshotCapture('starting');
 
-      const screenshot = await this.sessionService.takeScreenshot(sessionId, options);
+      const screenshot = await this.sessionService.takeScreenshot(dto.sessionId, dto.options);
 
       this.sessionService.notifyScreenshotCapture('success');
 
-      const imageType = options?.quality ? 'jpeg' : 'png';
+      const imageType = dto.options?.quality ? 'jpeg' : 'png';
 
       return {
         success: true,
@@ -96,7 +92,7 @@ export class SessionController {
       };
     } catch (error) {
       if (error instanceof SessionNotFoundError) {
-        this.sessionService.notifySessionExpired();
+        this.sessionService.notifySessionExpired(dto.sessionId);
         throw new NotFoundException({
           error: 'Sessão não encontrada',
           sessionExpired: true,

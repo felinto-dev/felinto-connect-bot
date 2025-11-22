@@ -17,7 +17,6 @@ export class SessionService implements OnModuleInit, OnModuleDestroy {
   private sessions: Map<string, SessionData> = new Map();
   private sessionTimeout: number = 10 * 60 * 1000; // 10 minutos
   private cleanupIntervalId: NodeJS.Timeout | null = null;
-  private executionCount: number = 0;
 
   constructor(private readonly websocketGateway: WebsocketGateway) {}
 
@@ -38,7 +37,7 @@ export class SessionService implements OnModuleInit, OnModuleDestroy {
     const sessionId = uuidv4();
 
     try {
-      this.websocketGateway.broadcast('info', '🆔 Criando sessão');
+      this.websocketGateway.broadcast({ type: 'info', message: '🆔 Criando sessão' });
 
       const page = await newPage(config);
       const pageInfo = await this.getPageInfo(page);
@@ -55,11 +54,11 @@ export class SessionService implements OnModuleInit, OnModuleDestroy {
 
       this.sessions.set(sessionId, sessionData);
 
-      this.websocketGateway.broadcast('success', '✅ Sessão criada');
+      this.websocketGateway.broadcast({ type: 'success', message: '✅ Sessão criada' });
 
       return sessionData;
     } catch (error) {
-      this.websocketGateway.broadcast('error', `❌ Erro ao criar sessão: ${error.message}`);
+      this.websocketGateway.broadcast({ type: 'error', message: `❌ Erro ao criar sessão: ${error.message}` });
       throw error;
     }
   }
@@ -95,16 +94,15 @@ export class SessionService implements OnModuleInit, OnModuleDestroy {
     }
 
     session.executionCount++;
-    this.executionCount++;
 
     try {
-      this.websocketGateway.broadcast('info', `💻 Executando código (#${session.executionCount})`);
+      this.websocketGateway.broadcast({ type: 'info', message: `💻 Executando código (#${session.executionCount})` });
 
       const context = this.createSecureContext(session.page);
       const result = await this.executeWithTimeout(code, context, 30000);
       const pageInfo = await this.getPageInfo(session.page);
 
-      this.websocketGateway.broadcast('success', '✅ Código executado', { result, pageInfo });
+      this.websocketGateway.broadcast({ type: 'success', message: '✅ Código executado', data: { result, pageInfo } });
 
       return {
         result,
@@ -112,7 +110,7 @@ export class SessionService implements OnModuleInit, OnModuleDestroy {
         executionCount: session.executionCount,
       };
     } catch (error) {
-      this.websocketGateway.broadcast('error', `❌ Erro na execução: ${error.message}`);
+      this.websocketGateway.broadcast({ type: 'error', message: `❌ Erro na execução: ${error.message}` });
       throw error;
     }
   }
@@ -122,19 +120,19 @@ export class SessionService implements OnModuleInit, OnModuleDestroy {
       page,
       console: {
         log: (...args: any[]) => {
-          this.websocketGateway.broadcast('log', '📝', { args });
+          this.websocketGateway.broadcast({ type: 'log', message: '📝', data: { args } });
           console.log(`[Session Console] LOG:`, ...args);
         },
         error: (...args: any[]) => {
-          this.websocketGateway.broadcast('error', '🔴', { args });
+          this.websocketGateway.broadcast({ type: 'error', message: '🔴', data: { args } });
           console.error(`[Session Console] ERROR:`, ...args);
         },
         warn: (...args: any[]) => {
-          this.websocketGateway.broadcast('warning', '⚠️', { args });
+          this.websocketGateway.broadcast({ type: 'warning', message: '⚠️', data: { args } });
           console.warn(`[Session Console] WARN:`, ...args);
         },
         info: (...args: any[]) => {
-          this.websocketGateway.broadcast('info', 'ℹ️', { args });
+          this.websocketGateway.broadcast({ type: 'info', message: 'ℹ️', data: { args } });
           console.info(`[Session Console] INFO:`, ...args);
         },
       },
@@ -222,8 +220,8 @@ export class SessionService implements OnModuleInit, OnModuleDestroy {
       };
     } catch (error) {
       return {
-        url: 'N/A',
-        title: 'N/A',
+        url: 'Erro ao capturar URL',
+        title: 'Erro ao capturar título',
         timestamp: new Date().toISOString(),
         error: error.message,
       };
@@ -262,7 +260,7 @@ export class SessionService implements OnModuleInit, OnModuleDestroy {
     }
 
     try {
-      this.websocketGateway.broadcast('info', '🔒 Fechando página');
+      this.websocketGateway.broadcast({ type: 'info', message: '🔒 Fechando página' });
 
       if (!session.page.isClosed()) {
         await session.page.close();
@@ -270,11 +268,11 @@ export class SessionService implements OnModuleInit, OnModuleDestroy {
 
       this.sessions.delete(sessionId);
 
-      this.websocketGateway.broadcast('info', '🗑️ Sessão removida');
+      this.websocketGateway.broadcast({ type: 'info', message: '🗑️ Sessão removida' });
 
       return true;
     } catch (error) {
-      this.websocketGateway.broadcast('error', `❌ Erro ao remover sessão: ${error.message}`);
+      this.websocketGateway.broadcast({ type: 'error', message: `❌ Erro ao remover sessão: ${error.message}` });
       throw error;
     }
   }
@@ -296,8 +294,10 @@ export class SessionService implements OnModuleInit, OnModuleDestroy {
       console.log(`🧹 Sessão inativa removida: ${sessionId}`);
 
       // Notificar via WebSocket com formato igual ao legacy
-      this.websocketGateway.broadcast('session_expired', `🕐 Sessão ${sessionId.substring(0, 8)}... expirou por inatividade (${Math.round(this.sessionTimeout / 60000)} min)`, {
-        sessionId: sessionId
+      this.websocketGateway.broadcast({
+        type: 'session_expired',
+        message: `🕐 Sessão ${sessionId.substring(0, 8)}... expirou por inatividade (${Math.round(this.sessionTimeout / 60000)} min)`,
+        sessionId
       });
     }
   }
@@ -318,15 +318,23 @@ export class SessionService implements OnModuleInit, OnModuleDestroy {
     };
   }
 
-  public notifySessionExpired() {
-    this.websocketGateway.broadcast('session_expired', '⏰ A sessão expirou ou foi removida');
+  public notifySessionExpired(sessionId?: string) {
+    const message = sessionId
+      ? `🕐 Sessão ${sessionId.substring(0, 8)}... expirou por inatividade (${Math.round(this.sessionTimeout / 60000)} min)`
+      : '⏰ A sessão expirou ou foi removida';
+
+    this.websocketGateway.broadcast({
+      type: 'session_expired',
+      message,
+      ...(sessionId && { sessionId })
+    });
   }
 
   public notifyScreenshotCapture(status: 'starting' | 'success') {
     if (status === 'starting') {
-      this.websocketGateway.broadcast('info', '📸 Capturando screenshot');
+      this.websocketGateway.broadcast({ type: 'info', message: '📸 Capturando screenshot' });
     } else {
-      this.websocketGateway.broadcast('success', '✅ Screenshot capturado');
+      this.websocketGateway.broadcast({ type: 'success', message: '✅ Screenshot capturado' });
     }
   }
 

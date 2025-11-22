@@ -1,4 +1,5 @@
-import { IsString, IsBoolean, IsOptional, IsNotEmpty, IsNumber, Min, Max, IsEnum } from 'class-validator';
+import { IsString, IsBoolean, IsOptional, IsNotEmpty, IsNumber, Min, Max, IsEnum, ValidateNested } from 'class-validator';
+import { Type } from 'class-transformer';
 import { SessionConfig } from '../types/session.types';
 
 /**
@@ -54,6 +55,20 @@ export class SessionIdDto {
 }
 
 /**
+ * DTO for taking screenshot
+ */
+export class TakeScreenshotDto {
+  @IsString()
+  @IsNotEmpty()
+  sessionId: string;
+
+  @IsOptional()
+  @ValidateNested()
+  @Type(() => ScreenshotOptionsDto)
+  options?: ScreenshotOptionsDto;
+}
+
+/**
  * DTO for screenshot options
  */
 export class ScreenshotOptionsDto {
@@ -70,4 +85,11 @@ export class ScreenshotOptionsDto {
   @IsOptional()
   @IsEnum(ScreenshotType)
   type?: ScreenshotType;
+
+  @IsOptional()
+  clip?: any;
+
+  @IsOptional()
+  @IsBoolean()
+  omitBackground?: boolean;
 }

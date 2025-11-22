@@ -13,6 +13,7 @@ export interface SessionData {
   createdAt: Date;
   lastUsed: Date;
   executionCount: number;
+  pageInfo?: PageInfo;
 }
 
 export interface PageInfo {
