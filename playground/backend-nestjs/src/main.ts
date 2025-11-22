@@ -67,7 +67,7 @@ async function bootstrap() {
 
     const document = SwaggerModule.createDocument(app, config);
 
-    SwaggerModule.setup('api/docs', app, document, {
+    SwaggerModule.setup('api/swagger', app, document, {
       customSiteTitle: 'Felinto Connect Bot API',
       customCss: '.swagger-ui .topbar { display: none }',
     });
@@ -90,7 +90,7 @@ async function bootstrap() {
   console.log(`📊 Health check: http://localhost:${port}/api/health`);
   console.log(`🔌 WebSocket disponível em ws://localhost:${port}/ws`);
   if (swaggerEnabled) {
-    console.log(`📚 Documentação Swagger: http://localhost:${port}/api/docs`);
+    console.log(`📚 Documentação Swagger: http://localhost:${port}/api/swagger`);
   }
   console.log('\n🔧 Shutdown gracioso habilitado (Ctrl+C para parar)');
 

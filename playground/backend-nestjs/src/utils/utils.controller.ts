@@ -177,9 +177,19 @@ export class UtilsController {
   }
 
   /**
-   * GET /readme - Serve documentação README.md como HTML
-   * Path atualizado para diferenciar do Swagger UI (/api/docs)
-   * Mantém compatibilidade com documentação HTML do backend Express
+   * GET /docs - Serve documentação README.md como HTML/JSON
+   * Compatibilidade total com backend Express (/api/docs)
+   * Retorna {content: HTML, markdown: raw, lastModified: ISO}
+   */
+  @ApiExcludeEndpoint()
+  @Get('docs')
+  async getDocs() {
+    return this.getDocumentation();
+  }
+
+  /**
+   * GET /readme - Alias para documentação README.md como HTML
+   * Path alternativo para novos clientes que preferem path explícito
    */
   @ApiExcludeEndpoint()
   @Get('readme')

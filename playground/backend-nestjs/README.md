@@ -139,23 +139,26 @@ pnpm start            # Produção (requer build prévio)
 |--------|----------|----------|
 | POST | `/api/execute` | [LEGACY] Cria sessão sem sessionId |
 | GET | `/api/chrome/check` | Detecta Chrome remoto |
-| GET | `/api/readme` | Documentação README como HTML |
+| GET | `/api/docs` | Documentação README como HTML/JSON (compatível Express) |
+| GET | `/api/readme` | Alias para documentação README como HTML |
 
 ## 📚 Documentação Interativa
 
 ### Swagger UI
 Interface interativa para testar todos os endpoints, visualizar schemas e explorar exemplos de request/response:
-- **URL**: `http://localhost:3002/api/docs`
-- **Descrição**: Documentação de API completa com UI interativa
+- **URL**: `http://localhost:3002/api/swagger`
+- **Descrição**: Documentação de API completa com UI interativa OpenAPI
 
 ### Documentação HTML
-Versão HTML do README.md para referência rápida:
-- **URL**: `http://localhost:3002/api/readme`
-- **Descrição**: Documentação README formatada como HTML
+Versão HTML/JSON do README.md compatível com backend Express:
+- **URL**: `http://localhost:3002/api/docs` OU `http://localhost:3002/api/readme`
+- **Descrição**: Documentação README formatada como HTML com markdown raw e lastModified
+- **Response**: `{content: string (HTML), markdown: string (raw), lastModified: string (ISO)}`
 
 ### Notas
-- `/api/docs` é reservado para Swagger UI (diferente do backend Express que usava este path para HTML)
-- `/api/readme` contém a documentação HTML para manter compatibilidade funcional
+- `/api/swagger` contém Swagger UI para documentação interativa OpenAPI
+- `/api/docs` serve HTML/JSON compatível com backend Express original
+- `/api/readme` é alias alternativo para documentação HTML
 
 ## 🔌 WebSocket
 
