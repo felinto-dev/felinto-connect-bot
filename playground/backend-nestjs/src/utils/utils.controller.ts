@@ -177,12 +177,20 @@ export class UtilsController {
   }
 
   /**
-   * GET /docs - Serve documentação README.md como HTML
-   * Replica lógica do Express backend (linhas 148-166)
+   * GET /readme - Serve documentação README.md como HTML
+   * Path atualizado para diferenciar do Swagger UI (/api/docs)
+   * Mantém compatibilidade com documentação HTML do backend Express
    */
   @ApiExcludeEndpoint()
   @Get('readme')
-  async getDocs() {
+  async getReadmeDocs() {
+    return this.getDocumentation();
+  }
+
+  /**
+   * Método privado reutilizável para lógica de documentação
+   */
+  private async getDocumentation() {
     try {
       const docResult = await this.documentationService.getDocumentation();
 
@@ -200,7 +208,7 @@ export class UtilsController {
       };
 
     } catch (error: any) {
-      this.logger.error('Erro no endpoint /docs:', error);
+      this.logger.error('Erro no endpoint de documentação:', error);
 
       // Se já for HttpException, repassar
       if (error.getStatus) {

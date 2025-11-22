@@ -143,9 +143,19 @@ pnpm start            # Produção (requer build prévio)
 
 ## 📚 Documentação Interativa
 
-Swagger UI disponível em: `http://localhost:3002/api/docs`
+### Swagger UI
+Interface interativa para testar todos os endpoints, visualizar schemas e explorar exemplos de request/response:
+- **URL**: `http://localhost:3002/api/docs`
+- **Descrição**: Documentação de API completa com UI interativa
 
-Interface interativa para testar todos os endpoints, visualizar schemas, e explorar exemplos de request/response.
+### Documentação HTML
+Versão HTML do README.md para referência rápida:
+- **URL**: `http://localhost:3002/api/readme`
+- **Descrição**: Documentação README formatada como HTML
+
+### Notas
+- `/api/docs` é reservado para Swagger UI (diferente do backend Express que usava este path para HTML)
+- `/api/readme` contém a documentação HTML para manter compatibilidade funcional
 
 ## 🔌 WebSocket
 
