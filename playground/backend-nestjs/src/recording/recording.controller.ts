@@ -410,7 +410,7 @@ export class RecordingController {
       // Broadcast de erro
       this.websocketGateway.broadcast({
         type: 'error',
-        message: '❌ Erro ao exportar gravação',
+        message: `❌ Erro ao exportar gravação: ${error instanceof Error ? error.message : 'Erro desconhecido'}`,
         sessionId: undefined,
         recordingId: dto.recordingId,
         data: {

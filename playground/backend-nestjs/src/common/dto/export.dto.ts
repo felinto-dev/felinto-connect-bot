@@ -4,8 +4,8 @@ import { ExportOptions } from '../types/export.types';
 export enum ExportFormat {
   JSON = 'json',
   PUPPETEER = 'puppeteer',
-  PLAYWRIGHT = 'playwright',
-  SELENIUM = 'selenium',
+  // PLAYWRIGHT = 'playwright', // Não implementado ainda
+  // SELENIUM = 'selenium',    // Não implementado ainda
 }
 
 
@@ -47,7 +47,7 @@ export class ExportRecordingDto {
    */
   toExportOptions(): ExportOptions {
     return {
-      format: this.format as 'json' | 'puppeteer' | 'playwright' | 'selenium',
+      format: this.format as 'json' | 'puppeteer',
       includeScreenshots: this.includeScreenshots,
       minifyOutput: this.minifyOutput,
       addComments: this.addComments,

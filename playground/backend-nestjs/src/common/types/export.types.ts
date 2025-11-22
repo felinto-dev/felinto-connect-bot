@@ -1,5 +1,5 @@
 export interface ExportOptions {
-  format: 'json' | 'puppeteer' | 'playwright' | 'selenium';
+  format: 'json' | 'puppeteer'; // Apenas formatos implementados
   includeScreenshots: boolean;
   minifyOutput: boolean;
   addComments: boolean;
