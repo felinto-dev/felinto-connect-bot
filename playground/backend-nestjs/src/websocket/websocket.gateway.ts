@@ -1,11 +1,12 @@
+import { Injectable } from '@nestjs/common';
 import {
-  Injectable,
   OnGatewayConnection,
   OnGatewayDisconnect,
+  WebSocketGateway,
+  WebSocketServer,
 } from '@nestjs/websockets';
-import { WebSocketGateway, WebSocketServer } from '@nestjs/websockets';
 import { Server, WebSocket } from 'ws';
-import { BroadcastMessage } from '@/common/types/websocket.types';
+import { BroadcastMessage } from '../common/types/websocket.types';
 
 @Injectable()
 @WebSocketGateway({ path: '/ws' })
