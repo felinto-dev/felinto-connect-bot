@@ -71,3 +71,40 @@ export interface PageInfoResponse {
     metrics: Record<string, number> | null;
   };
 }
+
+export interface ExportRecordingResponse {
+  success: boolean;
+  format: string;
+  content: string;
+  filename: string;
+  size: number;
+  metadata: {
+    exportedAt: number;
+    originalRecordingId: string;
+    eventCount: number;
+  };
+}
+
+export interface RecordingListItem {
+  id: string;
+  sessionId: string;
+  createdAt: number;
+  duration?: number;
+  eventCount: number;
+  status: RecordingStatus;
+  metadata: {
+    initialUrl?: string;
+    totalEvents: number;
+  };
+}
+
+export interface RecordingListResponse {
+  success: boolean;
+  recordings: RecordingListItem[];
+  total: number;
+}
+
+export interface RecordingDetailResponse {
+  success: boolean;
+  recording: RecordingData;
+}
