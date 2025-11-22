@@ -69,13 +69,13 @@ export class StartRecordingDto {
 export class StopRecordingDto {
   @IsString()
   @IsNotEmpty()
-  sessionId: string;
+  recordingId: string;
 }
 
 export class PauseRecordingDto {
   @IsString()
   @IsNotEmpty()
-  sessionId: string;
+  recordingId: string;
 
   @IsBoolean()
   pause: boolean;

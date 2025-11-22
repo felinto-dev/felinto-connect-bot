@@ -3,6 +3,7 @@ import { ConfigModule } from './config/config.module';
 import { HealthModule } from './health/health.module';
 import { WebsocketModule } from './websocket/websocket.module';
 import { SessionModule } from './session/session.module';
+import { RecordingModule } from './recording/recording.module';
 
 @Module({
   imports: [
@@ -10,6 +11,7 @@ import { SessionModule } from './session/session.module';
     HealthModule,
     WebsocketModule,
     SessionModule,
+    RecordingModule,
   ],
 })
 export class AppModule {}
