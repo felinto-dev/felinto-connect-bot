@@ -140,3 +140,60 @@ export interface PlaybackStatusResponse {
   isActive: boolean;
   status: PlaybackStatus | null; // null when no active playback
 }
+
+/**
+ * Response do endpoint legacy POST /api/execute
+ * Nota: Não inclui sessionId para compatibilidade com frontend antigo
+ */
+export interface LegacyExecuteResponse {
+  success: boolean;
+  message: string;
+  pageInfo: {
+    url: string;
+    title: string;
+    timestamp: string;
+  };
+}
+
+/**
+ * Response do endpoint GET /api/chrome/check quando Chrome é detectado
+ */
+export interface ChromeCheckSuccessResponse {
+  available: true;
+  endpoint: string;          // Ex: 'ws://docker.for.mac.localhost:9222'
+  chromeVersion: string;     // Ex: 'Chrome/120.0.6099.109'
+  detectedAt: string;        // Endpoint específico onde foi encontrado
+}
+
+/**
+ * Response do endpoint GET /api/chrome/check quando Chrome NÃO é detectado
+ */
+export interface ChromeCheckFailureResponse {
+  available: false;
+  error: string;                    // Última mensagem de erro
+  testedEndpoints: string[];        // Lista de endpoints testados
+  instructions: string;             // Comando específico por plataforma
+  troubleshooting: string[];        // Passos de troubleshooting
+}
+
+/**
+ * Union type para response do /api/chrome/check
+ */
+export type ChromeCheckResponse = ChromeCheckSuccessResponse | ChromeCheckFailureResponse;
+
+/**
+ * Response do endpoint GET /api/docs
+ */
+export interface DocumentationResponse {
+  content: string;        // HTML convertido do Markdown
+  markdown: string;       // Conteúdo raw do README.md
+  lastModified: string;   // Timestamp ISO
+}
+
+/**
+ * Response de erro do endpoint GET /api/docs
+ */
+export interface DocumentationErrorResponse {
+  error: string;          // 'Não foi possível carregar a documentação'
+  details: string;        // Mensagem técnica do erro
+}

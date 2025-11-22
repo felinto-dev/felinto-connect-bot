@@ -5,6 +5,7 @@ import { WebsocketModule } from './websocket/websocket.module';
 import { SessionModule } from './session/session.module';
 import { RecordingModule } from './recording/recording.module';
 import { PlaybackModule } from './playback/playback.module';
+import { UtilsModule } from './utils/utils.module';
 
 @Module({
   imports: [
@@ -14,6 +15,7 @@ import { PlaybackModule } from './playback/playback.module';
     SessionModule,
     RecordingModule,
     PlaybackModule,
+    UtilsModule,
   ],
 })
 export class AppModule {}
