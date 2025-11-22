@@ -51,9 +51,50 @@ export class StartRecordingDto {
   @IsNotEmpty()
   sessionId: string;
 
-  @ValidateNested()
-  @Type(() => RecordingConfigDto)
-  config: RecordingConfigDto;
+  @IsArray()
+  @ArrayNotEmpty()
+  @IsEnum(RecordingEventTypeEnum, { each: true })
+  events: RecordingEventType[];
+
+  @IsEnum(RecordingModeEnum)
+  mode: RecordingMode;
+
+  @IsNumber()
+  @Min(0)
+  delay: number;
+
+  @IsBoolean()
+  captureScreenshots: boolean;
+
+  @IsOptional()
+  @IsNumber()
+  @Min(0)
+  screenshotInterval?: number;
+
+  @IsOptional()
+  @IsNumber()
+  @Min(1000)
+  maxDuration?: number;
+
+  @IsOptional()
+  @IsNumber()
+  @Min(1)
+  maxEvents?: number;
+
+  /**
+   * Converte o DTO para RecordingConfig, preservando compatibilidade
+   */
+  toRecordingConfig(): RecordingConfigDto {
+    const config = new RecordingConfigDto();
+    config.events = this.events;
+    config.mode = this.mode;
+    config.delay = this.delay;
+    config.captureScreenshots = this.captureScreenshots;
+    config.screenshotInterval = this.screenshotInterval;
+    config.maxDuration = this.maxDuration;
+    config.maxEvents = this.maxEvents;
+    return config;
+  }
 }
 
 export class StopRecordingDto {

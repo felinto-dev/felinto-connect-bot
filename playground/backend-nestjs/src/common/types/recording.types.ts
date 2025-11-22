@@ -12,18 +12,16 @@ export enum RecordingEventTypeEnum {
 }
 
 export type RecordingEventType =
-  | 'click'
-  | 'type'
-  | 'navigation'
-  | 'key_press'
-  | 'form_submit'
-  | 'form_focus' // Foco em um campo de formulário
-  | 'form_input_change' // Mudança de valor em um campo (após digitação)
-  | 'form_navigation' // Navegação entre campos (ex: Tab)
-  | 'screenshot'
-  | 'page_load'
-  | 'form_submit'
-  | 'key_press';
+  | RecordingEventTypeEnum.CLICK
+  | RecordingEventTypeEnum.TYPE
+  | RecordingEventTypeEnum.NAVIGATION
+  | RecordingEventTypeEnum.KEY_PRESS
+  | RecordingEventTypeEnum.FORM_SUBMIT
+  | RecordingEventTypeEnum.FORM_FOCUS
+  | RecordingEventTypeEnum.FORM_INPUT_CHANGE
+  | RecordingEventTypeEnum.FORM_NAVIGATION
+  | RecordingEventTypeEnum.SCREENSHOT
+  | RecordingEventTypeEnum.PAGE_LOAD;
 
 export enum RecordingModeEnum {
   SMART = 'smart',

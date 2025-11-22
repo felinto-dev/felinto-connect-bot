@@ -13,10 +13,10 @@ export class CreateSessionDto {
 
   @IsOptional()
   @IsObject()
-  extra?: Record<string, unknown>;
+  config?: Record<string, unknown>;
 
   /**
-   * Converte o DTO para SessionConfig, preservando campos adicionais
+   * Converte o DTO para SessionConfig, usando index signature diretamente
    */
   toSessionConfig(): SessionConfig {
     const config: SessionConfig = {
@@ -28,9 +28,9 @@ export class CreateSessionDto {
       config.$debug = this.$debug;
     }
 
-    // Adicionar campos extras ao config usando index signature
-    if (this.extra) {
-      Object.assign(config, this.extra);
+    // Adicionar campos de configuração adicionais usando index signature
+    if (this.config) {
+      Object.assign(config, this.config);
     }
 
     return config;

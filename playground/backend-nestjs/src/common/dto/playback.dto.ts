@@ -25,16 +25,19 @@ export class StartPlaybackDto {
   @IsNotEmpty()
   sessionId: string;
 
+  @IsOptional()
   @IsNumber()
   @Min(0.1)
   @Max(5)
-  speed: number = 1;
+  speed?: number = 1;
 
+  @IsOptional()
   @IsBoolean()
-  pauseOnError: boolean = true;
+  pauseOnError?: boolean = true;
 
+  @IsOptional()
   @IsBoolean()
-  skipScreenshots: boolean = false;
+  skipScreenshots?: boolean = false;
 
   @IsOptional()
   @IsNumber()
