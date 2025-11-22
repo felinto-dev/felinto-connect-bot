@@ -68,6 +68,20 @@ export interface PageInfoResponse {
     title: string;
     viewport: { width: number; height: number } | null;
     timestamp: number;
-    metrics: Record<string, number> | null;
+    metrics: {
+      Timestamp?: number;
+      Documents?: number;
+      Frames?: number;
+      JSEventListeners?: number;
+      Nodes?: number;
+      LayoutCount?: number;
+      RecalcStyleCount?: number;
+      LayoutDuration?: number;
+      RecalcStyleDuration?: number;
+      ScriptDuration?: number;
+      TaskDuration?: number;
+      JSHeapUsedSize?: number;
+      JSHeapTotalSize?: number;
+    } | null;
   };
 }

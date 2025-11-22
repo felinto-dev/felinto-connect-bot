@@ -15,7 +15,11 @@
       "Bash(npx ts-node:*)",
       "Bash(PORT_NESTJS=4000 npx ts-node:*)",
       "Bash(CHROME_HEADLESS_WS_URL=ws://chromium:3000 pnpm run build:*)",
-      "Bash(find:*)"
+      "Bash(find:*)",
+      "WebSearch",
+      "Bash(node:*)",
+      "Bash(pnpm list:*)",
+      "Bash(pnpm install:*)"
     ],
     "deny": [],
     "ask": []
