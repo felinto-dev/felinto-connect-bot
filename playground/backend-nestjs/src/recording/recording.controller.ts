@@ -359,6 +359,21 @@ export class RecordingController {
       // Extrair recordingId e options no formato Express
       const { recordingId, options } = dto.toExportRequest();
 
+      // Validação explícita para compatibilidade com backend Express
+      if (!recordingId || recordingId.trim() === '') {
+        throw new BadRequestException({
+          success: false,
+          error: 'recordingId é obrigatório'
+        });
+      }
+
+      if (!options || !options.format) {
+        throw new BadRequestException({
+          success: false,
+          error: 'options.format é obrigatório'
+        });
+      }
+
       // Buscar gravação
       const recording = this.recordingService.getRecording(recordingId);
       if (!recording) {
@@ -420,7 +435,7 @@ export class RecordingController {
       // Broadcast de erro
       this.websocketGateway.broadcast({
         type: 'error',
-        message: `❌ Erro ao exportar gravação: ${error instanceof Error ? error.message : 'Erro desconhecido'}`,
+        message: `❌ Erro na exportação: ${error instanceof Error ? error.message : 'Erro desconhecido'}`,
         sessionId: undefined,
         recordingId: recordingId,
         data: {
@@ -451,7 +466,7 @@ export class RecordingController {
         status: recording.status,
         metadata: {
           initialUrl: recording.metadata.initialUrl,
-          totalEvents: recording.metadata.totalEvents
+          totalEvents: recording.metadata.totalEvents ?? recording.events.length
         }
       }));
 

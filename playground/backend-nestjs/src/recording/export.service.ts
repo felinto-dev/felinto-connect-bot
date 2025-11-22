@@ -1,5 +1,4 @@
 import { Injectable } from '@nestjs/common';
-import { WebsocketGateway } from '../websocket/websocket.gateway';
 import type {
   RecordingData,
   RecordingEvent
@@ -11,7 +10,6 @@ import type {
 
 @Injectable()
 export class ExportService {
-  constructor(private readonly websocketGateway: WebsocketGateway) {}
 
   /**
    * Exportar gravação no formato especificado
