@@ -13,7 +13,7 @@ import {
   InternalServerErrorException,
   UseFilters,
 } from '@nestjs/common';
-import { SessionService } from './session.service';
+import { SessionService, SessionNotFoundError } from './session.service';
 import { CreateSessionDto, ExecuteCodeDto, SessionIdDto, ScreenshotOptionsDto } from '../common/dto/session.dto';
 
 @Controller('api/session')
@@ -57,8 +57,8 @@ export class SessionController {
         ...result,
       };
     } catch (error) {
-      if (error.message === 'Sessão não encontrada') {
-        this.sessionService.websocketGateway.broadcast('session_expired', '⏰ A sessão expirou ou foi removida');
+      if (error instanceof SessionNotFoundError) {
+        this.sessionService.notifySessionExpired();
         throw new NotFoundException({
           error: 'Sessão não encontrada',
           sessionExpired: true,
@@ -81,11 +81,11 @@ export class SessionController {
     const { sessionId, options } = body;
 
     try {
-      this.sessionService.websocketGateway.broadcast('info', '📸 Capturando screenshot');
+      this.sessionService.notifyScreenshotCapture('starting');
 
       const screenshot = await this.sessionService.takeScreenshot(sessionId, options);
 
-      this.sessionService.websocketGateway.broadcast('success', '✅ Screenshot capturado');
+      this.sessionService.notifyScreenshotCapture('success');
 
       const imageType = options?.quality ? 'jpeg' : 'png';
 
@@ -95,8 +95,8 @@ export class SessionController {
         message: 'Screenshot capturado com sucesso!',
       };
     } catch (error) {
-      if (error.message === 'Sessão não encontrada') {
-        this.sessionService.websocketGateway.broadcast('session_expired', '⏰ A sessão expirou ou foi removida');
+      if (error instanceof SessionNotFoundError) {
+        this.sessionService.notifySessionExpired();
         throw new NotFoundException({
           error: 'Sessão não encontrada',
           sessionExpired: true,
@@ -164,7 +164,7 @@ export class SessionController {
       throw new BadRequestException({
         success: false,
         valid: false,
-        error: 'SessionId é obrigatório',
+        error: 'sessionId é obrigatório',
       });
     }
 
@@ -173,6 +173,14 @@ export class SessionController {
 
       if (isValid) {
         const session = this.sessionService.getSession(sessionId);
+        if (!session) {
+          throw new NotFoundException({
+            success: false,
+            valid: false,
+            error: 'Sessão não encontrada ou inválida',
+            sessionExpired: true,
+          });
+        }
         const pageInfo = await this.sessionService.getPageInfo(session.page);
 
         return {
@@ -182,20 +190,24 @@ export class SessionController {
           pageInfo,
         };
       } else {
-        return {
+        throw new NotFoundException({
           success: false,
           valid: false,
           error: 'Sessão não encontrada ou inválida',
           sessionExpired: true,
-        };
+        });
       }
     } catch (error) {
-      return {
+      if (error instanceof NotFoundException) {
+        throw error;
+      }
+
+      throw new InternalServerErrorException({
         success: false,
         valid: false,
         error: error.message,
         stack: process.env.NODE_ENV === 'development' ? error.stack : undefined,
-      };
+      });
     }
   }
 }

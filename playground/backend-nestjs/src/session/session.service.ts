@@ -5,6 +5,13 @@ import { newPage, Page } from '@felinto-dev/felinto-connect-bot';
 import { WebsocketGateway } from '../websocket/websocket.gateway';
 import { SessionConfig, SessionData, PageInfo, ExecutionResult, SessionStats } from '../common/types/session.types';
 
+export class SessionNotFoundError extends Error {
+  constructor(sessionId: string) {
+    super(`Sessão não encontrada: ${sessionId}`);
+    this.name = 'SessionNotFoundError';
+  }
+}
+
 @Injectable()
 export class SessionService implements OnModuleInit, OnModuleDestroy {
   private sessions: Map<string, SessionData> = new Map();
@@ -20,11 +27,11 @@ export class SessionService implements OnModuleInit, OnModuleDestroy {
     }, 60 * 1000); // A cada 60 segundos
   }
 
-  onModuleDestroy() {
+  async onModuleDestroy() {
     if (this.cleanupIntervalId) {
       clearInterval(this.cleanupIntervalId);
     }
-    this.cleanup();
+    await this.cleanup();
   }
 
   async createSession(config: SessionConfig): Promise<SessionData> {
@@ -84,7 +91,7 @@ export class SessionService implements OnModuleInit, OnModuleDestroy {
   async executeCode(sessionId: string, code: string): Promise<ExecutionResult> {
     const session = this.sessions.get(sessionId);
     if (!session) {
-      throw new Error('Sessão não encontrada');
+      throw new SessionNotFoundError(sessionId);
     }
 
     session.executionCount++;
@@ -146,52 +153,57 @@ export class SessionService implements OnModuleInit, OnModuleDestroy {
     };
   }
 
-  private executeWithTimeout(code: string, context: object, timeout: number): Promise<any> {
+  private async executeWithTimeout(
+    code: string,
+    context: object,
+    timeout: number,
+  ): Promise<unknown> {
     return new Promise((resolve, reject) => {
       const timer = setTimeout(() => {
-        reject(new Error('Timeout de execução'));
+        reject(new Error('Timeout: Execução cancelada após 30 segundos'));
       }, timeout);
 
       try {
-        const wrappedCode = `(async function() { ${code} })()`;
+        // Envolver o código em uma função async para permitir await no nível superior
+        const wrappedCode = `
+          (async function() {
+            ${code}
+          })()
+        `;
+
+        // Criar contexto VM
         const vmContext = vm.createContext(context);
 
-        vm.runInContext(wrappedCode, vmContext, { timeout, displayErrors: true });
+        // Executar código envolvido
+        const result = vm.runInContext(wrappedCode, vmContext, {
+          timeout: timeout,
+          displayErrors: true,
+        });
 
-        // Para async functions, precisamos esperar o resultado
-        vm.runInContext(`
-          (async function() {
-            try {
-              const result = await ${wrappedCode};
-              process._resolve(result);
-            } catch (error) {
-              process._reject(error);
-            }
-          })()
-        `, vm.createContext({
-          ...context,
-          process: {
-            _resolve: (result: any) => {
-              clearTimeout(timer);
-              resolve(result);
-            },
-            _reject: (error: any) => {
-              clearTimeout(timer);
-              reject(error);
-            },
-          },
-        }), { timeout, displayErrors: true });
-
-      } catch (error) {
         clearTimeout(timer);
 
-        if (error.message.includes('Unexpected token')) {
-          reject(new Error('Erro de sintaxe no código'));
-        } else if (error.message.includes('is not defined')) {
-          reject(new Error(`Variável não definida: ${error.message.split(' ')[0]}`));
+        // O resultado sempre será uma Promise devido ao wrapper async
+        if (result && typeof result.then === 'function') {
+          result
+            .then(resolve)
+            .catch(reject)
+            .finally(() => clearTimeout(timer));
         } else {
-          reject(error);
+          resolve(result);
         }
+      } catch (error: any) {
+        clearTimeout(timer);
+
+        // Melhorar mensagens de erro
+        let errorMessage = error.message;
+
+        if (error.message.includes('Unexpected token')) {
+          errorMessage = `Erro de sintaxe: ${error.message}. Verifique se o código JavaScript está correto.`;
+        } else if (error.message.includes('is not defined')) {
+          errorMessage = `Variável não definida: ${error.message}. Lembre-se que apenas 'page' e 'console' estão disponíveis.`;
+        }
+
+        reject(new Error(errorMessage));
       }
     });
   }
@@ -221,7 +233,7 @@ export class SessionService implements OnModuleInit, OnModuleDestroy {
   async takeScreenshot(sessionId: string, options?: any): Promise<string> {
     const session = this.sessions.get(sessionId);
     if (!session) {
-      throw new Error('Sessão não encontrada');
+      throw new SessionNotFoundError(sessionId);
     }
 
     try {
@@ -282,7 +294,11 @@ export class SessionService implements OnModuleInit, OnModuleDestroy {
     for (const sessionId of sessionsToRemove) {
       await this.removeSession(sessionId);
       console.log(`🧹 Sessão inativa removida: ${sessionId}`);
-      this.websocketGateway.broadcast('session_expired', `⏰ Sessão expirou por inatividade (${this.sessionTimeout / 60000} minutos)`);
+
+      // Notificar via WebSocket com formato igual ao legacy
+      this.websocketGateway.broadcast('session_expired', `🕐 Sessão ${sessionId.substring(0, 8)}... expirou por inatividade (${Math.round(this.sessionTimeout / 60000)} min)`, {
+        sessionId: sessionId
+      });
     }
   }
 
@@ -300,6 +316,18 @@ export class SessionService implements OnModuleInit, OnModuleDestroy {
         ? Math.min(...sessions.map(s => s.createdAt.getTime()))
         : null,
     };
+  }
+
+  public notifySessionExpired() {
+    this.websocketGateway.broadcast('session_expired', '⏰ A sessão expirou ou foi removida');
+  }
+
+  public notifyScreenshotCapture(status: 'starting' | 'success') {
+    if (status === 'starting') {
+      this.websocketGateway.broadcast('info', '📸 Capturando screenshot');
+    } else {
+      this.websocketGateway.broadcast('success', '✅ Screenshot capturado');
+    }
   }
 
   private async cleanup() {

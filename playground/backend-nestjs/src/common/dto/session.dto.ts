@@ -1,5 +1,13 @@
-import { IsString, IsBoolean, IsOptional, IsNotEmpty, IsNumber, IsMin, IsMax, IsEnum } from 'class-validator';
+import { IsString, IsBoolean, IsOptional, IsNotEmpty, IsNumber, Min, Max, IsEnum } from 'class-validator';
 import { SessionConfig } from '../types/session.types';
+
+/**
+ * Screenshot format types
+ */
+export enum ScreenshotType {
+  JPEG = 'jpeg',
+  PNG = 'png'
+}
 
 /**
  * DTO for creating sessions
@@ -60,6 +68,6 @@ export class ScreenshotOptionsDto {
   fullPage?: boolean;
 
   @IsOptional()
-  @IsEnum(['jpeg', 'png'])
-  type?: 'jpeg' | 'png';
+  @IsEnum(ScreenshotType)
+  type?: ScreenshotType;
 }
