@@ -27,7 +27,7 @@ import {
   RecordingDetailResponse
 } from '../common/types/api-responses.types';
 
-@Controller('api/recording')
+@Controller('api')
 export class RecordingController {
   constructor(
     private readonly recordingService: RecordingService,
@@ -77,7 +77,7 @@ export class RecordingController {
     return session;
   }
 
-  @Post('start')
+  @Post('recording/start')
   @HttpCode(HttpStatus.OK)
   async startRecording(@Body() dto: StartRecordingDto) {
     try {
@@ -115,7 +115,7 @@ export class RecordingController {
     }
   }
 
-  @Post('stop')
+  @Post('recording/stop')
   @HttpCode(HttpStatus.OK)
   async stopRecording(@Body() dto: StopRecordingDto) {
     try {
@@ -141,7 +141,7 @@ export class RecordingController {
     }
   }
 
-  @Post('pause')
+  @Post('recording/pause')
   @HttpCode(HttpStatus.OK)
   async pauseRecording(@Body() dto: PauseRecordingDto) {
     try {
@@ -174,7 +174,7 @@ export class RecordingController {
     }
   }
 
-  @Get('status/:sessionId')
+  @Get('recording/status/:sessionId')
   @HttpCode(HttpStatus.OK)
   async getRecordingStatus(@Param('sessionId') sessionId: string) {
     if (!sessionId || sessionId.trim() === '') {
@@ -200,7 +200,7 @@ export class RecordingController {
     }
   }
 
-  @Post('screenshot/:sessionId')
+  @Post('recording/screenshot/:sessionId')
   @HttpCode(HttpStatus.OK)
   async captureScreenshot(
     @Param('sessionId') sessionId: string,
@@ -254,7 +254,7 @@ export class RecordingController {
     }
   }
 
-  @Get('preview/:sessionId')
+  @Get('recording/preview/:sessionId')
   @HttpCode(HttpStatus.OK)
   async capturePreview(@Param('sessionId') sessionId: string): Promise<PreviewResponse> {
     const session = await this.getActiveSessionOrThrow(sessionId);
@@ -292,7 +292,7 @@ export class RecordingController {
     }
   }
 
-  @Get('page-info/:sessionId')
+  @Get('recording/page-info/:sessionId')
   @HttpCode(HttpStatus.OK)
   async getPageInfo(@Param('sessionId') sessionId: string): Promise<PageInfoResponse> {
     if (!sessionId || sessionId.trim() === '') {
@@ -352,12 +352,15 @@ export class RecordingController {
     }
   }
 
-  @Post('export')
+  @Post('recording/export')
   @HttpCode(HttpStatus.OK)
   async exportRecording(@Body() dto: ExportRecordingDto): Promise<ExportRecordingResponse> {
     try {
+      // Extrair recordingId e options no formato Express
+      const { recordingId, options } = dto.toExportRequest();
+
       // Buscar gravação
-      const recording = this.recordingService.getRecording(dto.recordingId);
+      const recording = this.recordingService.getRecording(recordingId);
       if (!recording) {
         throw new NotFoundException({
           success: false,
@@ -367,7 +370,7 @@ export class RecordingController {
 
       // Validar opções
       try {
-        this.exportService.validateExportOptions(dto.toExportOptions());
+        this.exportService.validateExportOptions(options);
       } catch (validationError) {
         throw new BadRequestException({
           success: false,
@@ -375,12 +378,16 @@ export class RecordingController {
         });
       }
 
-      console.log(`📤 Iniciando exportação: ${dto.recordingId} -> ${dto.format}`);
+      console.log(`📤 Iniciando exportação: ${recordingId} -> ${options.format}`);
+
+      // Nota: Mantendo paridade com backend Express - apenas eventos de sucesso/erro
+      // O processo de exportação é rápido (formatação de dados) e não tem etapas intermediárias
+      // que justifiquem eventos de progresso detalhados.
 
       // Realizar exportação
       const exportResult = await this.exportService.exportRecording(
         recording,
-        dto.toExportOptions()
+        options
       );
 
       // Broadcast de sucesso
@@ -407,12 +414,15 @@ export class RecordingController {
 
       console.error('❌ Erro ao exportar gravação:', error instanceof Error ? error.message : error);
 
+      // Extrair recordingId para o broadcast de erro
+      const { recordingId } = dto.toExportRequest();
+
       // Broadcast de erro
       this.websocketGateway.broadcast({
         type: 'error',
         message: `❌ Erro ao exportar gravação: ${error instanceof Error ? error.message : 'Erro desconhecido'}`,
         sessionId: undefined,
-        recordingId: dto.recordingId,
+        recordingId: recordingId,
         data: {
           error: error instanceof Error ? error.message : 'Erro desconhecido'
         }
@@ -426,7 +436,7 @@ export class RecordingController {
     }
   }
 
-  @Get('s')
+  @Get('recordings')
   @HttpCode(HttpStatus.OK)
   async listRecordings(): Promise<RecordingListResponse> {
     try {
@@ -461,7 +471,7 @@ export class RecordingController {
     }
   }
 
-  @Get(':recordingId')
+  @Get('recording/:recordingId')
   @HttpCode(HttpStatus.OK)
   async getRecording(@Param('recordingId') recordingId: string): Promise<RecordingDetailResponse> {
     try {

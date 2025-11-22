@@ -1,4 +1,4 @@
-import { IsString, IsBoolean, IsEnum, IsNotEmpty } from 'class-validator';
+import { IsString, IsBoolean, IsEnum, IsNotEmpty, IsObject, validate } from 'class-validator';
 import { ExportOptions } from '../types/export.types';
 
 export enum ExportFormat {
@@ -8,12 +8,7 @@ export enum ExportFormat {
   // SELENIUM = 'selenium',    // Não implementado ainda
 }
 
-
-export class ExportRecordingDto {
-  @IsString()
-  @IsNotEmpty()
-  recordingId: string;
-
+export class ExportOptionsDto {
   @IsEnum(ExportFormat)
   format: ExportFormat;
 
@@ -42,7 +37,7 @@ export class ExportRecordingDto {
   addComments: boolean = false;
 
   /**
-   * Convert ExportRecordingDto to ExportOptions domain type
+   * Convert ExportOptionsDto to ExportOptions domain type
    * This method ensures compatibility with services expecting domain types
    */
   toExportOptions(): ExportOptions {
@@ -51,6 +46,26 @@ export class ExportRecordingDto {
       includeScreenshots: this.includeScreenshots,
       minifyOutput: this.minifyOutput,
       addComments: this.addComments,
+    };
+  }
+}
+
+export class ExportRecordingDto {
+  @IsString()
+  @IsNotEmpty()
+  recordingId: string;
+
+  @IsObject()
+  options: ExportOptionsDto;
+
+  /**
+   * Convert ExportRecordingDto to extract recordingId and ExportOptions
+   * This method ensures compatibility with the Express backend format
+   */
+  toExportRequest(): { recordingId: string; options: ExportOptions } {
+    return {
+      recordingId: this.recordingId,
+      options: this.options.toExportOptions()
     };
   }
 }
