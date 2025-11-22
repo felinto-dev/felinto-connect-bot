@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, OnModuleDestroy } from '@nestjs/common';
 import { RecordingService, RecordingNotFoundError } from '../recording/recording.service';
 import { SessionService, SessionNotFoundError } from '../session/session.service';
 import { WebsocketGateway } from '../websocket/websocket.gateway';
@@ -42,7 +42,7 @@ export class SessionOrRecordingNotFoundError extends Error {
 }
 
 @Injectable()
-export class PlaybackService {
+export class PlaybackService implements OnModuleDestroy {
   private activePlaybackServices: Map<string, PlaybackCaptureService> = new Map();
 
   constructor(
@@ -218,5 +218,29 @@ export class PlaybackService {
       captureService.cleanup();
       this.activePlaybackServices.delete(recordingId);
     }
+  }
+
+  async onModuleDestroy() {
+    await this.cleanup();
+  }
+
+  private async cleanup() {
+    if (this.activePlaybackServices.size === 0) {
+      return;
+    }
+
+    console.log(`🎬 Parando ${this.activePlaybackServices.size} reproduções ativas...`);
+
+    for (const [recordingId] of this.activePlaybackServices.entries()) {
+      try {
+        this.cleanupPlayback(recordingId);
+        console.log(`✅ Reprodução ${recordingId} finalizada`);
+      } catch (error) {
+        console.error(`❌ Erro ao parar reprodução ${recordingId}:`, error);
+      }
+    }
+
+    this.activePlaybackServices.clear();
+    console.log('✅ Reproduções finalizadas');
   }
 }

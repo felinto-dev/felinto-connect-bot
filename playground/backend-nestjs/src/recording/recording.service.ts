@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, OnModuleDestroy } from '@nestjs/common';
 import { SessionService, SessionNotFoundError } from '../session/session.service';
 import { WebsocketGateway } from '../websocket/websocket.gateway';
 import { RecordingCaptureService } from './recording-capture.service';
@@ -33,7 +33,7 @@ export class InvalidRecordingStatusError extends Error {
 }
 
 @Injectable()
-export class RecordingService {
+export class RecordingService implements OnModuleDestroy {
   private activeRecordings: Map<string, RecordingData> = new Map();
   private activeRecordingServices: Map<string, RecordingCaptureService> = new Map();
 
@@ -328,5 +328,30 @@ export class RecordingService {
   hasActiveRecording(sessionId: string): boolean {
     return Array.from(this.activeRecordings.values())
       .some(rec => rec.sessionId === sessionId && rec.status === 'recording');
+  }
+
+  async onModuleDestroy() {
+    await this.cleanup();
+  }
+
+  private async cleanup() {
+    if (this.activeRecordingServices.size === 0) {
+      return;
+    }
+
+    console.log(`🎬 Parando ${this.activeRecordingServices.size} gravações ativas...`);
+
+    for (const [recordingId, captureService] of this.activeRecordingServices.entries()) {
+      try {
+        await captureService.stopCapture();
+        console.log(`✅ Gravação ${recordingId} finalizada`);
+      } catch (error) {
+        console.error(`❌ Erro ao parar gravação ${recordingId}:`, error);
+      }
+    }
+
+    this.activeRecordingServices.clear();
+    this.activeRecordings.clear();
+    console.log('✅ Gravações finalizadas');
   }
 }

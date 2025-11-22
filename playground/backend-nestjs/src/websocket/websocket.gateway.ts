@@ -65,4 +65,21 @@ export class WebsocketGateway implements OnGatewayConnection, OnGatewayDisconnec
       }, 100);
     }
   }
+
+  closeAllConnections(): void {
+    console.log('🔌 Fechando conexões WebSocket...');
+
+    for (const client of this.clients) {
+      if (client.readyState === WebSocket.OPEN) {
+        try {
+          client.close(1000, 'Server shutdown');
+        } catch (error) {
+          console.error('Error closing WebSocket connection:', error);
+        }
+      }
+    }
+
+    this.clients.clear();
+    console.log('✅ Conexões WebSocket fechadas');
+  }
 }

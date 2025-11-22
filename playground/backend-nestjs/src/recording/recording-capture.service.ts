@@ -1236,7 +1236,7 @@ export class RecordingCaptureService {
       const getElementSelector = (element: HTMLElement): string => {
         try {
           if (element.id) return `#${element.id}`;
-          if (element.name) return `[name="${element.name}"]`;
+          if ((element as any).name) return `[name="${(element as any).name}"]`;
           // Tornar a verificação de className mais robusta
           if (element.className && typeof element.className === 'string') {
             const classes = element.className.trim().split(/\s+/).map(c => `.${c}`).join('');
@@ -1263,7 +1263,7 @@ export class RecordingCaptureService {
       document.addEventListener('mousedown', (event) => {
         try {
           const target = event.target as HTMLElement;
-          const targetInfo = target ? `tagName: ${target.tagName}, id: ${target.id}, name: ${target.name}` : 'null';
+          const targetInfo = target ? `tagName: ${target.tagName}, id: ${target.id}, name: ${(target as any).name}` : 'null';
           console.log(`[RECORDER DEBUG] mousedown event. Target -> ${targetInfo}`);
         } catch (e) {
           console.error('Recording script error (mousedown):', e);
@@ -1285,7 +1285,7 @@ export class RecordingCaptureService {
       document.addEventListener('focusin', (event) => {
         try {
           const target = event.target as HTMLInputElement;
-          const targetInfo = target ? `tagName: ${target.tagName}, id: ${target.id}, name: ${target.name}` : 'null';
+          const targetInfo = target ? `tagName: ${target.tagName}, id: ${target.id}, name: ${(target as any).name}` : 'null';
           console.log(`[RECORDER DEBUG] focusin event. Target -> ${targetInfo}`);
           if (target && target.matches('input, textarea, select')) {
             const eventData = {
@@ -1436,7 +1436,7 @@ export class RecordingCaptureService {
     this.recording.metadata.totalEvents = this.recording.events.length;
 
     // Broadcast evento em tempo real
-    const broadcastMessage = {
+    const broadcastMessage: BroadcastMessage = {
       type: 'recording_event',
       message: `Evento capturado: ${event.type}`,
       sessionId: this.recording.sessionId,

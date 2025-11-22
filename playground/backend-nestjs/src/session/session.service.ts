@@ -1,7 +1,8 @@
 import { Injectable, OnModuleInit, OnModuleDestroy } from '@nestjs/common';
 import { v4 as uuidv4 } from 'uuid';
 import * as vm from 'vm';
-import { newPage, Page } from '@felinto-dev/felinto-connect-bot';
+import { newPage } from '@felinto-dev/felinto-connect-bot';
+import type { Page } from 'puppeteer';
 import { WebsocketGateway } from '../websocket/websocket.gateway';
 import { SessionConfig, SessionData, PageInfo, ExecutionResult, SessionStats } from '../common/types/session.types';
 
@@ -58,7 +59,7 @@ export class SessionService implements OnModuleInit, OnModuleDestroy {
 
       return sessionData;
     } catch (error) {
-      this.websocketGateway.broadcast({ type: 'error', message: `❌ Erro ao criar sessão: ${error.message}` });
+      this.websocketGateway.broadcast({ type: 'error', message: `❌ Erro ao criar sessão: ${error instanceof Error ? error.message : String(error)}` });
       throw error;
     }
   }
@@ -107,10 +108,9 @@ export class SessionService implements OnModuleInit, OnModuleDestroy {
       return {
         result,
         pageInfo,
-        executionCount: session.executionCount,
       };
     } catch (error) {
-      this.websocketGateway.broadcast({ type: 'error', message: `❌ Erro na execução: ${error.message}` });
+      this.websocketGateway.broadcast({ type: 'error', message: `❌ Erro na execução: ${error instanceof Error ? error.message : String(error)}` });
       throw error;
     }
   }
@@ -223,7 +223,7 @@ export class SessionService implements OnModuleInit, OnModuleDestroy {
         url: 'Erro ao capturar URL',
         title: 'Erro ao capturar título',
         timestamp: new Date().toISOString(),
-        error: error.message,
+        error: error instanceof Error ? error.message : String(error),
       };
     }
   }
@@ -249,7 +249,7 @@ export class SessionService implements OnModuleInit, OnModuleDestroy {
       const screenshot = await session.page.screenshot(screenshotOptions);
       return screenshot as string;
     } catch (error) {
-      throw new Error(`Erro ao capturar screenshot: ${error.message}`);
+      throw new Error(`Erro ao capturar screenshot: ${error instanceof Error ? error.message : String(error)}`);
     }
   }
 
@@ -272,7 +272,7 @@ export class SessionService implements OnModuleInit, OnModuleDestroy {
 
       return true;
     } catch (error) {
-      this.websocketGateway.broadcast({ type: 'error', message: `❌ Erro ao remover sessão: ${error.message}` });
+      this.websocketGateway.broadcast({ type: 'error', message: `❌ Erro ao remover sessão: ${error instanceof Error ? error.message : String(error)}` });
       throw error;
     }
   }

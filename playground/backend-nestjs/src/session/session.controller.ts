@@ -36,8 +36,8 @@ export class SessionController {
       };
     } catch (error) {
       throw new InternalServerErrorException({
-        error: error.message,
-        stack: process.env.NODE_ENV === 'development' ? error.stack : undefined,
+        error: error instanceof Error ? error.message : String(error),
+        stack: process.env.NODE_ENV === 'development' ? (error instanceof Error ? error.stack : undefined) : undefined,
       });
     }
   }
@@ -67,8 +67,8 @@ export class SessionController {
       }
 
       throw new InternalServerErrorException({
-        error: error.message,
-        stack: process.env.NODE_ENV === 'development' ? error.stack : undefined,
+        error: error instanceof Error ? error.message : String(error),
+        stack: process.env.NODE_ENV === 'development' ? (error instanceof Error ? error.stack : undefined) : undefined,
       });
     }
   }
@@ -101,8 +101,8 @@ export class SessionController {
       }
 
       throw new InternalServerErrorException({
-        error: error.message,
-        stack: process.env.NODE_ENV === 'development' ? error.stack : undefined,
+        error: error instanceof Error ? error.message : String(error),
+        stack: process.env.NODE_ENV === 'development' ? (error instanceof Error ? error.stack : undefined) : undefined,
       });
     }
   }
@@ -129,8 +129,8 @@ export class SessionController {
       }
 
       throw new InternalServerErrorException({
-        error: error.message,
-        stack: process.env.NODE_ENV === 'development' ? error.stack : undefined,
+        error: error instanceof Error ? error.message : String(error),
+        stack: process.env.NODE_ENV === 'development' ? (error instanceof Error ? error.stack : undefined) : undefined,
       });
     }
   }
@@ -147,8 +147,8 @@ export class SessionController {
       };
     } catch (error) {
       throw new InternalServerErrorException({
-        error: error.message,
-        stack: process.env.NODE_ENV === 'development' ? error.stack : undefined,
+        error: error instanceof Error ? error.message : String(error),
+        stack: process.env.NODE_ENV === 'development' ? (error instanceof Error ? error.stack : undefined) : undefined,
       });
     }
   }
@@ -201,8 +201,8 @@ export class SessionController {
       throw new InternalServerErrorException({
         success: false,
         valid: false,
-        error: error.message,
-        stack: process.env.NODE_ENV === 'development' ? error.stack : undefined,
+        error: error instanceof Error ? error.message : String(error),
+        stack: process.env.NODE_ENV === 'development' ? (error instanceof Error ? error.stack : undefined) : undefined,
       });
     }
   }
