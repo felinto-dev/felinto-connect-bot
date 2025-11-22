@@ -1,4 +1,4 @@
-import { Injectable, OnModuleInit, OnModuleDestroy } from '@nestjs/common';
+import { Injectable, OnModuleInit, OnModuleDestroy, OnApplicationShutdown } from '@nestjs/common';
 import { v4 as uuidv4 } from 'uuid';
 import * as vm from 'vm';
 import { newPage } from '@felinto-dev/felinto-connect-bot';
@@ -14,7 +14,7 @@ export class SessionNotFoundError extends Error {
 }
 
 @Injectable()
-export class SessionService implements OnModuleInit, OnModuleDestroy {
+export class SessionService implements OnModuleInit, OnModuleDestroy, OnApplicationShutdown {
   private sessions: Map<string, SessionData> = new Map();
   private sessionTimeout: number = 10 * 60 * 1000; // 10 minutos
   private cleanupIntervalId: NodeJS.Timeout | null = null;
@@ -28,6 +28,13 @@ export class SessionService implements OnModuleInit, OnModuleDestroy {
   }
 
   async onModuleDestroy() {
+    if (this.cleanupIntervalId) {
+      clearInterval(this.cleanupIntervalId);
+    }
+    await this.cleanup();
+  }
+
+  async onApplicationShutdown(signal?: string) {
     if (this.cleanupIntervalId) {
       clearInterval(this.cleanupIntervalId);
     }

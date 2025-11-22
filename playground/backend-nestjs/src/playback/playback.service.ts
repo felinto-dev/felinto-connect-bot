@@ -1,4 +1,4 @@
-import { Injectable, OnModuleDestroy } from '@nestjs/common';
+import { Injectable, OnModuleDestroy, OnApplicationShutdown } from '@nestjs/common';
 import { RecordingService, RecordingNotFoundError } from '../recording/recording.service';
 import { SessionService, SessionNotFoundError } from '../session/session.service';
 import { WebsocketGateway } from '../websocket/websocket.gateway';
@@ -42,7 +42,7 @@ export class SessionOrRecordingNotFoundError extends Error {
 }
 
 @Injectable()
-export class PlaybackService implements OnModuleDestroy {
+export class PlaybackService implements OnModuleDestroy, OnApplicationShutdown {
   private activePlaybackServices: Map<string, PlaybackCaptureService> = new Map();
 
   constructor(
@@ -224,6 +224,10 @@ export class PlaybackService implements OnModuleDestroy {
     await this.cleanup();
   }
 
+  async onApplicationShutdown(signal?: string) {
+    await this.cleanup();
+  }
+
   private async cleanup() {
     if (this.activePlaybackServices.size === 0) {
       return;
@@ -231,7 +235,10 @@ export class PlaybackService implements OnModuleDestroy {
 
     console.log(`🎬 Parando ${this.activePlaybackServices.size} reproduções ativas...`);
 
-    for (const [recordingId] of this.activePlaybackServices.entries()) {
+    // Extract recording IDs first to avoid deleting keys during iteration
+    const recordingIds = Array.from(this.activePlaybackServices.keys());
+
+    for (const recordingId of recordingIds) {
       try {
         this.cleanupPlayback(recordingId);
         console.log(`✅ Reprodução ${recordingId} finalizada`);
@@ -240,7 +247,11 @@ export class PlaybackService implements OnModuleDestroy {
       }
     }
 
-    this.activePlaybackServices.clear();
+    // Clear any remaining entries (optional, as cleanupPlayback should delete them)
+    if (this.activePlaybackServices.size > 0) {
+      this.activePlaybackServices.clear();
+    }
+
     console.log('✅ Reproduções finalizadas');
   }
 }
