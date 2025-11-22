@@ -23,7 +23,7 @@ async function bootstrap() {
   app.enableShutdownHooks();
 
   const configService = app.get(ConfigService);
-  const port = configService.get<number>('port');
+  const port = configService.get<number>('port', 3000);
   await app.listen(port);
 
   console.log(`🚀 NestJS Backend rodando em http://localhost:${port}`);

@@ -12,20 +12,17 @@ export class ExportOptionsDto {
   @IsEnum(ExportFormat)
   format: ExportFormat;
 
-  @IsOptional()
   @IsBoolean()
   @Type(() => Boolean)
-  includeScreenshots?: boolean = false;
+  includeScreenshots: boolean = false;
 
-  @IsOptional()
   @IsBoolean()
   @Type(() => Boolean)
-  minifyOutput?: boolean = false;
+  minifyOutput: boolean = false;
 
-  @IsOptional()
   @IsBoolean()
   @Type(() => Boolean)
-  addComments?: boolean = false;
+  addComments: boolean = false;
 }
 
 export class ExportRecordingDto {
