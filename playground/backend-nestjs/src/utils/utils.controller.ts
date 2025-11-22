@@ -13,6 +13,7 @@ import { Request } from 'express';
 import { ChromeDetectorService } from './chrome-detector.service';
 import { SessionService } from '../session/session.service';
 import { DocumentationService } from './documentation.service';
+import { WebsocketGateway } from '../websocket/websocket.gateway';
 import { SessionConfig } from '../common/types/session.types';
 
 // DTO para o endpoint legacy /execute
@@ -28,6 +29,7 @@ export class UtilsController {
     private readonly chromeDetectorService: ChromeDetectorService,
     private readonly sessionService: SessionService,
     private readonly documentationService: DocumentationService,
+    private readonly websocketGateway: WebsocketGateway,
   ) {}
 
   /**
@@ -71,19 +73,19 @@ export class UtilsController {
       // Tratamento de erros específicos
       if (error.message.includes('Failed to connect to browser') ||
           error.message.includes('ECONNREFUSED')) {
-        await this.chromeDetectorService['websocketGateway'].broadcast({
+        await this.websocketGateway.broadcast({
           type: 'error',
           message: '❌ Falha ao conectar ao Chrome. Execute no terminal do host (macOS):'
         });
 
-        await this.chromeDetectorService['websocketGateway'].broadcast({
+        await this.websocketGateway.broadcast({
           type: 'info',
           message: '/Applications/Google\\ Chrome.app/Contents/MacOS/Google\\ Chrome --remote-debugging-port=9222 --remote-debugging-address=0.0.0.0 --disable-web-security --disable-features=VizDisplayCompositor'
         });
       }
 
       if (error.message.includes('Unexpected server response: 404')) {
-        await this.chromeDetectorService['websocketGateway'].broadcast({
+        await this.websocketGateway.broadcast({
           type: 'warning',
           message: '⚠️ Resposta 404 do Chrome. Certifique-se de usar a flag --remote-debugging-address=0.0.0.0'
         });
@@ -104,7 +106,7 @@ export class UtilsController {
   @Get('chrome/check')
   async checkChrome(@Req() req: Request) {
     try {
-      await this.chromeDetectorService['websocketGateway'].broadcast({
+      await this.websocketGateway.broadcast({
         type: 'info',
         message: 'Verificando conexão com Chrome...'
       });
@@ -121,10 +123,6 @@ export class UtilsController {
       }
 
       // Chrome não detectado - montar instruções por plataforma
-      await this.chromeDetectorService['websocketGateway'].broadcast({
-        type: 'warning',
-        message: '⚠️ Chrome não detectado em nenhum endpoint'
-      });
 
       // Detectar plataforma
       const isMac = process.platform === 'darwin' ||

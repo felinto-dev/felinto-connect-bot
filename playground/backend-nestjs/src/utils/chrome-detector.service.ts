@@ -61,18 +61,16 @@ export class ChromeDetectorService {
    * Testa conectividade com um endpoint específico
    */
   async checkChromeEndpoint(endpoint: string): Promise<ChromeEndpointResult> {
-    try {
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 2000);
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 2000);
 
+    try {
       const response = await fetch(`http://${endpoint}/json/version`, {
         signal: controller.signal,
         headers: {
           'User-Agent': 'ChromeDetector/1.0'
         }
       });
-
-      clearTimeout(timeoutId);
 
       if (response.ok) {
         const chromeInfo = await response.json();
@@ -103,6 +101,8 @@ export class ChromeDetectorService {
         available: false,
         error: errorMessage
       };
+    } finally {
+      clearTimeout(timeoutId);
     }
   }
 

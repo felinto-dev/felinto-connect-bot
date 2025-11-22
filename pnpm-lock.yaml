@@ -184,9 +184,6 @@ importers:
       '@nestjs/schematics':
         specifier: ^10.0.0
         version: 10.2.3(chokidar@3.6.0)(typescript@5.9.2)
-      '@types/marked':
-        specifier: ^6.0.0
-        version: 6.0.0
       '@types/node':
         specifier: ^24.3.1
         version: 24.3.1
