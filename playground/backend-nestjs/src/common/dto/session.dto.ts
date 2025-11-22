@@ -76,28 +76,6 @@ export class SessionIdDto {
 }
 
 /**
- * DTO for taking screenshot
- */
-export class TakeScreenshotDto {
-  @ApiProperty({
-    description: 'ID da sessão para capturar screenshot',
-    example: 'session-12345'
-  })
-  @IsString()
-  @IsNotEmpty()
-  sessionId: string;
-
-  @ApiPropertyOptional({
-    description: 'Opções para captura de screenshot',
-    type: () => ScreenshotOptionsDto
-  })
-  @IsOptional()
-  @ValidateNested()
-  @Type(() => ScreenshotOptionsDto)
-  options?: ScreenshotOptionsDto;
-}
-
-/**
  * DTO for screenshot options
  */
 export class ScreenshotOptionsDto {
@@ -144,4 +122,26 @@ export class ScreenshotOptionsDto {
   @IsOptional()
   @IsBoolean()
   omitBackground?: boolean;
+}
+
+/**
+ * DTO for taking screenshot
+ */
+export class TakeScreenshotDto {
+  @ApiProperty({
+    description: 'ID da sessão para capturar screenshot',
+    example: 'session-12345'
+  })
+  @IsString()
+  @IsNotEmpty()
+  sessionId: string;
+
+  @ApiPropertyOptional({
+    description: 'Opções para captura de screenshot',
+    type: () => ScreenshotOptionsDto
+  })
+  @IsOptional()
+  @ValidateNested()
+  @Type(() => ScreenshotOptionsDto)
+  options?: ScreenshotOptionsDto;
 }
