@@ -63,13 +63,13 @@ export class SessionService implements OnModuleInit, OnModuleDestroy {
     }
   }
 
-  getSession(sessionId: string): SessionData | undefined {
+  getSession(sessionId: string): SessionData {
     const session = this.sessions.get(sessionId);
     if (session) {
       session.lastUsed = new Date();
       return session;
     }
-    return undefined;
+    throw new SessionNotFoundError(sessionId);
   }
 
   async isSessionValid(sessionId: string): Promise<boolean> {

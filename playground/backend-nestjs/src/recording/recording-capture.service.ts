@@ -23,6 +23,9 @@ export class RecordingCaptureService {
   private lastNavigationUrl: string = '';
   private lastNavigationTime: number = 0;
 
+  // Controle de limites de gravação
+  private durationCheckInterval?: NodeJS.Timeout;
+
   // Armazenar estados dos inputs para evitar duplicação e debounce inteligente
   private inputStates: Map<string, {
     value: string,
@@ -63,6 +66,9 @@ export class RecordingCaptureService {
       if (this.config.captureScreenshots) {
         await this.captureScreenshot('initial');
       }
+
+      // Iniciar verificação de limites de gravação
+      this.startDurationMonitoring();
 
       // Registrar evento de início
       console.log(`🌐 Adicionando evento page_load...`);
@@ -109,6 +115,9 @@ export class RecordingCaptureService {
       clearTimeout(this.navigationTimeout);
       this.navigationTimeout = undefined;
     }
+
+    // Parar verificação de duração
+    this.stopDurationMonitoring();
 
     // Capturar screenshot final ANTES de definir isCapturing = false
     if (this.config.captureScreenshots) {
@@ -1401,7 +1410,19 @@ export class RecordingCaptureService {
 
     // Verificar limites
     if (this.config.maxEvents && this.recording.events.length >= this.config.maxEvents) {
-      console.warn(`Limite de eventos atingido: ${this.config.maxEvents}`);
+      console.warn(`🎯 Limite de eventos atingido: ${this.config.maxEvents}. Parando gravação automaticamente.`);
+      await this.stopCapture();
+      this.broadcastFn({
+        type: 'recording_status',
+        message: `🛑 Gravação finalizada automaticamente: limite de ${this.config.maxEvents} eventos alcançado`,
+        sessionId: this.recording.sessionId,
+        recordingId: this.recording.id,
+        data: {
+          status: 'stopped',
+          eventCount: this.recording.events.length,
+          reason: 'max_events_reached'
+        }
+      });
       return;
     }
 
@@ -1545,5 +1566,56 @@ export class RecordingCaptureService {
    */
   isCurrentlyCapturing(): boolean {
     return this.isCapturing;
+  }
+
+  /**
+   * Iniciar monitoramento de duração máxima
+   */
+  private startDurationMonitoring(): void {
+    if (!this.config.maxDuration) {
+      return;
+    }
+
+    console.log(`⏱️ Iniciando monitoramento de duração máxima: ${this.config.maxDuration}ms`);
+
+    this.durationCheckInterval = setInterval(async () => {
+      if (!this.isCapturing) {
+        return;
+      }
+
+      const currentDuration = Date.now() - this.recording.startTime;
+
+      if (currentDuration >= this.config.maxDuration!) {
+        console.log(`⏱️ Duração máxima atingida: ${this.config.maxDuration}ms. Parando gravação automaticamente.`);
+
+        // Parar captura
+        await this.stopCapture();
+
+        // Notificar via WebSocket
+        this.broadcastFn({
+          type: 'recording_status',
+          message: `🛑 Gravação finalizada automaticamente: duração máxima de ${Math.round(this.config.maxDuration! / 1000)}s alcançada`,
+          sessionId: this.recording.sessionId,
+          recordingId: this.recording.id,
+          data: {
+            status: 'stopped',
+            eventCount: this.recording.events.length,
+            duration: currentDuration,
+            reason: 'max_duration_reached'
+          }
+        });
+      }
+    }, 1000); // Verificar a cada segundo
+  }
+
+  /**
+   * Parar monitoramento de duração
+   */
+  private stopDurationMonitoring(): void {
+    if (this.durationCheckInterval) {
+      clearInterval(this.durationCheckInterval);
+      this.durationCheckInterval = undefined;
+      console.log('⏱️ Monitoramento de duração parado');
+    }
   }
 }

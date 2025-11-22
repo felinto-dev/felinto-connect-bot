@@ -25,6 +25,13 @@ export class RecordingAlreadyActiveError extends Error {
   }
 }
 
+export class InvalidRecordingStatusError extends Error {
+  constructor(status: string, action: string) {
+    super(`Não é possível ${action} uma gravação com status: ${status}`);
+    this.name = 'InvalidRecordingStatusError';
+  }
+}
+
 @Injectable()
 export class RecordingService {
   private activeRecordings: Map<string, RecordingData> = new Map();
@@ -42,10 +49,7 @@ export class RecordingService {
     config: RecordingConfig;
   }> {
     // Validar sessão
-    const session = await this.sessionService.getSession(sessionId);
-    if (!session) {
-      throw new SessionNotFoundError(sessionId);
-    }
+    const session = this.sessionService.getSession(sessionId);
 
     // Verificar se já existe gravação ativa para sessão
     const existingRecording = Array.from(this.activeRecordings.values())
@@ -220,7 +224,7 @@ export class RecordingService {
       console.log(`▶️ Gravação resumida: ${recordingId}`);
 
     } else {
-      throw new Error(`Não é possível ${recording.status === 'stopped' ? 'pausar/resumir' : 'pausar'} uma gravação com status: ${recording.status}`);
+      throw new InvalidRecordingStatusError(recording.status, recording.status === 'stopped' ? 'pausar/resumir' : 'pausar');
     }
 
     // Atualizar status

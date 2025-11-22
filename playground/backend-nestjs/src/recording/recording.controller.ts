@@ -11,7 +11,7 @@ import {
   BadRequestException,
   InternalServerErrorException
 } from '@nestjs/common';
-import { RecordingService, RecordingNotFoundError, RecordingAlreadyActiveError } from './recording.service';
+import { RecordingService, RecordingNotFoundError, RecordingAlreadyActiveError, InvalidRecordingStatusError } from './recording.service';
 import { SessionNotFoundError } from '../session/session.service';
 import { StartRecordingDto, StopRecordingDto, PauseRecordingDto } from '../common/dto/recording.dto';
 
@@ -101,7 +101,7 @@ export class RecordingController {
         });
       }
 
-      if (error.message.includes('Não é possível')) {
+      if (error instanceof InvalidRecordingStatusError) {
         throw new BadRequestException({
           success: false,
           error: error.message
