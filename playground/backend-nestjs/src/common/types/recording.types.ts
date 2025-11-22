@@ -84,18 +84,21 @@ export interface RecordingData {
   endTime?: number;
   duration?: number;
   status: RecordingStatus;
+  pausedAt?: number;
+  resumedAt?: number;
   metadata: {
     userAgent?: string;
     viewport?: { width: number; height: number };
     initialUrl?: string;
     totalEvents: number;
     totalScreenshots: number;
+    duration?: number;
   };
 }
 
 export interface RecordingStats {
   totalEvents: number;
-  eventsByType: Record<RecordingEventType, number>;
+  eventsByType: Partial<Record<RecordingEventType, number>>;
   duration: number;
   averageEventInterval: number;
   screenshotCount: number;

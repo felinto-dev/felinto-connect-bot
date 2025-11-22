@@ -58,15 +58,10 @@ export class RecordingService {
     // Gerar recordingId
     const recordingId = uuidv4();
 
-    // Obter metadados da página
-    const pageInfo = await session.page.evaluate(() => ({
-      url: window.location.href,
-      title: document.title,
-      viewport: {
-        width: window.innerWidth,
-        height: window.innerHeight
-      }
-    }));
+    // Obter metadados da página (compatível com backend Express)
+    const pageUrl = await session.page.url();
+    const viewport = await session.page.viewport();
+    const userAgent = await session.page.evaluate(() => navigator.userAgent);
 
     // Criar RecordingData
     const recordingData: RecordingData = {
@@ -79,11 +74,9 @@ export class RecordingService {
       metadata: {
         totalEvents: 0,
         totalScreenshots: 0,
-        pageTitle: pageInfo.title,
-        startUrl: pageInfo.url,
-        userAgent: session.page.browser().version() || 'Unknown',
-        viewport: pageInfo.viewport,
-        duration: 0
+        initialUrl: pageUrl,
+        userAgent: userAgent,
+        viewport: viewport ? { width: viewport.width, height: viewport.height } : undefined
       }
     };
 
@@ -141,7 +134,6 @@ export class RecordingService {
     updatedRecording.endTime = endTime;
     updatedRecording.duration = duration;
     updatedRecording.metadata.totalEvents = updatedRecording.events.length;
-    updatedRecording.metadata.duration = duration;
 
     // Armazenar dados atualizados
     this.activeRecordings.set(recordingId, updatedRecording);
@@ -205,7 +197,7 @@ export class RecordingService {
         message: `⏸️ Gravação pausada: ${recordingId}`,
         sessionId: recording.sessionId,
         recordingId,
-        data: { status: 'paused', pausedAt }
+        data: { status: 'paused', pausedAt, recordingId }
       });
 
       console.log(`⏸️ Gravação pausada: ${recordingId}`);
@@ -222,7 +214,7 @@ export class RecordingService {
         message: `▶️ Gravação resumida: ${recordingId}`,
         sessionId: recording.sessionId,
         recordingId,
-        data: { status: 'recording', resumedAt }
+        data: { status: 'recording', resumedAt, recordingId }
       });
 
       console.log(`▶️ Gravação resumida: ${recordingId}`);
@@ -259,9 +251,9 @@ export class RecordingService {
     currentEvent?: RecordingEvent;
     isActive: boolean;
   }> {
-    // Buscar gravação ativa para sessão
+    // Buscar gravação ativa para sessão (apenas com status 'recording' ou 'paused')
     const recording = Array.from(this.activeRecordings.values())
-      .find(rec => rec.sessionId === sessionId);
+      .find(rec => rec.sessionId === sessionId && (rec.status === 'recording' || rec.status === 'paused'));
 
     if (!recording) {
       return {
@@ -278,31 +270,37 @@ export class RecordingService {
       };
     }
 
+    // Obter dados mais recentes do serviço de captura (RecordingCaptureService é a fonte de verdade)
+    const updatedRecording = this.activeRecordingServices.get(recording.id)?.getRecordingData() || recording;
+
+    // Opcionalmente atualizar o map com dados mais recentes
+    this.activeRecordings.set(recording.id, updatedRecording);
+
     // Calcular estatísticas atuais
     const currentTime = Date.now();
-    const duration = recording.status === 'recording'
-      ? currentTime - recording.startTime
-      : (recording.duration || 0);
+    const duration = updatedRecording.status === 'recording'
+      ? currentTime - updatedRecording.startTime
+      : (updatedRecording.duration || 0);
 
     const stats: RecordingStats = {
-      totalEvents: recording.events.length,
-      eventsByType: recording.events.reduce((acc, event) => {
+      totalEvents: updatedRecording.events.length,
+      eventsByType: updatedRecording.events.reduce((acc, event) => {
         acc[event.type] = (acc[event.type] || 0) + 1;
         return acc;
       }, {} as Record<string, number>),
       duration,
-      averageEventInterval: recording.events.length > 1
-        ? duration / (recording.events.length - 1)
+      averageEventInterval: updatedRecording.events.length > 1
+        ? duration / (updatedRecording.events.length - 1)
         : 0,
-      screenshotCount: recording.metadata.totalScreenshots
+      screenshotCount: updatedRecording.metadata.totalScreenshots
     };
 
     return {
-      recordingId: recording.id,
-      status: recording.status,
+      recordingId: updatedRecording.id,
+      status: updatedRecording.status,
       stats,
-      currentEvent: recording.events[recording.events.length - 1],
-      isActive: recording.status === 'recording' || recording.status === 'paused'
+      currentEvent: updatedRecording.events[updatedRecording.events.length - 1],
+      isActive: updatedRecording.status === 'recording' || updatedRecording.status === 'paused'
     };
   }
 
