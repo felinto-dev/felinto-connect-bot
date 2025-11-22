@@ -204,8 +204,8 @@ export class RecordingService {
       await this.setupFormSubmitListener();
     }
 
-    // Form interaction events (new)
-    if (events.includes('form')) {
+    // Form interaction events
+    if (events.includes('form_focus') || events.includes('form_input_change') || events.includes('form_navigation')) {
       // await this.setupFormListener_Legacy();
       await this.setupCDPFormListener();
     }
@@ -221,7 +221,7 @@ export class RecordingService {
       if (!this.shouldCaptureEvent()) return;
 
       // Se a captura de formulário estiver ativa, verificar se o clique foi em um campo de formulário
-      if (this.config.events.includes('form')) {
+      if (this.config.events.includes('form_focus') || this.config.events.includes('form_input_change') || this.config.events.includes('form_navigation')) {
         const targetTagName = (event.target?.tagName || '').toLowerCase();
         if (['input', 'textarea', 'select'].includes(targetTagName)) {
           // O evento de foco será tratado pelo setupFormListener
@@ -1349,7 +1349,9 @@ export class RecordingService {
     });
 
     console.log('✅ Listener unificado de formulários configurado.');
-    this.eventListeners.set('form', formEventHandler);
+    this.eventListeners.set('form_focus', formEventHandler);
+    this.eventListeners.set('form_input_change', formEventHandler);
+    this.eventListeners.set('form_navigation', formEventHandler);
   }
 
 

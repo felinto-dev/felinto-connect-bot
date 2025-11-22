@@ -21,12 +21,14 @@ export const DEFAULT_SELECTED_EVENTS: Set<RecordingEventType> = new Set([
 export const ALL_RECORDING_EVENTS: RecordingEventType[] = [
   'click',
   // 'type', // Substituído por 'form'
-  'navigation', 
+  'navigation',
   'screenshot',
   'page_load',
   'form_submit',
   // 'key_press', // Capturado dentro de 'form'
-  'form'
+  'form_focus',
+  'form_input_change',
+  'form_navigation'
 ];
 
 // Configurações padrão de gravação
@@ -108,8 +110,7 @@ export const EXPORT_FORMATS = [
 // Ícones para tipos de eventos
 export const EVENT_ICONS: Record<RecordingEventType, string> = {
   'click': 'mouse-pointer',
-  'type': 'keyboard', 
-  'form': 'keyboard',
+  'type': 'keyboard',
   'navigation': 'navigation',
   'screenshot': 'camera',
   'page_load': 'refresh-cw',
@@ -123,9 +124,8 @@ export const EVENT_ICONS: Record<RecordingEventType, string> = {
 // Cores para tipos de eventos (classes CSS)
 export const EVENT_COLORS: Record<RecordingEventType, string> = {
   'click': 'event-click',
-  'type': 'event-type', 
-  'form': 'event-type',
-  'navigation': 'event-navigation', 
+  'type': 'event-type',
+  'navigation': 'event-navigation',
   'screenshot': 'event-screenshot',
   'page_load': 'event-page-load',
   'form_submit': 'event-form-submit',
@@ -146,7 +146,6 @@ export const RECORDING_MODE_DESCRIPTIONS: Record<RecordingMode, string> = {
 export const EVENT_TYPE_DESCRIPTIONS: Record<RecordingEventType, string> = {
   'click': 'Cliques do mouse em elementos da página',
   'type': 'Eventos de formulário, como preenchimento de campos',
-  'form': 'Interações completas com formulários (foco, preenchimento e navegação)',
   'navigation': 'Mudanças de URL e navegação entre páginas',
   'screenshot': 'Capturas de tela automáticas ou manuais',
   'page_load': 'Carregamento completo de páginas',

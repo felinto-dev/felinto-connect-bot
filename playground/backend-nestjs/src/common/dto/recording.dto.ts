@@ -12,15 +12,15 @@ import {
   ValidateNested,
 } from 'class-validator';
 import { Type } from 'class-transformer';
-import { RecordingEventType, RecordingMode } from '../types/recording.types';
+import { RecordingEventType, RecordingMode, RecordingEventTypeEnum, RecordingModeEnum } from '../types/recording.types';
 
 export class RecordingConfigDto {
   @IsArray()
   @ArrayNotEmpty()
-  @IsEnum(RecordingEventType, { each: true })
+  @IsEnum(RecordingEventTypeEnum, { each: true })
   events: RecordingEventType[];
 
-  @IsEnum(RecordingMode)
+  @IsEnum(RecordingModeEnum)
   mode: RecordingMode;
 
   @IsNumber()
