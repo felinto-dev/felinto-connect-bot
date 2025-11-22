@@ -36,7 +36,6 @@ export type RecordingMode = 'smart' | 'detailed' | 'minimal';
 export type RecordingStatus = 'idle' | 'recording' | 'paused' | 'stopped' | 'error';
 
 export interface RecordingConfig {
-  sessionId: string;
   events: RecordingEventType[];
   mode: RecordingMode;
   delay: number;

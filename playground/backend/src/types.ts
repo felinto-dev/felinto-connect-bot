@@ -78,7 +78,6 @@ export type RecordingStatus = 'idle' | 'recording' | 'paused' | 'stopped' | 'err
 
 // Configurações de gravação
 export interface RecordingConfig {
-  sessionId: string;
   events: RecordingEventType[];
   mode: RecordingMode;
   delay: number; // ms entre ações
