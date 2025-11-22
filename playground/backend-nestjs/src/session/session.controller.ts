@@ -15,11 +15,17 @@ import {
 } from '@nestjs/common';
 import { SessionService, SessionNotFoundError } from './session.service';
 import { CreateSessionDto, ExecuteCodeDto, SessionIdDto, ScreenshotOptionsDto, TakeScreenshotDto } from '../common/dto/session.dto';
+import { ApiTags, ApiOperation, ApiResponse, ApiBody, ApiParam } from '@nestjs/swagger';
 
+@ApiTags('Session')
 @Controller('api/session')
 export class SessionController {
   constructor(private readonly sessionService: SessionService) {}
 
+  @ApiOperation({ summary: 'Cria nova sessão Puppeteer', description: 'Conecta ao Chrome remoto via WebSocket e inicializa uma nova sessão com página configurada.' })
+  @ApiBody({ type: CreateSessionDto })
+  @ApiResponse({ status: 200, description: 'Sessão criada com sucesso', schema: { example: { success: true, sessionId: 'abc123-def456', message: 'Sessão criada com sucesso!', pageInfo: { url: 'about:blank', title: '', timestamp: '2024-01-15T10:30:00.000Z' } } } })
+  @ApiResponse({ status: 500, description: 'Erro ao criar sessão (Chrome inacessível, configuração inválida)' })
   @Post('create')
   @HttpCode(HttpStatus.OK)
   async createSession(@Body() createSessionDto: CreateSessionDto) {
@@ -42,6 +48,11 @@ export class SessionController {
     }
   }
 
+  @ApiOperation({ summary: 'Executa código JavaScript na sessão', description: 'Executa código arbitrário no contexto da página Puppeteer usando Node VM. Timeout de 30s.' })
+  @ApiBody({ type: ExecuteCodeDto })
+  @ApiResponse({ status: 200, description: 'Código executado com sucesso', schema: { example: { success: true, message: 'Código executado com sucesso!', result: 'https://example.com', executionTime: 123 } } })
+  @ApiResponse({ status: 404, description: 'Sessão não encontrada ou expirada', schema: { example: { error: 'Sessão não encontrada', sessionExpired: true, message: 'A sessão expirou ou foi removida. Crie uma nova sessão.' } } })
+  @ApiResponse({ status: 500, description: 'Erro na execução do código (timeout, erro de sintaxe)' })
   @Post('execute')
   @HttpCode(HttpStatus.OK)
   async executeCode(@Body() executeCodeDto: ExecuteCodeDto) {
@@ -73,6 +84,11 @@ export class SessionController {
     }
   }
 
+  @ApiOperation({ summary: 'Captura screenshot da sessão', description: 'Tira screenshot da página atual com opções configuráveis (qualidade, fullPage, tipo).' })
+  @ApiBody({ type: TakeScreenshotDto })
+  @ApiResponse({ status: 200, description: 'Screenshot capturado', schema: { example: { success: true, screenshot: 'data:image/jpeg;base64,/9j/4AAQ...', message: 'Screenshot capturado com sucesso!' } } })
+  @ApiResponse({ status: 404, description: 'Sessão não encontrada' })
+  @ApiResponse({ status: 500, description: 'Erro ao capturar screenshot' })
   @Post('screenshot')
   @HttpCode(HttpStatus.OK)
   async takeScreenshot(@Body() dto: TakeScreenshotDto) {
@@ -107,6 +123,10 @@ export class SessionController {
     }
   }
 
+  @ApiOperation({ summary: 'Remove sessão ativa', description: 'Fecha browser context e remove sessão do gerenciador. Libera recursos.' })
+  @ApiParam({ name: 'sessionId', description: 'ID da sessão a remover', example: 'abc123-def456' })
+  @ApiResponse({ status: 200, description: 'Sessão removida', schema: { example: { success: true, message: 'Sessão removida com sucesso!' } } })
+  @ApiResponse({ status: 404, description: 'Sessão não encontrada' })
   @Delete(':sessionId')
   @HttpCode(HttpStatus.OK)
   async removeSession(@Param('sessionId') sessionId: string) {
@@ -135,6 +155,8 @@ export class SessionController {
     }
   }
 
+  @ApiOperation({ summary: 'Obtém estatísticas de sessões', description: 'Retorna contadores de sessões ativas, total criado, e tempo médio de vida.' })
+  @ApiResponse({ status: 200, description: 'Estatísticas obtidas', schema: { example: { success: true, stats: { activeSessions: 2, totalCreated: 15, averageLifetime: 120000 } } } })
   @Get('s/stats')
   @HttpCode(HttpStatus.OK)
   async getStats() {
@@ -153,6 +175,11 @@ export class SessionController {
     }
   }
 
+  @ApiOperation({ summary: 'Valida se sessão está ativa', description: 'Verifica se sessão existe, está ativa, e retorna informações da página atual.' })
+  @ApiParam({ name: 'sessionId', description: 'ID da sessão a validar', example: 'abc123-def456' })
+  @ApiResponse({ status: 200, description: 'Sessão válida', schema: { example: { success: true, valid: true, sessionId: 'abc123-def456', pageInfo: { url: 'https://example.com', title: 'Example', timestamp: '2024-01-15T10:30:00.000Z' } } } })
+  @ApiResponse({ status: 404, description: 'Sessão inválida ou expirada', schema: { example: { success: false, valid: false, error: 'Sessão não encontrada ou inválida', sessionExpired: true } } })
+  @ApiResponse({ status: 400, description: 'sessionId não fornecido' })
   @Get(':sessionId/validate')
   @HttpCode(HttpStatus.OK)
   async validateSession(@Param('sessionId') sessionId: string) {

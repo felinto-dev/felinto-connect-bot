@@ -26,7 +26,9 @@ import {
   RecordingListResponse,
   RecordingDetailResponse
 } from '../common/types/api-responses.types';
+import { ApiTags, ApiOperation, ApiResponse, ApiBody, ApiParam } from '@nestjs/swagger';
 
+@ApiTags('Recording', 'Export')
 @Controller('api')
 export class RecordingController {
   constructor(
@@ -77,6 +79,11 @@ export class RecordingController {
     return session;
   }
 
+  @ApiOperation({ summary: 'Inicia gravação de eventos', description: 'Começa a capturar eventos do usuário (clicks, digitação, navegação) na sessão especificada.', tags: ['Recording'] })
+  @ApiBody({ type: StartRecordingDto })
+  @ApiResponse({ status: 200, description: 'Gravação iniciada', schema: { example: { success: true, recordingId: 'rec-abc123', sessionId: 'abc123-def456', message: 'Gravação iniciada', config: { events: ['click', 'type'], mode: 'manual', delay: 100, captureScreenshots: true } } } })
+  @ApiResponse({ status: 404, description: 'Sessão não encontrada' })
+  @ApiResponse({ status: 409, description: 'Gravação já ativa nesta sessão', schema: { example: { success: false, error: 'Já existe uma gravação ativa para esta sessão', recordingId: 'rec-existing' } } })
   @Post('recording/start')
   @HttpCode(HttpStatus.OK)
   async startRecording(@Body() dto: StartRecordingDto) {
@@ -115,6 +122,10 @@ export class RecordingController {
     }
   }
 
+  @ApiOperation({ summary: 'Para gravação ativa', description: 'Finaliza gravação e retorna estatísticas completas (eventos, duração, tipos).', tags: ['Recording'] })
+  @ApiBody({ type: StopRecordingDto })
+  @ApiResponse({ status: 200, description: 'Gravação parada', schema: { example: { success: true, recordingId: 'rec-abc123', message: 'Gravação parada', stats: { totalEvents: 45, duration: 120000, eventTypes: { click: 20, type: 15, navigation: 10 } }, recording: { id: 'rec-abc123', sessionId: 'abc123', events: [], status: 'stopped' } } } })
+  @ApiResponse({ status: 404, description: 'Gravação não encontrada' })
   @Post('recording/stop')
   @HttpCode(HttpStatus.OK)
   async stopRecording(@Body() dto: StopRecordingDto) {
@@ -141,6 +152,11 @@ export class RecordingController {
     }
   }
 
+  @ApiOperation({ summary: 'Pausa/retoma gravação', description: 'Alterna estado de pausa da gravação. Eventos não são capturados enquanto pausado.', tags: ['Recording'] })
+  @ApiBody({ type: PauseRecordingDto })
+  @ApiResponse({ status: 200, description: 'Estado alterado', schema: { example: { success: true, recordingId: 'rec-abc123', message: 'Gravação pausada', status: 'paused', pausedAt: 1705315800000 } } })
+  @ApiResponse({ status: 404, description: 'Gravação não encontrada' })
+  @ApiResponse({ status: 400, description: 'Status inválido para operação' })
   @Post('recording/pause')
   @HttpCode(HttpStatus.OK)
   async pauseRecording(@Body() dto: PauseRecordingDto) {
@@ -174,6 +190,10 @@ export class RecordingController {
     }
   }
 
+  @ApiOperation({ summary: 'Obtém status da gravação', description: 'Retorna estado atual, estatísticas e último evento capturado.', tags: ['Recording'] })
+  @ApiParam({ name: 'sessionId', description: 'ID da sessão', example: 'abc123-def456' })
+  @ApiResponse({ status: 200, description: 'Status obtido', schema: { example: { success: true, recordingId: 'rec-abc123', status: 'recording', stats: { totalEvents: 30, duration: 60000 }, isActive: true } } })
+  @ApiResponse({ status: 400, description: 'sessionId não fornecido' })
   @Get('recording/status/:sessionId')
   @HttpCode(HttpStatus.OK)
   async getRecordingStatus(@Param('sessionId') sessionId: string) {
@@ -200,6 +220,11 @@ export class RecordingController {
     }
   }
 
+  @ApiOperation({ summary: 'Captura screenshot com metadados', description: 'Tira screenshot JPEG da sessão com qualidade configurável e retorna metadados completos.', tags: ['Recording'] })
+  @ApiParam({ name: 'sessionId', description: 'ID da sessão', example: 'abc123-def456' })
+  @ApiBody({ type: ScreenshotDto })
+  @ApiResponse({ status: 200, description: 'Screenshot capturado', schema: { example: { success: true, screenshot: 'data:image/jpeg;base64,...', metadata: { url: 'https://example.com', title: 'Example', viewport: { width: 1920, height: 1080 }, timestamp: 1705315800000, quality: 80, fullPage: false, size: 245 } } } })
+  @ApiResponse({ status: 404, description: 'Sessão não encontrada ou expirada' })
   @Post('recording/screenshot/:sessionId')
   @HttpCode(HttpStatus.OK)
   async captureScreenshot(
@@ -254,6 +279,10 @@ export class RecordingController {
     }
   }
 
+  @ApiOperation({ summary: 'Captura preview rápido', description: 'Screenshot otimizado (quality=60, viewport only) para previews em tempo real.', tags: ['Recording'] })
+  @ApiParam({ name: 'sessionId', description: 'ID da sessão', example: 'abc123-def456' })
+  @ApiResponse({ status: 200, description: 'Preview capturado', schema: { example: { success: true, preview: 'data:image/jpeg;base64,...', metadata: { url: 'https://example.com', title: 'Example', timestamp: 1705315800000, isPreview: true } } } })
+  @ApiResponse({ status: 404, description: 'Sessão não encontrada' })
   @Get('recording/preview/:sessionId')
   @HttpCode(HttpStatus.OK)
   async capturePreview(@Param('sessionId') sessionId: string): Promise<PreviewResponse> {
@@ -292,6 +321,11 @@ export class RecordingController {
     }
   }
 
+  @ApiOperation({ summary: 'Obtém informações da página', description: 'Retorna URL, título, viewport e métricas de performance da página atual.', tags: ['Recording'] })
+  @ApiParam({ name: 'sessionId', description: 'ID da sessão', example: 'abc123-def456' })
+  @ApiResponse({ status: 200, description: 'Informações obtidas', schema: { example: { success: true, pageInfo: { url: 'https://example.com', title: 'Example', viewport: { width: 1920, height: 1080 }, timestamp: 1705315800000, metrics: { Timestamp: 123.456, Documents: 1, Frames: 1, JSHeapUsedSize: 5000000 } } } } })
+  @ApiResponse({ status: 404, description: 'Sessão não encontrada' })
+  @ApiResponse({ status: 400, description: 'sessionId não fornecido' })
   @Get('recording/page-info/:sessionId')
   @HttpCode(HttpStatus.OK)
   async getPageInfo(@Param('sessionId') sessionId: string): Promise<PageInfoResponse> {
@@ -352,6 +386,11 @@ export class RecordingController {
     }
   }
 
+  @ApiOperation({ summary: 'Exporta gravação', description: 'Converte gravação para formato especificado (JSON ou Puppeteer script). Suporta minificação e comentários.', tags: ['Export'] })
+  @ApiBody({ type: ExportRecordingDto })
+  @ApiResponse({ status: 200, description: 'Exportação concluída', schema: { example: { success: true, format: 'json', content: '{"events":[...]}', filename: 'recording-rec-abc123.json', size: 12345, metadata: { exportedAt: 1705315800000, originalRecordingId: 'rec-abc123', eventCount: 45 } } } })
+  @ApiResponse({ status: 404, description: 'Gravação não encontrada' })
+  @ApiResponse({ status: 400, description: 'Opções inválidas (recordingId ou format ausente)' })
   @Post('recording/export')
   @HttpCode(HttpStatus.OK)
   async exportRecording(@Body() dto: ExportRecordingDto): Promise<ExportRecordingResponse> {
@@ -449,6 +488,8 @@ export class RecordingController {
     }
   }
 
+  @ApiOperation({ summary: 'Lista todas as gravações', description: 'Retorna resumo de todas as gravações ativas (id, sessionId, duração, contagem de eventos).', tags: ['Export'] })
+  @ApiResponse({ status: 200, description: 'Lista obtida', schema: { example: { success: true, recordings: [{ id: 'rec-abc123', sessionId: 'abc123', createdAt: 1705315800000, duration: 120000, eventCount: 45, status: 'stopped', metadata: { initialUrl: 'https://example.com', totalEvents: 45 } }], total: 1 } } })
   @Get('recordings')
   @HttpCode(HttpStatus.OK)
   async listRecordings(): Promise<RecordingListResponse> {
@@ -484,6 +525,10 @@ export class RecordingController {
     }
   }
 
+  @ApiOperation({ summary: 'Obtém gravação completa', description: 'Retorna todos os dados da gravação incluindo array completo de eventos.', tags: ['Export'] })
+  @ApiParam({ name: 'recordingId', description: 'ID da gravação', example: 'rec-abc123' })
+  @ApiResponse({ status: 200, description: 'Gravação obtida', schema: { example: { success: true, recording: { id: 'rec-abc123', sessionId: 'abc123', events: [], status: 'stopped', startTime: 1705315800000, duration: 120000 } } } })
+  @ApiResponse({ status: 404, description: 'Gravação não encontrada' })
   @Get('recording/:recordingId')
   @HttpCode(HttpStatus.OK)
   async getRecordingById(@Param('recordingId') recordingId: string): Promise<RecordingDetailResponse> {

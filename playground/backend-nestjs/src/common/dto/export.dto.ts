@@ -1,5 +1,6 @@
 import { IsString, IsBoolean, IsEnum, IsNotEmpty, IsObject, validate } from 'class-validator';
 import { ExportOptions } from '../types/export.types';
+import { ApiProperty } from '@nestjs/swagger';
 
 export enum ExportFormat {
   JSON = 'json',
@@ -9,6 +10,7 @@ export enum ExportFormat {
 }
 
 export class ExportOptionsDto {
+  @ApiProperty({ description: 'Formato de exportação', enum: ExportFormat, example: 'json' })
   @IsEnum(ExportFormat)
   format: ExportFormat;
 
@@ -17,6 +19,7 @@ export class ExportOptionsDto {
    * Default: false
    * This field is required with a default value to ensure predictable behavior
    */
+  @ApiProperty({ description: 'Inclui screenshots base64 no arquivo exportado (aumenta tamanho)', default: false })
   @IsBoolean()
   includeScreenshots: boolean = false;
 
@@ -25,6 +28,7 @@ export class ExportOptionsDto {
    * Default: false
    * This field is required with a default value to ensure predictable behavior
    */
+  @ApiProperty({ description: 'Minifica JSON/código para reduzir tamanho', default: false })
   @IsBoolean()
   minifyOutput: boolean = false;
 
@@ -33,6 +37,7 @@ export class ExportOptionsDto {
    * Default: false
    * This field is required with a default value to ensure predictable behavior
    */
+  @ApiProperty({ description: 'Adiciona comentários explicativos no código Puppeteer', default: false })
   @IsBoolean()
   addComments: boolean = false;
 
@@ -51,10 +56,12 @@ export class ExportOptionsDto {
 }
 
 export class ExportRecordingDto {
+  @ApiProperty({ description: 'ID da gravação a exportar', example: 'rec-abc123' })
   @IsString()
   @IsNotEmpty()
   recordingId: string;
 
+  @ApiProperty({ description: 'Opções de exportação', type: () => ExportOptionsDto })
   @IsObject()
   options: ExportOptionsDto;
 

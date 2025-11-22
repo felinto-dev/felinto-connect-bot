@@ -15,12 +15,14 @@ import { SessionService } from '../session/session.service';
 import { DocumentationService } from './documentation.service';
 import { WebsocketGateway } from '../websocket/websocket.gateway';
 import { SessionConfig } from '../common/types/session.types';
+import { ApiTags, ApiOperation, ApiResponse, ApiBody, ApiExcludeEndpoint } from '@nestjs/swagger';
 
 // DTO para o endpoint legacy /execute
 class LegacyExecuteDto {
   [key: string]: any;
 }
 
+@ApiTags('Utils')
 @Controller()
 export class UtilsController {
   private readonly logger = new Logger(UtilsController.name);
@@ -36,6 +38,10 @@ export class UtilsController {
    * POST /execute - Endpoint legacy para compatibilidade com frontend antigo
    * Replica lógica do Express backend (linhas 258-354)
    */
+  @ApiOperation({ summary: '[LEGACY] Cria sessão sem retornar sessionId', description: 'Endpoint de compatibilidade com frontend antigo. Detecta Chrome automaticamente e cria sessão, mas retorna apenas pageInfo (sem sessionId). Use POST /api/session/create para novos projetos.' })
+  @ApiBody({ schema: { type: 'object', properties: { browserWSEndpoint: { type: 'string', example: 'ws://localhost:9222', description: 'Opcional - será sobrescrito por detecção automática' }, $debug: { type: 'boolean', example: true } }, description: 'Configuração parcial - browserWSEndpoint será detectado automaticamente' } })
+  @ApiResponse({ status: 200, description: 'Sessão criada (sem sessionId)', schema: { example: { success: true, message: 'Sessão iniciada com sucesso!', pageInfo: { url: 'about:blank', title: '', timestamp: '2024-01-15T10:30:00.000Z' } } } })
+  @ApiResponse({ status: 500, description: 'Chrome não detectado ou erro na conexão' })
   @Post('execute')
   @HttpCode(HttpStatus.OK)
   async executeLegacy(@Body() config: LegacyExecuteDto) {
@@ -103,6 +109,9 @@ export class UtilsController {
    * GET /chrome/check - Verifica disponibilidade do Chrome
    * Replica lógica do Express backend (linhas 169-252)
    */
+  @ApiOperation({ summary: 'Detecta Chrome remoto disponível', description: 'Testa endpoints conhecidos (docker.for.mac.localhost, host.docker.internal, gateway IP) e retorna instruções específicas por plataforma se não encontrado.' })
+  @ApiResponse({ status: 200, description: 'Chrome detectado', schema: { example: { available: true, endpoint: 'ws://docker.for.mac.localhost:9222', chromeVersion: 'Chrome/120.0.6099.109', detectedAt: 'docker.for.mac.localhost:9222' } } })
+  @ApiResponse({ status: 200, description: 'Chrome não detectado (ainda retorna 200)', schema: { example: { available: false, error: 'Timeout ao conectar', testedEndpoints: ['docker.for.mac.localhost:9222', 'host.docker.internal:9222'], instructions: 'Execute no terminal do host (macOS): /Applications/Google\\ Chrome.app/Contents/MacOS/Google\\ Chrome --remote-debugging-port=9222 --remote-debugging-address=0.0.0.0 ...', troubleshooting: ['1. ESSENCIAL: Use --remote-debugging-address=0.0.0.0', '2. Certifique-se de que o Chrome está rodando no macOS (host)', '...'] } } })
   @Get('chrome/check')
   async checkChrome(@Req() req: Request) {
     try {
@@ -171,6 +180,7 @@ export class UtilsController {
    * GET /docs - Serve documentação README.md como HTML
    * Replica lógica do Express backend (linhas 148-166)
    */
+  @ApiExcludeEndpoint()
   @Get('docs')
   async getDocs() {
     try {
