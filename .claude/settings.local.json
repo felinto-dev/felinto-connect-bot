@@ -14,7 +14,8 @@
       "Bash(PORT_NESTJS=4000 timeout:*)",
       "Bash(npx ts-node:*)",
       "Bash(PORT_NESTJS=4000 npx ts-node:*)",
-      "Bash(CHROME_HEADLESS_WS_URL=ws://chromium:3000 pnpm run build:*)"
+      "Bash(CHROME_HEADLESS_WS_URL=ws://chromium:3000 pnpm run build:*)",
+      "Bash(find:*)"
     ],
     "deny": [],
     "ask": []
