@@ -7,6 +7,7 @@ export type RecordingEventType =
   | 'form_focus'
   | 'form_input_change'
   | 'form_navigation'
+  | 'form'
   | 'screenshot'
   | 'page_load';
 
