@@ -5,9 +5,13 @@ import { json, urlencoded } from 'express';
 import { ConfigService } from '@nestjs/config';
 import { LoggingInterceptor } from './common/interceptors/logging.interceptor';
 import { HttpExceptionFilter } from './common/filters/http-exception.filter';
+import { WsAdapter } from '@nestjs/platform-ws';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
+
+  // Configurar WebSocket Adapter
+  app.useWebSocketAdapter(new WsAdapter(app));
 
   // Configurações globais - espelhando configuração do Express backend
   app.enableCors();
@@ -28,6 +32,7 @@ async function bootstrap() {
 
   console.log(`🚀 NestJS Backend rodando em http://localhost:${port}`);
   console.log(`📊 Health check: http://localhost:${port}/api/health`);
+  console.log(`🔌 WebSocket disponível em ws://localhost:${port}/ws`);
 }
 
 bootstrap();
