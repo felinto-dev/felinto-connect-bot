@@ -9,15 +9,12 @@ import {
   Min,
   Max,
   ArrayNotEmpty,
+  ValidateNested,
 } from 'class-validator';
 import { Type } from 'class-transformer';
 import { RecordingEventType, RecordingMode } from '../types/recording.types';
 
-export class StartRecordingDto {
-  @IsString()
-  @IsNotEmpty()
-  sessionId: string;
-
+export class RecordingConfigDto {
   @IsArray()
   @ArrayNotEmpty()
   @IsEnum(RecordingEventType, { each: true })
@@ -47,6 +44,16 @@ export class StartRecordingDto {
   @IsNumber()
   @Min(1)
   maxEvents?: number;
+}
+
+export class StartRecordingDto {
+  @IsString()
+  @IsNotEmpty()
+  sessionId: string;
+
+  @ValidateNested()
+  @Type(() => RecordingConfigDto)
+  config: RecordingConfigDto;
 }
 
 export class StopRecordingDto {
