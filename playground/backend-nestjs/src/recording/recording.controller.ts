@@ -355,9 +355,10 @@ export class RecordingController {
   @Post('recording/export')
   @HttpCode(HttpStatus.OK)
   async exportRecording(@Body() dto: ExportRecordingDto): Promise<ExportRecordingResponse> {
+    // Extrair recordingId e options no formato Express
+    const { recordingId, options } = dto.toExportRequest();
+
     try {
-      // Extrair recordingId e options no formato Express
-      const { recordingId, options } = dto.toExportRequest();
 
       // Validação explícita para compatibilidade com backend Express
       if (!recordingId || recordingId.trim() === '') {
@@ -429,9 +430,6 @@ export class RecordingController {
 
       console.error('❌ Erro ao exportar gravação:', error instanceof Error ? error.message : error);
 
-      // Extrair recordingId para o broadcast de erro
-      const { recordingId } = dto.toExportRequest();
-
       // Broadcast de erro
       this.websocketGateway.broadcast({
         type: 'error',
@@ -488,7 +486,7 @@ export class RecordingController {
 
   @Get('recording/:recordingId')
   @HttpCode(HttpStatus.OK)
-  async getRecording(@Param('recordingId') recordingId: string): Promise<RecordingDetailResponse> {
+  async getRecordingById(@Param('recordingId') recordingId: string): Promise<RecordingDetailResponse> {
     try {
       const recording = this.recordingService.getRecording(recordingId);
 

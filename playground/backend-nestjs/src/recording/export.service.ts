@@ -207,7 +207,7 @@ export class ExportService {
         if (addComments) {
           code += `  // Screenshot capturado durante gravação\n`;
         }
-        code += `  await page.screenshot({ path: 'screenshot_${Date.now()}.png' });\n`;
+        code += `  await page.screenshot({ path: 'screenshot_${event.timestamp}.png' });\n`;
         break;
 
       case 'page_load':
