@@ -5,6 +5,7 @@ import {
   RecordingStatus,
   RecordingEvent,
 } from './recording.types';
+import { PlaybackConfig, PlaybackStatus } from './playback.types';
 
 export interface StartRecordingResponse {
   recordingId: string;
@@ -107,4 +108,35 @@ export interface RecordingListResponse {
 export interface RecordingDetailResponse {
   success: boolean;
   recording: RecordingData;
+}
+
+export interface StartPlaybackResponse {
+  success: boolean;
+  message: string;
+  recordingId: string;
+  sessionId: string;
+  config: PlaybackConfig;
+  status: PlaybackStatus;
+}
+
+export interface PlaybackControlResponse {
+  success: boolean;
+  message: string;
+  recordingId: string;
+  action: string; // 'pause' | 'resume' | 'stop'
+  status: PlaybackStatus;
+}
+
+export interface PlaybackSeekResponse {
+  success: boolean;
+  message: string;
+  recordingId: string;
+  eventIndex: number;
+  status: PlaybackStatus;
+}
+
+export interface PlaybackStatusResponse {
+  success: boolean;
+  isActive: boolean;
+  status: PlaybackStatus | null; // null when no active playback
 }
