@@ -407,6 +407,20 @@ export class PlaybackCaptureService {
   }
 
   /**
+   * Atualizar velocidade de reprodução
+   */
+  updateSpeed(speed: number): void {
+    if (speed < 0.1 || speed > 5) {
+      throw new Error('Velocidade deve estar entre 0.1 e 5.0');
+    }
+
+    this.config.speed = speed;
+    this.status.speed = speed;
+
+    console.log(`⚡ Velocidade de reprodução atualizada para ${speed}x`);
+  }
+
+  /**
    * Obter status atual
    */
   getStatus(): PlaybackStatus {

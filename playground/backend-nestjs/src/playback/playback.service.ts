@@ -13,8 +13,12 @@ import {
 import {
   StartPlaybackDto,
   PlaybackControlDto,
-  PlaybackSeekDto
+  PlaybackSeekDto,
+  PlaybackAction
 } from '../common/dto/playback.dto';
+import {
+  StartPlaybackResponse
+} from '../common/types/api-responses.types';
 
 export class PlaybackNotFoundError extends Error {
   constructor(recordingId: string) {
@@ -47,14 +51,7 @@ export class PlaybackService {
     private readonly websocketGateway: WebsocketGateway
   ) {}
 
-  async startPlayback(dto: StartPlaybackDto): Promise<{
-    success: boolean;
-    message: string;
-    recordingId: string;
-    sessionId: string;
-    config: PlaybackConfig;
-    status: PlaybackStatus;
-  }> {
+  async startPlayback(dto: StartPlaybackDto): Promise<StartPlaybackResponse> {
     // Validar sessionId
     const session = this.sessionService.getSession(dto.sessionId);
     if (!session) {
@@ -127,15 +124,15 @@ export class PlaybackService {
     let message: string;
 
     switch (dto.action) {
-      case 'pause':
+      case PlaybackAction.PAUSE:
         captureService.pausePlayback();
         message = 'Reprodução pausada';
         break;
-      case 'resume':
+      case PlaybackAction.RESUME:
         captureService.resumePlayback();
         message = 'Reprodução resumida';
         break;
-      case 'stop':
+      case PlaybackAction.STOP:
         captureService.stopPlayback();
         this.activePlaybackServices.delete(dto.recordingId);
         message = 'Reprodução parada';
@@ -144,9 +141,10 @@ export class PlaybackService {
         throw new Error(`Ação de reprodução inválida: ${dto.action}`);
     }
 
-    // If speed is provided and action is resume, update speed (not implemented in Express, but available in DTO)
-    if (dto.speed && dto.action === 'resume') {
-      console.log(`⚠️ Speed change during resume not implemented: ${dto.speed}`);
+    // If speed is provided and action is resume, update speed
+    if (dto.speed && dto.action === PlaybackAction.RESUME) {
+      captureService.updateSpeed(dto.speed);
+      message = `Reprodução resumida com velocidade ${dto.speed}x`;
     }
 
     return {

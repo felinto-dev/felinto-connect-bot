@@ -13,6 +13,7 @@ import {
 } from '@nestjs/common';
 import { PlaybackService, PlaybackNotFoundError, PlaybackAlreadyActiveError } from './playback.service';
 import { SessionService, SessionNotFoundError } from '../session/session.service';
+import { RecordingService, RecordingNotFoundError } from '../recording/recording.service';
 import { StartPlaybackDto, PlaybackControlDto, PlaybackSeekDto } from '../common/dto/playback.dto';
 import {
   StartPlaybackResponse,
@@ -41,7 +42,7 @@ export class PlaybackController {
         });
       }
 
-      if (error instanceof PlaybackNotFoundError) {
+      if (error instanceof RecordingNotFoundError) {
         throw new NotFoundException({
           success: false,
           error: 'Gravação não encontrada'
