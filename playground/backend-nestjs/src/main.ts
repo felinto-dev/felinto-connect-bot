@@ -62,7 +62,7 @@ async function bootstrap() {
       .addTag('Export', 'Exportação de gravações')
       .addTag('Utils', 'Utilitários')
       .addTag('Health', 'Verificação de saúde')
-      .addServer('http://localhost:3002', 'Servidor de Desenvolvimento')
+      .addServer('http://localhost:3002/api', 'Servidor de Desenvolvimento')
       .build();
 
     const document = SwaggerModule.createDocument(app, config);
