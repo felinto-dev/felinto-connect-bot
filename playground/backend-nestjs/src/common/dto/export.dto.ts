@@ -61,7 +61,10 @@ export class ExportRecordingDto {
   @IsNotEmpty()
   recordingId: string;
 
-  @ApiProperty({ description: 'Opções de exportação' })
+  @ApiProperty({
+    description: 'Opções de exportação',
+    type: () => ExportOptionsDto
+  })
   @IsObject()
   options: ExportOptionsDto;
 

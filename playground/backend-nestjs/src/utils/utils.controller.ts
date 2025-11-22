@@ -181,7 +181,7 @@ export class UtilsController {
    * Replica lógica do Express backend (linhas 148-166)
    */
   @ApiExcludeEndpoint()
-  @Get('docs')
+  @Get('readme')
   async getDocs() {
     try {
       const docResult = await this.documentationService.getDocumentation();

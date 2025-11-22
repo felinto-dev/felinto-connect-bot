@@ -20,7 +20,7 @@ import { WebsocketGateway } from './websocket/websocket.gateway';
   ],
 })
 export class AppModule implements OnApplicationShutdown {
-  constructor(private readonly websocketGateway: WebsocketGateway) {}
+  constructor(private readonly websocketGateway?: WebsocketGateway) {}
 
   async onApplicationShutdown(signal?: string) {
     try {
@@ -33,8 +33,12 @@ export class AppModule implements OnApplicationShutdown {
         console.log('📡 Detectado SIGTERM - Shutdown solicitado pelo sistema');
       }
 
-      // Explicitly close WebSocket connections
-      this.websocketGateway.closeAllConnections();
+      // Explicitly close WebSocket connections (if available)
+      if (this.websocketGateway) {
+        this.websocketGateway.closeAllConnections();
+      } else {
+        console.log('⚠️ WebsocketGateway não disponível para cleanup');
+      }
 
       // Note: Other services (RecordingService, PlaybackService, SessionService)
       // will have their onApplicationShutdown methods called automatically by NestJS

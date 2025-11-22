@@ -139,7 +139,7 @@ pnpm start            # Produção (requer build prévio)
 |--------|----------|----------|
 | POST | `/api/execute` | [LEGACY] Cria sessão sem sessionId |
 | GET | `/api/chrome/check` | Detecta Chrome remoto |
-| GET | `/api/docs` | Documentação README como HTML |
+| GET | `/api/readme` | Documentação README como HTML |
 
 ## 📚 Documentação Interativa
 

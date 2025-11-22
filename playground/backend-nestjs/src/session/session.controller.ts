@@ -15,14 +15,45 @@ import {
 } from '@nestjs/common';
 import { SessionService, SessionNotFoundError } from './session.service';
 import { CreateSessionDto, ExecuteCodeDto, SessionIdDto, ScreenshotOptionsDto, TakeScreenshotDto } from '../common/dto/session.dto';
-// import { ApiTags, ApiOperation, ApiResponse, ApiBody, ApiParam } from '@nestjs/swagger';
+import { ApiTags, ApiOperation, ApiResponse, ApiBody, ApiParam } from '@nestjs/swagger';
 
+@ApiTags('Session')
 @Controller('api/session')
 export class SessionController {
   constructor(private readonly sessionService: SessionService) {}
 
   @Post('create')
   @HttpCode(HttpStatus.OK)
+  @ApiOperation({
+    summary: 'Criar nova sessão',
+    description: 'Cria uma nova sessão de navegação usando o endpoint WebSocket do navegador'
+  })
+  @ApiBody({ type: CreateSessionDto })
+  @ApiResponse({
+    status: 200,
+    description: 'Sessão criada com sucesso',
+    schema: {
+      example: {
+        success: true,
+        sessionId: 'session-12345',
+        message: 'Sessão criada com sucesso!',
+        pageInfo: {
+          title: 'Example Page',
+          url: 'https://example.com'
+        }
+      }
+    }
+  })
+  @ApiResponse({
+    status: 500,
+    description: 'Erro interno do servidor',
+    schema: {
+      example: {
+        error: 'Failed to connect to browser',
+        stack: 'Error stack trace...'
+      }
+    }
+  })
   async createSession(@Body() createSessionDto: CreateSessionDto) {
     try {
       const sessionData = await this.sessionService.createSession(
@@ -45,6 +76,38 @@ export class SessionController {
 
   @Post('execute')
   @HttpCode(HttpStatus.OK)
+  @ApiOperation({
+    summary: 'Executar código JavaScript',
+    description: 'Executa código JavaScript na página da sessão especificada'
+  })
+  @ApiBody({ type: ExecuteCodeDto })
+  @ApiResponse({
+    status: 200,
+    description: 'Código executado com sucesso',
+    schema: {
+      example: {
+        success: true,
+        message: 'Código executado com sucesso!',
+        result: 'Example Page Title',
+        error: null
+      }
+    }
+  })
+  @ApiResponse({
+    status: 404,
+    description: 'Sessão não encontrada',
+    schema: {
+      example: {
+        error: 'Sessão não encontrada',
+        sessionExpired: true,
+        message: 'A sessão expirou ou foi removida. Crie uma nova sessão.'
+      }
+    }
+  })
+  @ApiResponse({
+    status: 500,
+    description: 'Erro interno do servidor'
+  })
   async executeCode(@Body() executeCodeDto: ExecuteCodeDto) {
     try {
       const result = await this.sessionService.executeCode(
@@ -76,6 +139,37 @@ export class SessionController {
 
   @Post('screenshot')
   @HttpCode(HttpStatus.OK)
+  @ApiOperation({
+    summary: 'Capturar screenshot',
+    description: 'Captura uma screenshot da página atual da sessão'
+  })
+  @ApiBody({ type: TakeScreenshotDto })
+  @ApiResponse({
+    status: 200,
+    description: 'Screenshot capturada com sucesso',
+    schema: {
+      example: {
+        success: true,
+        screenshot: 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAA...',
+        message: 'Screenshot capturado com sucesso!'
+      }
+    }
+  })
+  @ApiResponse({
+    status: 404,
+    description: 'Sessão não encontrada',
+    schema: {
+      example: {
+        error: 'Sessão não encontrada',
+        sessionExpired: true,
+        message: 'A sessão expirou ou foi removida. Crie uma nova sessão.'
+      }
+    }
+  })
+  @ApiResponse({
+    status: 500,
+    description: 'Erro interno do servidor'
+  })
   async takeScreenshot(@Body() dto: TakeScreenshotDto) {
     try {
       this.sessionService.notifyScreenshotCapture('starting');
@@ -110,6 +204,38 @@ export class SessionController {
 
   @Delete(':sessionId')
   @HttpCode(HttpStatus.OK)
+  @ApiOperation({
+    summary: 'Remover sessão',
+    description: 'Remove uma sessão existente e libera os recursos associados'
+  })
+  @ApiParam({
+    name: 'sessionId',
+    description: 'ID da sessão a ser removida',
+    example: 'session-12345'
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Sessão removida com sucesso',
+    schema: {
+      example: {
+        success: true,
+        message: 'Sessão removida com sucesso!'
+      }
+    }
+  })
+  @ApiResponse({
+    status: 404,
+    description: 'Sessão não encontrada',
+    schema: {
+      example: {
+        error: 'Sessão não encontrada'
+      }
+    }
+  })
+  @ApiResponse({
+    status: 500,
+    description: 'Erro interno do servidor'
+  })
   async removeSession(@Param('sessionId') sessionId: string) {
     try {
       const removed = await this.sessionService.removeSession(sessionId);
@@ -138,6 +264,29 @@ export class SessionController {
 
   @Get('s/stats')
   @HttpCode(HttpStatus.OK)
+  @ApiOperation({
+    summary: 'Obter estatísticas',
+    description: 'Retorna estatísticas das sessões ativas e informações gerais do sistema'
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Estatísticas obtidas com sucesso',
+    schema: {
+      example: {
+        success: true,
+        stats: {
+          activeSessions: 3,
+          totalSessionsCreated: 10,
+          uptime: '2h 15m',
+          memoryUsage: '45MB'
+        }
+      }
+    }
+  })
+  @ApiResponse({
+    status: 500,
+    description: 'Erro interno do servidor'
+  })
   async getStats() {
     try {
       const stats = await this.sessionService.getStats();
@@ -156,6 +305,57 @@ export class SessionController {
 
   @Get(':sessionId/validate')
   @HttpCode(HttpStatus.OK)
+  @ApiOperation({
+    summary: 'Validar sessão',
+    description: 'Verifica se uma sessão existe e está válida, retornando informações da página atual'
+  })
+  @ApiParam({
+    name: 'sessionId',
+    description: 'ID da sessão a ser validada',
+    example: 'session-12345'
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Sessão válida',
+    schema: {
+      example: {
+        success: true,
+        valid: true,
+        sessionId: 'session-12345',
+        pageInfo: {
+          title: 'Example Page',
+          url: 'https://example.com'
+        }
+      }
+    }
+  })
+  @ApiResponse({
+    status: 400,
+    description: 'Dados inválidos',
+    schema: {
+      example: {
+        success: false,
+        valid: false,
+        error: 'sessionId é obrigatório'
+      }
+    }
+  })
+  @ApiResponse({
+    status: 404,
+    description: 'Sessão não encontrada ou inválida',
+    schema: {
+      example: {
+        success: false,
+        valid: false,
+        error: 'Sessão não encontrada ou inválida',
+        sessionExpired: true
+      }
+    }
+  })
+  @ApiResponse({
+    status: 500,
+    description: 'Erro interno do servidor'
+  })
   async validateSession(@Param('sessionId') sessionId: string) {
     if (!sessionId) {
       throw new BadRequestException({

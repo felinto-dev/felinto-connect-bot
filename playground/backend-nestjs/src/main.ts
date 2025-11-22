@@ -8,8 +8,6 @@ import { HttpExceptionFilter } from './common/filters/http-exception.filter';
 import { WsAdapter } from '@nestjs/platform-ws';
 import { INestApplication } from '@nestjs/common';
 import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger';
-import { UtilsModule } from './utils/utils.module';
-import { HealthModule } from './health/health.module';
 
 function setupGracefulShutdown(app: INestApplication) {
   // Handle uncaught exceptions
@@ -41,10 +39,6 @@ async function bootstrap() {
   // Configurar WebSocket Adapter
   app.useWebSocketAdapter(new WsAdapter(app));
 
-  // Configurações globais - espelhando configuração do Express backend
-  app.enableCors();
-  app.setGlobalPrefix('api');
-
   // Configuração JSON e URLencoded para espelhar backend Express
   app.use(json());
   app.use(urlencoded({ extended: true }));
@@ -53,26 +47,28 @@ async function bootstrap() {
   app.useGlobalInterceptors(new LoggingInterceptor());
   app.useGlobalFilters(new HttpExceptionFilter());
   app.enableShutdownHooks();
+  app.enableCors();
 
-  // Configuração Swagger - abordagem minimalista para evitar circular dependency
+  // Configuração Swagger - DEVE ser feita ANTES do setGlobalPrefix
   try {
     const config = new DocumentBuilder()
       .setTitle('Felinto Connect Bot - Backend API')
       .setDescription('API REST para gerenciamento de sessões Puppeteer')
       .setVersion('1.0.0')
-      .addTag('Health', 'Verificação de saúde')
+      .addTag('Session', 'Gerenciamento de sessões')
+      .addTag('Recording', 'Gravação de interações')
+      .addTag('Playback', 'Reprodução de gravações')
+      .addTag('Export', 'Exportação de gravações')
       .addTag('Utils', 'Utilitários')
+      .addTag('Health', 'Verificação de saúde')
+      .addServer('http://localhost:3002', 'Servidor de Desenvolvimento')
       .build();
 
-    const document = SwaggerModule.createDocument(app, config, {
-      include: [UtilsModule, HealthModule],
-      deepScanRoutes: true,
-    });
+    const document = SwaggerModule.createDocument(app, config);
 
-    SwaggerModule.setup('api/docs', app, document, {
+    SwaggerModule.setup('docs', app, document, {
       customSiteTitle: 'Felinto Connect Bot API',
       customCss: '.swagger-ui .topbar { display: none }',
-      customSiteTitle: 'API Documentation'
     });
 
     console.log(`📚 Documentação Swagger configurada com sucesso`);
@@ -81,8 +77,11 @@ async function bootstrap() {
     console.log('   Continuando sem documentação Swagger...');
   }
 
+  // Configurações globais - DEVE ser feito DEPOIS do Swagger setup
+  app.setGlobalPrefix('api');
+
   const configService = app.get(ConfigService);
-  const port = configService.get<number>('port', 3000);
+  const port = configService.get<number>('PORT_NESTJS', 3002);
   await app.listen(port);
 
   console.log(`🚀 NestJS Backend rodando em http://localhost:${port}`);
