@@ -82,10 +82,6 @@ export class PauseRecordingDto {
 }
 
 export class ScreenshotDto {
-  @IsString()
-  @IsNotEmpty()
-  sessionId: string;
-
   @IsOptional()
   @IsNumber()
   @Min(0)

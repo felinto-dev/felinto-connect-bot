@@ -23,6 +23,47 @@ export class RecordingController {
     private readonly sessionService: SessionService
   ) {}
 
+  /**
+   * Helper method para validar sessão ativa
+   * @param sessionId ID da sessão a ser validada
+   * @returns Sessão validada e ativa
+   * @throws BadRequestException se sessionId for inválido
+   * @throws NotFoundException se sessão não for encontrada ou não estiver ativa
+   */
+  private async getActiveSessionOrThrow(sessionId: string) {
+    if (!sessionId || sessionId.trim() === '') {
+      throw new BadRequestException({
+        success: false,
+        error: 'sessionId é obrigatório'
+      });
+    }
+
+    let session;
+    try {
+      session = await this.sessionService.getSession(sessionId);
+    } catch (error) {
+      if (error instanceof SessionNotFoundError) {
+        throw new NotFoundException({
+          success: false,
+          error: 'Sessão não encontrada',
+          sessionExpired: true
+        });
+      }
+      throw error;
+    }
+
+    const isValid = await this.sessionService.isSessionValid(sessionId);
+    if (!isValid) {
+      throw new NotFoundException({
+        success: false,
+        error: 'Sessão foi fechada ou não está mais ativa',
+        sessionExpired: true
+      });
+    }
+
+    return session;
+  }
+
   @Post('start')
   @HttpCode(HttpStatus.OK)
   async startRecording(@Body() dto: StartRecordingDto) {
@@ -152,36 +193,8 @@ export class RecordingController {
     @Param('sessionId') sessionId: string,
     @Body() dto: ScreenshotDto
   ): Promise<ScreenshotResponse> {
-    if (!sessionId || sessionId.trim() === '') {
-      throw new BadRequestException({
-        success: false,
-        error: 'sessionId é obrigatório'
-      });
-    }
-
     try {
-      let session;
-      try {
-        session = await this.sessionService.getSession(sessionId);
-      } catch (error) {
-        if (error instanceof SessionNotFoundError) {
-          throw new NotFoundException({
-            success: false,
-            error: 'Sessão não encontrada',
-            sessionExpired: true
-          });
-        }
-        throw error;
-      }
-
-      const isValid = await this.sessionService.isSessionValid(sessionId);
-      if (!isValid) {
-        throw new NotFoundException({
-          success: false,
-          error: 'Sessão foi fechada ou não está mais ativa',
-          sessionExpired: true
-        });
-      }
+      const session = await this.getActiveSessionOrThrow(sessionId);
 
       console.log(`📸 Capturando screenshot da sessão: ${sessionId}`);
 
@@ -230,36 +243,8 @@ export class RecordingController {
   @Get('preview/:sessionId')
   @HttpCode(HttpStatus.OK)
   async capturePreview(@Param('sessionId') sessionId: string): Promise<PreviewResponse> {
-    if (!sessionId || sessionId.trim() === '') {
-      throw new BadRequestException({
-        success: false,
-        error: 'sessionId é obrigatório'
-      });
-    }
-
     try {
-      let session;
-      try {
-        session = await this.sessionService.getSession(sessionId);
-      } catch (error) {
-        if (error instanceof SessionNotFoundError) {
-          throw new NotFoundException({
-            success: false,
-            error: 'Sessão não encontrada',
-            sessionExpired: true
-          });
-        }
-        throw error;
-      }
-
-      const isValid = await this.sessionService.isSessionValid(sessionId);
-      if (!isValid) {
-        throw new NotFoundException({
-          success: false,
-          error: 'Sessão foi fechada ou não está mais ativa',
-          sessionExpired: true
-        });
-      }
+      const session = await this.getActiveSessionOrThrow(sessionId);
 
       const screenshot = await session.page.screenshot({
         type: 'jpeg',
@@ -296,27 +281,8 @@ export class RecordingController {
   @Get('page-info/:sessionId')
   @HttpCode(HttpStatus.OK)
   async getPageInfo(@Param('sessionId') sessionId: string): Promise<PageInfoResponse> {
-    if (!sessionId || sessionId.trim() === '') {
-      throw new BadRequestException({
-        success: false,
-        error: 'sessionId é obrigatório'
-      });
-    }
-
     try {
-      let session;
-      try {
-        session = await this.sessionService.getSession(sessionId);
-      } catch (error) {
-        if (error instanceof SessionNotFoundError) {
-          throw new NotFoundException({
-            success: false,
-            error: 'Sessão não encontrada',
-            sessionExpired: true
-          });
-        }
-        throw error;
-      }
+      const session = await this.getActiveSessionOrThrow(sessionId);
 
       const pageUrl = await session.page.url();
       const pageTitle = await session.page.title();
@@ -326,7 +292,8 @@ export class RecordingController {
       try {
         metrics = await session.page.metrics();
       } catch (error) {
-        // Ignore metrics error, set to null
+        // Métricas podem não estar disponíveis em alguns cenários, não é crítico
+        console.warn(`⚠️ Não foi possível obter métricas da página para sessão ${sessionId}:`, error instanceof Error ? error.message : error);
         metrics = null;
       }
 

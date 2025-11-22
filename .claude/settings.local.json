@@ -19,7 +19,8 @@
       "WebSearch",
       "Bash(node:*)",
       "Bash(pnpm list:*)",
-      "Bash(pnpm install:*)"
+      "Bash(pnpm install:*)",
+      "Bash(pnpm test)"
     ],
     "deny": [],
     "ask": []
