@@ -50,6 +50,7 @@ async function bootstrap() {
   app.enableCors();
 
   // Configuração Swagger - DEVE ser feita ANTES do setGlobalPrefix
+  let swaggerEnabled = false;
   try {
     const config = new DocumentBuilder()
       .setTitle('Felinto Connect Bot - Backend API')
@@ -66,11 +67,12 @@ async function bootstrap() {
 
     const document = SwaggerModule.createDocument(app, config);
 
-    SwaggerModule.setup('docs', app, document, {
+    SwaggerModule.setup('api/docs', app, document, {
       customSiteTitle: 'Felinto Connect Bot API',
       customCss: '.swagger-ui .topbar { display: none }',
     });
 
+    swaggerEnabled = true;
     console.log(`📚 Documentação Swagger configurada com sucesso`);
   } catch (error) {
     console.warn('⚠️ Não foi possível inicializar Swagger:', error instanceof Error ? error.message : error);
@@ -87,7 +89,9 @@ async function bootstrap() {
   console.log(`🚀 NestJS Backend rodando em http://localhost:${port}`);
   console.log(`📊 Health check: http://localhost:${port}/api/health`);
   console.log(`🔌 WebSocket disponível em ws://localhost:${port}/ws`);
-  console.log(`📚 Documentação Swagger: http://localhost:${port}/api/docs`);
+  if (swaggerEnabled) {
+    console.log(`📚 Documentação Swagger: http://localhost:${port}/api/docs`);
+  }
   console.log('\n🔧 Shutdown gracioso habilitado (Ctrl+C para parar)');
 
   // Setup graceful shutdown handlers

@@ -29,7 +29,7 @@ import {
 import { ApiTags, ApiOperation, ApiResponse, ApiBody, ApiParam } from '@nestjs/swagger';
 
 @ApiTags('Recording', 'Export')
-@Controller('api')
+@Controller('')
 export class RecordingController {
   constructor(
     private readonly recordingService: RecordingService,

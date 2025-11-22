@@ -24,7 +24,7 @@ import {
 import { ApiTags, ApiOperation, ApiResponse, ApiBody, ApiParam } from '@nestjs/swagger';
 
 @ApiTags('Playback')
-@Controller('api')
+@Controller('')
 export class PlaybackController {
   constructor(
     private readonly playbackService: PlaybackService

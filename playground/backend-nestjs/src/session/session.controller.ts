@@ -18,7 +18,7 @@ import { CreateSessionDto, ExecuteCodeDto, SessionIdDto, ScreenshotOptionsDto, T
 import { ApiTags, ApiOperation, ApiResponse, ApiBody, ApiParam } from '@nestjs/swagger';
 
 @ApiTags('Session')
-@Controller('api/session')
+@Controller('session')
 export class SessionController {
   constructor(private readonly sessionService: SessionService) {}
 
