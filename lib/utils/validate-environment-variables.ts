@@ -33,8 +33,8 @@ export const validateEnvironmentVariables = (options: ValidateEnvOptions = {}) =
 	};
 
 	for (const variable of requiredVars) {
-		if (!process.env[variable] && !providedValues[variable]) {
-			throw new Error(`Environment variable ${variable} is required for use felinto-connect-bot npm package.`);
-		}
+		if (providedValues[variable]) continue;
+		if (process.env[variable]) continue;
+		throw new Error(`Environment variable ${variable} is required for use felinto-connect-bot npm package.`);
 	}
 };

@@ -36,15 +36,20 @@ export * from './types';
 export const newPage = async (
 	params: NewPageParams = {},
 ): Promise<ExtendedPage> => {
-	// Validate environment variables
-	try {
-		validateEnvironmentVariables({
-			twoCaptchaKey: params.twoCaptchaKey,
-			proxyUsername: params.proxy?.username,
-			proxyPassword: params.proxy?.password,
-		});
-	} catch (error) {
-		throw new Error(`Environment validation failed: ${(error as Error).message}`);
+	// Validate environment variables (skip if all values provided via params)
+	const envOptions = {
+		twoCaptchaKey: params.twoCaptchaKey,
+		proxyUsername: params.proxy?.username,
+		proxyPassword: params.proxy?.password,
+	};
+	const allRequiredProvided = Object.values(envOptions).every(Boolean);
+
+	if (!allRequiredProvided) {
+		try {
+			validateEnvironmentVariables(envOptions);
+		} catch (error) {
+			throw new Error(`Environment validation failed: ${(error as Error).message}`);
+		}
 	}
 
 	const browser = await BrowserFactory.createBrowser({
