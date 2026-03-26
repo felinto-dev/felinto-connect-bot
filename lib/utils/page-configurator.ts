@@ -25,11 +25,10 @@ export class PageConfigurator {
 			const page = (await browser.newPage()) as ExtendedPage;
 
 			if (params.proxy?.server) {
-				if (params.proxy.username && params.proxy.password) {
-					await page.authenticate({
-						username: params.proxy.username,
-						password: params.proxy.password,
-					});
+				const username = params.proxy.username || process.env.PROXY_USERNAME;
+				const password = params.proxy.password || process.env.PROXY_PASSWORD;
+				if (username && password) {
+					await page.authenticate({ username, password });
 				}
 			}
 

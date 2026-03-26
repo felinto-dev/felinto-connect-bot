@@ -7,6 +7,7 @@ export interface ExtendedPage extends Page {
 
 export interface NewPageParams {
 	browserWSEndpoint?: string;
+	twoCaptchaKey?: string;
 	proxy?: {
 		server: string;
 		username?: string;

@@ -1,5 +1,6 @@
 import { Browser, ConnectOptions } from 'puppeteer';
 import puppeteerExtra from 'puppeteer-extra';
+import RecaptchaPlugin from 'puppeteer-extra-plugin-recaptcha';
 import { BrowserConnectionError } from './custom-errors';
 import { retryOperation, RetryOptions } from './retry-mechanism';
 
@@ -7,6 +8,7 @@ export interface BrowserFactoryOptions {
 	browserWSEndpoint?: string;
 	slowMo?: number;
 	retryOptions?: RetryOptions;
+	twoCaptchaKey?: string;
 }
 
 export class BrowserFactory {
@@ -27,7 +29,14 @@ export class BrowserFactory {
 	}
 
 	static async createBrowser(options: BrowserFactoryOptions): Promise<Browser> {
-		const { browserWSEndpoint, slowMo, retryOptions = { maxRetries: 3, baseDelay: 1000 } } = options;
+		const { browserWSEndpoint, slowMo, retryOptions = { maxRetries: 3, baseDelay: 1000 }, twoCaptchaKey } = options;
+
+		const resolvedCaptchaKey = twoCaptchaKey || process.env.TWO_CAPTCHA_KEY;
+		if (resolvedCaptchaKey) {
+			puppeteerExtra.use(RecaptchaPlugin({
+				provider: { id: '2captcha', token: resolvedCaptchaKey },
+			}));
+		}
 		const commonArgs = this.getCommonPuppeteerArgs(slowMo);
 
 		if (!browserWSEndpoint) {

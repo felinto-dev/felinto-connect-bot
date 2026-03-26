@@ -46,6 +46,12 @@ const page = await newPage({
 ```typescript
 interface newPageParams {
   browserWSEndpoint?: string;           // Endpoint do browser remoto
+  twoCaptchaKey?: string;               // Chave da API 2Captcha (alternativa à env var)
+  proxy?: {                             // Configuração de proxy
+    server: string;                     // Endereço do proxy (ex: http://proxy:8080)
+    username?: string;                  // Usuário do proxy (alternativa à env var PROXY_USERNAME)
+    password?: string;                  // Senha do proxy (alternativa à env var PROXY_PASSWORD)
+  };
   userAgent?: string;                   // User agent customizado
   cookies?: Protocol.Network.CookieParam[]; // Cookies para definir
   timeout?: number;                     // Timeout em segundos (padrão: 60)
@@ -127,8 +133,10 @@ try {
 
 ## 🌍 Variáveis de Ambiente
 
+> **Nota:** `TWO_CAPTCHA_KEY`, `PROXY_USERNAME` e `PROXY_PASSWORD` podem ser passados diretamente como parâmetro no `newPage()`. As variáveis de ambiente são usadas como fallback.
+
 ```bash
-# Obrigatórias
+# Obrigatórias (ou passar via parâmetro no newPage)
 TWO_CAPTCHA_KEY=sua_chave_2captcha
 
 # Opcionais - Browser
@@ -137,12 +145,26 @@ CHROME_HEADLESS_ARGS=--no-sandbox,--disable-dev-shm-usage
 DEFAULT_CHROME_HEADLESS_WIDTH_SCREEN=1920
 DEFAULT_CHROME_HEADLESS_HEIGHT_SCREEN=1080
 
-# Opcionais - Proxy
+# Opcionais - Proxy (ou passar via proxy.username/password no newPage)
 PROXY_USERNAME=seu_usuario
 PROXY_PASSWORD=sua_senha
 
 # Ambiente
 NODE_ENV=production|development
+```
+
+### Exemplo usando parâmetros em vez de variáveis de ambiente
+
+```typescript
+const page = await newPage({
+  twoCaptchaKey: 'sua_chave_2captcha',
+  proxy: {
+    server: 'http://proxy:8080',
+    username: 'seu_usuario',
+    password: 'sua_senha',
+  },
+  initialUrl: 'https://example.com',
+});
 ```
 
 ## 📸 Screenshots

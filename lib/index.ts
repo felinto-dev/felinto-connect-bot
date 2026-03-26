@@ -38,7 +38,11 @@ export const newPage = async (
 ): Promise<ExtendedPage> => {
 	// Validate environment variables
 	try {
-		validateEnvironmentVariables();
+		validateEnvironmentVariables({
+			twoCaptchaKey: params.twoCaptchaKey,
+			proxyUsername: params.proxy?.username,
+			proxyPassword: params.proxy?.password,
+		});
 	} catch (error) {
 		throw new Error(`Environment validation failed: ${(error as Error).message}`);
 	}
@@ -47,6 +51,7 @@ export const newPage = async (
 		browserWSEndpoint:
 			params.browserWSEndpoint || process.env.CHROME_HEADLESS_WS_URL,
 		slowMo: params.connectOptions?.slowMo,
+		twoCaptchaKey: params.twoCaptchaKey,
 	});
 
 	try {
