@@ -2,27 +2,27 @@
 export class BrowserConnectionError extends Error {
 	constructor(message: string, public readonly cause?: Error) {
 		super(message);
-		this.name = 'BrowserConnectionError';
+		Object.defineProperty(this, 'name', { value: 'BrowserConnectionError', configurable: true });
 	}
 }
 
 export class PageCreationError extends Error {
 	constructor(message: string, public readonly cause?: Error) {
 		super(message);
-		this.name = 'PageCreationError';
+		Object.defineProperty(this, 'name', { value: 'PageCreationError', configurable: true });
 	}
 }
 
 export class NavigationError extends Error {
 	constructor(message: string, public readonly cause?: Error) {
 		super(message);
-		this.name = 'NavigationError';
+		Object.defineProperty(this, 'name', { value: 'NavigationError', configurable: true });
 	}
 }
 
 export class AuthenticationError extends Error {
 	constructor(message: string, public readonly cause?: Error) {
 		super(message);
-		this.name = 'AuthenticationError';
+		Object.defineProperty(this, 'name', { value: 'AuthenticationError', configurable: true });
 	}
 } 
