@@ -1,4 +1,4 @@
-import { CookieParam } from 'puppeteer-core';
+import { CookieParam } from 'puppeteer';
 import { ExtendedPage } from '../types';
 
 /**

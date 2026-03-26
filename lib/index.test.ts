@@ -1,4 +1,4 @@
-import { Protocol, CookieParam } from 'puppeteer-core';
+import { Protocol, CookieParam } from 'puppeteer';
 import { headerSetCookieToPuppeteer, newPage, puppeteerToHeaderSetCookie, screenshots } from './index';
 import { jest, expect, test } from '@jest/globals';
 

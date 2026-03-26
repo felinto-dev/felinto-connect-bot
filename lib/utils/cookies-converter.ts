@@ -1,4 +1,4 @@
-import { Protocol, CookieParam } from 'puppeteer-core';
+import { Protocol, CookieParam } from 'puppeteer';
 import { Cookie } from 'tough-cookie';
 
 export const puppeteerToHeaderSetCookie = (

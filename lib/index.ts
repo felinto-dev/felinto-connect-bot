@@ -3,7 +3,7 @@ import {
 	Page,
 	ConnectOptions,
 	CookieParam,
-} from 'puppeteer-core';
+} from 'puppeteer';
 import {
 	BrowserConnectionError,
 	PageCreationError,
