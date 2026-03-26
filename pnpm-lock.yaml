@@ -21,6 +21,9 @@ importers:
 
   lib:
     dependencies:
+      puppeteer-core:
+        specifier: ^22.14.0
+        version: 22.15.0
       puppeteer-extra:
         specifier: ^3.3.6
         version: 3.3.6(@types/puppeteer@7.0.4(typescript@5.9.2))(puppeteer-core@22.15.0)(puppeteer@22.15.0(typescript@5.9.2))
@@ -49,9 +52,6 @@ importers:
       jest:
         specifier: ^29.7.0
         version: 29.7.0(@types/node@22.18.0)(ts-node@10.9.2(@types/node@22.18.0)(typescript@5.9.2))
-      puppeteer:
-        specifier: ^22.14.0
-        version: 22.15.0(typescript@5.9.2)
       ts-jest:
         specifier: ^29.2.5
         version: 29.4.1(@babel/core@7.28.3)(@jest/transform@29.7.0)(@jest/types@29.6.3)(babel-jest@29.7.0(@babel/core@7.28.3))(esbuild@0.25.9)(jest-util@29.7.0)(jest@29.7.0(@types/node@22.18.0)(ts-node@10.9.2(@types/node@22.18.0)(typescript@5.9.2)))(typescript@5.9.2)
@@ -1560,6 +1560,7 @@ packages:
   basic-ftp@5.0.5:
     resolution: {integrity: sha512-4Bcg1P8xhUuqcii/S0Z9wiHIrQVPMermM1any+MX5GeGD7faD3/msQUDGLol9wOcz4/jbg/WJnGqoJF6LiBdtg==}
     engines: {node: '>=10.0.0'}
+    deprecated: Security vulnerability fixed in 5.2.0, please upgrade
 
   better-path-resolve@1.0.0:
     resolution: {integrity: sha512-pbnl5XzGBdrFU/wT4jqmJVPn2B6UHPBOhzMQkY/SPUPB6QtUXtmBHBIwCbXJol93mOpGMnQyP/+BB19q04xj7g==}

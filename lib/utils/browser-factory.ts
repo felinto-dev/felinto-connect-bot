@@ -1,5 +1,9 @@
-import { Browser, ConnectOptions } from 'puppeteer';
+import { Browser, ConnectOptions } from 'puppeteer-core';
 import puppeteerExtra from 'puppeteer-extra';
+import puppeteerCore from 'puppeteer-core';
+
+// Tell puppeteer-extra to use puppeteer-core instead of puppeteer
+(puppeteerExtra as any).puppeteer = puppeteerCore;
 import RecaptchaPlugin from 'puppeteer-extra-plugin-recaptcha';
 import { BrowserConnectionError } from './custom-errors';
 import { retryOperation, RetryOptions } from './retry-mechanism';

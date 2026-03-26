@@ -1,4 +1,4 @@
-import { Browser } from 'puppeteer';
+import { Browser } from 'puppeteer-core';
 import {
 	BrowserConnectionError,
 	PageCreationError,

@@ -1,4 +1,4 @@
-import { Page, ConnectOptions, CookieParam, GoToOptions } from 'puppeteer';
+import { Page, ConnectOptions, CookieParam, GoToOptions } from 'puppeteer-core';
 import { SessionManager, SessionPageExtender } from './session';
 
 export interface ExtendedPage extends Page {
