@@ -20,7 +20,8 @@
       "Bash(node:*)",
       "Bash(pnpm list:*)",
       "Bash(pnpm install:*)",
-      "Bash(pnpm test)"
+      "Bash(pnpm test)",
+      "mcp__brave-search__brave_web_search"
     ],
     "deny": [],
     "ask": []
